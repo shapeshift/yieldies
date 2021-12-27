@@ -1,0 +1,32 @@
+{
+  "name": "@shapeshiftoss/sfox",
+  "version": "0.0.1",
+  "description": "Rebasing Rewards for FOX Stakers",
+  "main": "index.js",
+  "private": false,
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "console": "npx hardhat console",
+    "coverage": "npx hardhat coverage --temp artifacts",
+    "deploy": "npx hardhat deploy",
+    "lint": "yarn run prettier && yarn run lint:es6 && yarn run lint:solidity && yarn run lint:tests",
+    "lint:es6": "npx eslint ./*.js deploy/**/*.js",
+    "lint:solidity": "npx solhint src/**/*.sol",
+    "lint:tests": "npx eslint test/**/*.js test/*.js",
+    "prettier": "yarn run prettier:es6 && yarn run prettier:solidity && yarn run prettier:tests",
+    "prettier:es6": "prettier --write ./*.js --write deploy/**/*.js",
+    "prettier:solidity": "prettier --write src/**/*.sol --write src/**/**/*.sol",
+    "prettier:tests": "yarn compile && prettier --write test/**/*.js test/*.js",
+    "test": "yarn run prettier:tests && yarn run lint:tests && npx hardhat test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shapeshift/sfox.git"
+  },
+  "author": "Shapeshift DAO",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shapeshift/sfox/issues"
+  },
+  "homepage": "https://github.com/shapeshift/sfox#readme"
+}
