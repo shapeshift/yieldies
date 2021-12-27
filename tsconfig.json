@@ -7,7 +7,8 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
   "include": ["./test", "./deploy"],
   "files": ["./hardhat.config.ts"]
