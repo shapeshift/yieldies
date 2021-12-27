@@ -1,11 +1,12 @@
-import '@typechain/hardhat';
-import "@nomiclabs/hardhat-waffle";
-import '@nomiclabs/hardhat-ethers';
+// import "@nomiclabs/hardhat-waffle";
+import "@nomiclabs/hardhat-ethers";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
-import "@nomiclabs/hardhat-etherscan";
+// import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
-import "solidity-coverage";
+// import "solidity-coverage";
+import {HardhatUserConfig} from 'hardhat/types';
+
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -13,7 +14,7 @@ import "solidity-coverage";
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
-export default {
+ const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.11",
     settings: {
@@ -25,7 +26,7 @@ export default {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core", "deploy/test"],
+      deploy: ["deploy/core"],
     },
   },
   paths: {
@@ -55,3 +56,4 @@ export default {
     currency: "USD",
   },
 };
+export default config;
