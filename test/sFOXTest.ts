@@ -1,23 +1,23 @@
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { expect } from "chai";
-import { SFOX } from "../typechain-types/SFOX";
+import { SFox } from "../typechain-types/SFox";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
 
-describe("sFOX", function () {
+describe("sFox", function () {
   let accounts: SignerWithAddress[];
   let sFOXDeployment;
-  let sFOX: SFOX;
+  let sFOX: SFox;
 
   beforeEach(async () => {
-    await deployments.fixture(["sFOX"]);
+    await deployments.fixture(["sFox"]);
     accounts = await ethers.getSigners();
-    sFOXDeployment = await deployments.get("sFOX");
+    sFOXDeployment = await deployments.get("sFox");
     sFOX = new ethers.Contract(
       sFOXDeployment.address,
       sFOXDeployment.abi,
       accounts[0]
-    ) as SFOX;
+    ) as SFox;
     // initialize sFOX
     const { stakingContract } = await getNamedAccounts();
     await sFOX.initialize(stakingContract);
