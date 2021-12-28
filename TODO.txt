@@ -1,0 +1,4 @@
+1. remove all safemath
+2. use OZ dependencies wherever possible
+3. fix sol formatting
+4. add requires statements
