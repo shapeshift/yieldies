@@ -1,3 +1,5 @@
+import * as dotenv from "dotenv";
+
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-contract-sizer";
@@ -5,8 +7,9 @@ import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
 import "solidity-coverage";
-import {HardhatUserConfig} from 'hardhat/types';
+import { HardhatUserConfig } from "hardhat/types";
 
+dotenv.config();
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -14,7 +17,7 @@ import {HardhatUserConfig} from 'hardhat/types';
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
- const config: HardhatUserConfig = {
+const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.11",
     settings: {
@@ -27,6 +30,11 @@ import {HardhatUserConfig} from 'hardhat/types';
   networks: {
     hardhat: {
       deploy: ["deploy/core"],
+    },
+    goerli: {
+      url: process.env.GOERLI_URL || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   paths: {
@@ -48,15 +56,18 @@ import {HardhatUserConfig} from 'hardhat/types';
     },
     stakingContract: {
       default: 4,
-    }   
+    },
   },
   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
   },
   gasReporter: {
-    enabled: true,
+    enabled: false,
     currency: "USD",
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
 export default config;
