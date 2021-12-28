@@ -55,7 +55,7 @@ const config: HardhatUserConfig = {
     staker2: {
       default: 3,
     },
-    stakingContract: {
+    stakingContractMock: {
       default: 4,
     },
   },

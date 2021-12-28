@@ -18,26 +18,27 @@ describe("sFox", function () {
       sFOXDeployment.abi,
       accounts[0]
     ) as SFox;
-    // initialize sFOX
-    const { stakingContract } = await getNamedAccounts();
-    await sFOX.initialize(stakingContract);
+    // initialize sFOX using a contract we control fully in place of the staking
+    // contract allows for more localize testing
+    const { stakingContractMock } = await getNamedAccounts();
+    await sFOX.initialize(stakingContractMock);
   });
 
   describe("initialize", function () {
     it("Should assign the total supply of tokens to the stakingContract", async () => {
-      const { stakingContract } = await getNamedAccounts();
-      let stakingContractBalance = await sFOX.balanceOf(stakingContract);
+      const { stakingContractMock } = await getNamedAccounts();
+      let stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
       const supply = await sFOX.totalSupply();
-      stakingContractBalance = await sFOX.balanceOf(stakingContract);
+      stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
       expect(stakingContractBalance.eq(supply)).true;
     });
   });
 
   describe("rebase", function () {
     it("Should distribute profits with one token holder", async () => {
-      const { staker1, stakingContract } = await getNamedAccounts();
+      const { staker1, stakingContractMock } = await getNamedAccounts();
       const stakingContractSigner = accounts.find(
-        (account) => account.address === stakingContract
+        (account) => account.address === stakingContractMock
       );
 
       const initialHoldings = BigNumber.from("1000000");
@@ -57,9 +58,9 @@ describe("sFox", function () {
     });
 
     it("Should distribute profits with two token holders", async () => {
-      const { staker1, staker2, stakingContract } = await getNamedAccounts();
+      const { staker1, staker2, stakingContractMock } = await getNamedAccounts();
       const stakingContractSigner = accounts.find(
-        (account) => account.address === stakingContract
+        (account) => account.address === stakingContractMock
       );
 
       const initialHoldings = BigNumber.from("1000000");
