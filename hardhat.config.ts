@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
+import "@typechain/hardhat";
 import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan";
