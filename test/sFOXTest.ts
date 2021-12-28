@@ -52,5 +52,33 @@ describe("sFOX", function () {
       const staker1BalanceAfterRebase = await sFOX.balanceOf(staker1);
       expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit))).true;
     });
+
+    it("Should distribute profits with two token holders", async () => {
+      const { staker1, staker2, stakingContract } = await getNamedAccounts();
+      const stakingContractSigner = accounts.find(account => account.address === stakingContract);
+
+      const initialHoldings = BigNumber.from("1000000");
+      const sFOXStakingContractSigner = sFOX.connect(stakingContractSigner as Signer);
+
+      await sFOXStakingContractSigner.transfer(staker1, initialHoldings);
+      await sFOXStakingContractSigner.transfer(staker2, initialHoldings);
+
+      const staker1InitialBalance = await sFOX.balanceOf(staker1);
+      const staker2InitialBalance = await sFOX.balanceOf(staker2);
+
+      expect(staker1InitialBalance.eq(initialHoldings)).true;
+      expect(staker2InitialBalance.eq(initialHoldings)).true;
+
+
+      const profit = BigNumber.from("1000");
+      await sFOXStakingContractSigner.rebase(profit, BigNumber.from(1));
+
+      const staker1BalanceAfterRebase = await sFOX.balanceOf(staker1);
+      const staker2BalanceAfterRebase = await sFOX.balanceOf(staker2);
+
+      expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit.div(2)))).true;
+      expect(staker2BalanceAfterRebase.eq(initialHoldings.add(profit.div(2)))).true;
+
+    });
   });
 });
