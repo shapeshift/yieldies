@@ -203,8 +203,6 @@ contract FoxStaking is Ownable {
     }
     Epoch public epoch;
 
-    address public distributor;
-    
     address public warmupContract;
     uint public warmupPeriod;
     
@@ -322,10 +320,6 @@ contract FoxStaking is Ownable {
             epoch.endBlock = epoch.endBlock.add( epoch.length );
             epoch.number++;
             
-            if ( distributor != address(0) ) {
-                IDistributor( distributor ).distribute();
-            }
-
             uint balance = contractBalance();
             uint staked = IsFOX( sFOX ).circulatingSupply();
 
@@ -345,19 +339,13 @@ contract FoxStaking is Ownable {
         return IERC20( FOX ).balanceOf( address(this) );
     }
 
-    enum CONTRACTS { DISTRIBUTOR, WARMUP }
-
     /**
         @notice sets the contract address for LP staking
-        @param _contract address
+        @param _address address
      */
-    function setContract( CONTRACTS _contract, address _address ) external onlyManager() {
-        if( _contract == CONTRACTS.DISTRIBUTOR ) { // 0
-            distributor = _address;
-        } else if ( _contract == CONTRACTS.WARMUP ) { // 1
-            require( warmupContract == address( 0 ), "Warmup cannot be set more than once" );
-            warmupContract = _address;
-        } 
+    function setWarmupContract(address _address ) external onlyManager() {
+        require( warmupContract == address( 0 ), "Warmup cannot be set more than once" );
+        warmupContract = _address;
     }
     
     /**
