@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core"],
+      deploy: ["deploy/core", "deploy/test"],
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
