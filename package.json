@@ -14,7 +14,7 @@
     "lint:solidity": "npx solhint src/**/*.sol",
     "lint:fix": "npx solhint src/**/*.sol --fix && npx eslint '**/*.{js,ts}' --fix",
     "prettier": "npx prettier '**/*.{json,sol,md}' --write",
-    "test": "yarn run prettier && yarn run lint && npx hardhat test"
+    "test": "npx hardhat test"
   },
   "repository": {
     "type": "git",
