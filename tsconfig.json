@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "target": "es2018",
@@ -7,6 +8,7 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
+    "resolveJsonModule": true
   },
   "include": ["./test", "./deploy"],
   "files": ["./hardhat.config.ts"]
