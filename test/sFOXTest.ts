@@ -27,9 +27,8 @@ describe("sFox", function () {
   describe("initialize", function () {
     it("Should assign the total supply of tokens to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
-      let stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
       const supply = await sFOX.totalSupply();
-      stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
+      const stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
       expect(stakingContractBalance.eq(supply)).true;
     });
   });
