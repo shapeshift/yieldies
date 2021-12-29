@@ -351,4 +351,11 @@ contract FoxStaking is Ownable {
     function setWarmup( uint _warmupPeriod ) external onlyManager() {
         warmupPeriod = _warmupPeriod;
     }
+
+    function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase) external {
+      IERC20( FOX ).safeTransferFrom( msg.sender, address(this), _amount );
+      if(_isTriggerRebase) {
+        rebase();
+      }
+    }
 }
