@@ -55,7 +55,45 @@ describe("FoxStaking", function () {
     });
   });
 
-  describe("rebase", function () {
-    // TODO
+  describe("stake", function () {
+    it("User can stake and claim when warmup period is 0", async () => {
+      const { staker1 } = await getNamedAccounts();
+      let staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(0)).true;
+      // transfer FOX to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await fox.transfer(staker1, transferAmount);
+
+      staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(transferAmount)).true;
+
+      let staker1sFOXBalance = await sFOX.balanceOf(staker1);
+      expect(staker1sFOXBalance.eq(0)).true;
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const foxStaker1 = fox.connect(staker1Signer as Signer);
+      await foxStaker1.approve(foxStaking.address, stakingAmount);
+      await foxStakingStaker1.stake(stakingAmount, staker1);
+
+      // balance should still be zero, until we claim the sfox.
+      staker1sFOXBalance = await sFOX.balanceOf(staker1);
+      expect(staker1sFOXBalance.eq(0)).true;
+
+      let warmupsFoxBalance = await sFOX.balanceOf(stakingWarmup.address);
+      expect(warmupsFoxBalance.eq(stakingAmount)).true;
+
+      // claim should move the sFOX from warmup to the staker
+      await foxStakingStaker1.claim(staker1);
+      staker1sFOXBalance = await sFOX.balanceOf(staker1);
+      expect(staker1sFOXBalance.eq(stakingAmount)).true;
+
+      warmupsFoxBalance = await sFOX.balanceOf(stakingWarmup.address);
+      expect(warmupsFoxBalance.eq(0)).true;
+    })
   });
 });

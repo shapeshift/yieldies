@@ -183,10 +183,6 @@ interface IWarmup {
     function retrieve( address staker_, uint amount_ ) external;
 }
 
-interface IDistributor {
-    function distribute() external returns ( bool );
-}
-
 contract FoxStaking is Ownable {
 
     using SafeMath for uint256;
