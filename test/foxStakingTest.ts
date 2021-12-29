@@ -56,7 +56,7 @@ describe("FoxStaking", function () {
   });
 
   describe("stake", function () {
-    it("User can stake and claim when warmup period is 0", async () => {
+    it("User can stake, claim and unstake full amount when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(0)).true;
@@ -94,6 +94,15 @@ describe("FoxStaking", function () {
 
       warmupsFoxBalance = await sFOX.balanceOf(stakingWarmup.address);
       expect(warmupsFoxBalance.eq(0)).true;
+
+      // unstake
+      await sFOX.connect(staker1Signer as Signer).approve(foxStaking.address, stakingAmount);
+      await foxStakingStaker1.unstake(stakingAmount, false);
+      staker1sFOXBalance = await sFOX.balanceOf(staker1);
+      expect(staker1sFOXBalance.eq(0)).true;
+
+      staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(transferAmount)).true;
     })
   });
 });
