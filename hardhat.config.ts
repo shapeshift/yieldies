@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core"],
+      deploy: ["deploy/core", "deploy/test"],
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
@@ -55,7 +55,7 @@ const config: HardhatUserConfig = {
     staker2: {
       default: 3,
     },
-    stakingContract: {
+    stakingContractMock: {
       default: 4,
     },
   },
