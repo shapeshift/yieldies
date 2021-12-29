@@ -6,7 +6,6 @@ import { StakingWarmup } from "../typechain-types/StakingWarmup";
 import { ERC20 } from "../typechain-types/ERC20";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
-import exp from "constants";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
