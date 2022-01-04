@@ -6,29 +6,29 @@ import { BigNumber, Signer } from "ethers";
 
 describe("sFox", function () {
   let accounts: SignerWithAddress[];
-  let sFOXDeployment;
-  let sFOX: SFox;
+  let sFoxDeployment;
+  let sFox: SFox;
 
   beforeEach(async () => {
     await deployments.fixture(["sFox"]);
     accounts = await ethers.getSigners();
-    sFOXDeployment = await deployments.get("sFox");
-    sFOX = new ethers.Contract(
-      sFOXDeployment.address,
-      sFOXDeployment.abi,
+    sFoxDeployment = await deployments.get("sFox");
+    sFox = new ethers.Contract(
+      sFoxDeployment.address,
+      sFoxDeployment.abi,
       accounts[0]
     ) as SFox;
-    // initialize sFOX using a contract we control fully in place of the staking
+    // initialize sFox using a contract we control fully in place of the staking
     // contract allows for more localize testing
     const { stakingContractMock } = await getNamedAccounts();
-    await sFOX.initialize(stakingContractMock);
+    await sFox.initialize(stakingContractMock);
   });
 
   describe("initialize", function () {
     it("Should assign the total supply of tokens to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
-      const supply = await sFOX.totalSupply();
-      const stakingContractBalance = await sFOX.balanceOf(stakingContractMock);
+      const supply = await sFox.totalSupply();
+      const stakingContractBalance = await sFox.balanceOf(stakingContractMock);
       expect(stakingContractBalance.eq(supply)).true;
     });
   });
@@ -41,18 +41,18 @@ describe("sFox", function () {
       );
 
       const initialHoldings = BigNumber.from("1000000");
-      const sFOXStakingContractSigner = sFOX.connect(
+      const sFoxStakingContractSigner = sFox.connect(
         stakingContractSigner as Signer
       );
 
-      await sFOXStakingContractSigner.transfer(staker1, initialHoldings);
-      const staker1InitialBalance = await sFOX.balanceOf(staker1);
+      await sFoxStakingContractSigner.transfer(staker1, initialHoldings);
+      const staker1InitialBalance = await sFox.balanceOf(staker1);
       expect(staker1InitialBalance.eq(initialHoldings)).true;
 
       const profit = BigNumber.from("1000");
-      await sFOXStakingContractSigner.rebase(profit, BigNumber.from(1));
+      await sFoxStakingContractSigner.rebase(profit, BigNumber.from(1));
 
-      const staker1BalanceAfterRebase = await sFOX.balanceOf(staker1);
+      const staker1BalanceAfterRebase = await sFox.balanceOf(staker1);
       expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit))).true;
     });
 
@@ -63,24 +63,24 @@ describe("sFox", function () {
       );
 
       const initialHoldings = BigNumber.from("1000000");
-      const sFOXStakingContractSigner = sFOX.connect(
+      const sFoxStakingContractSigner = sFox.connect(
         stakingContractSigner as Signer
       );
 
-      await sFOXStakingContractSigner.transfer(staker1, initialHoldings);
-      await sFOXStakingContractSigner.transfer(staker2, initialHoldings);
+      await sFoxStakingContractSigner.transfer(staker1, initialHoldings);
+      await sFoxStakingContractSigner.transfer(staker2, initialHoldings);
 
-      const staker1InitialBalance = await sFOX.balanceOf(staker1);
-      const staker2InitialBalance = await sFOX.balanceOf(staker2);
+      const staker1InitialBalance = await sFox.balanceOf(staker1);
+      const staker2InitialBalance = await sFox.balanceOf(staker2);
 
       expect(staker1InitialBalance.eq(initialHoldings)).true;
       expect(staker2InitialBalance.eq(initialHoldings)).true;
 
       const profit = BigNumber.from("1000");
-      await sFOXStakingContractSigner.rebase(profit, BigNumber.from(1));
+      await sFoxStakingContractSigner.rebase(profit, BigNumber.from(1));
 
-      const staker1BalanceAfterRebase = await sFOX.balanceOf(staker1);
-      const staker2BalanceAfterRebase = await sFOX.balanceOf(staker2);
+      const staker1BalanceAfterRebase = await sFox.balanceOf(staker1);
+      const staker2BalanceAfterRebase = await sFox.balanceOf(staker2);
 
       expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit.div(2))))
         .true;
