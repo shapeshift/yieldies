@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-
 library SafeMath {
     /**
      * @dev Returns the addition of two unsigned integers, reverting on
@@ -48,7 +47,11 @@ library SafeMath {
      *
      * - Subtraction cannot overflow.
      */
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function sub(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
         require(b <= a, errorMessage);
         uint256 c = a - b;
 
@@ -107,35 +110,45 @@ library SafeMath {
      *
      * - The divisor cannot be zero.
      */
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function div(
+        uint256 a,
+        uint256 b,
+        string memory errorMessage
+    ) internal pure returns (uint256) {
         require(b > 0, errorMessage);
         uint256 c = a / b;
-        assert(a == b * c + a % b); // There is no case in which this doesn't hold
+        assert(a == b * c + (a % b)); // There is no case in which this doesn't hold
 
         return c;
     }
 }
-interface IOwnable {
-  function manager() external view returns (address);
 
-  function renounceManagement() external;
-  
-  function pushManagement( address newOwner_ ) external;
-  
-  function pullManagement() external;
+interface IOwnable {
+    function manager() external view returns (address);
+
+    function renounceManagement() external;
+
+    function pushManagement(address newOwner_) external;
+
+    function pullManagement() external;
 }
 
 contract Ownable is IOwnable {
-
     address internal _owner;
     address internal _newOwner;
 
-    event OwnershipPushed(address indexed previousOwner, address indexed newOwner);
-    event OwnershipPulled(address indexed previousOwner, address indexed newOwner);
+    event OwnershipPushed(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
+    event OwnershipPulled(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
-    constructor () {
+    constructor() {
         _owner = msg.sender;
-        emit OwnershipPushed( address(0), _owner );
+        emit OwnershipPushed(address(0), _owner);
     }
 
     function manager() public view override returns (address) {
@@ -143,48 +156,57 @@ contract Ownable is IOwnable {
     }
 
     modifier onlyManager() {
-        require( _owner == msg.sender, "Ownable: caller is not the owner" );
+        require(_owner == msg.sender, "Ownable: caller is not the owner");
         _;
     }
 
-    function renounceManagement() public virtual override onlyManager() {
-        emit OwnershipPushed( _owner, address(0) );
+    function renounceManagement() public virtual override onlyManager {
+        emit OwnershipPushed(_owner, address(0));
         _owner = address(0);
     }
 
-    function pushManagement( address newOwner_ ) public virtual override onlyManager() {
-        require( newOwner_ != address(0), "Ownable: new owner is the zero address");
-        emit OwnershipPushed( _owner, newOwner_ );
+    function pushManagement(address newOwner_)
+        public
+        virtual
+        override
+        onlyManager
+    {
+        require(
+            newOwner_ != address(0),
+            "Ownable: new owner is the zero address"
+        );
+        emit OwnershipPushed(_owner, newOwner_);
         _newOwner = newOwner_;
     }
-    
+
     function pullManagement() public virtual override {
-        require( msg.sender == _newOwner, "Ownable: must be new owner to pull");
-        emit OwnershipPulled( _owner, _newOwner );
+        require(msg.sender == _newOwner, "Ownable: must be new owner to pull");
+        emit OwnershipPulled(_owner, _newOwner);
         _owner = _newOwner;
     }
 }
 
 interface IsFOX {
-    function rebase( uint256 ohmProfit_, uint epoch_) external returns (uint256);
+    function rebase(uint256 ohmProfit_, uint256 epoch_)
+        external
+        returns (uint256);
 
     function circulatingSupply() external view returns (uint256);
 
     function balanceOf(address who) external view returns (uint256);
 
-    function gonsForBalance( uint amount ) external view returns ( uint );
+    function gonsForBalance(uint256 amount) external view returns (uint256);
 
-    function balanceForGons( uint gons ) external view returns ( uint );
-    
-    function index() external view returns ( uint );
+    function balanceForGons(uint256 gons) external view returns (uint256);
+
+    function index() external view returns (uint256);
 }
 
 interface IWarmup {
-    function retrieve( address staker_, uint amount_ ) external;
+    function retrieve(address staker_, uint256 amount_) external;
 }
 
 contract FoxStaking is Ownable {
-
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -192,28 +214,28 @@ contract FoxStaking is Ownable {
     address public immutable sFOX;
 
     struct Epoch {
-        uint length;
-        uint number;
-        uint endBlock;
-        uint distribute;
+        uint256 length;
+        uint256 number;
+        uint256 endBlock;
+        uint256 distribute;
     }
     Epoch public epoch;
 
     address public warmupContract;
-    uint public warmupPeriod;
-    
-    constructor ( 
-        address _FOX, 
-        address _sFOX, 
-        uint _epochLength,
-        uint _firstEpochNumber,
-        uint _firstEpochBlock
+    uint256 public warmupPeriod;
+
+    constructor(
+        address _FOX,
+        address _sFOX,
+        uint256 _epochLength,
+        uint256 _firstEpochNumber,
+        uint256 _firstEpochBlock
     ) {
-        require( _FOX != address(0) );
+        require(_FOX != address(0));
         FOX = _FOX;
-        require( _sFOX != address(0) );
+        require(_sFOX != address(0));
         sFOX = _sFOX;
-        
+
         epoch = Epoch({
             length: _epochLength,
             number: _firstEpochNumber,
@@ -223,34 +245,37 @@ contract FoxStaking is Ownable {
     }
 
     struct Claim {
-        uint deposit;
-        uint gons;
-        uint expiry;
+        uint256 deposit;
+        uint256 gons;
+        uint256 expiry;
         bool lock; // prevents malicious delays
     }
-    mapping( address => Claim ) public warmupInfo;
+    mapping(address => Claim) public warmupInfo;
 
     /**
         @notice stake FOX to enter warmup
         @param _amount uint
         @return bool
      */
-    function stake( uint _amount, address _recipient ) external returns ( bool ) {
+    function stake(uint256 _amount, address _recipient)
+        external
+        returns (bool)
+    {
         rebase();
-        
-        IERC20( FOX ).safeTransferFrom( msg.sender, address(this), _amount );
 
-        Claim memory info = warmupInfo[ _recipient ];
-        require( !info.lock, "Deposits for account are locked" );
+        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
 
-        warmupInfo[ _recipient ] = Claim ({
-            deposit: info.deposit.add( _amount ),
-            gons: info.gons.add( IsFOX( sFOX ).gonsForBalance( _amount ) ),
-            expiry: epoch.number.add( warmupPeriod ),
+        Claim memory info = warmupInfo[_recipient];
+        require(!info.lock, "Deposits for account are locked");
+
+        warmupInfo[_recipient] = Claim({
+            deposit: info.deposit.add(_amount),
+            gons: info.gons.add(IsFOX(sFOX).gonsForBalance(_amount)),
+            expiry: epoch.number.add(warmupPeriod),
             lock: false
         });
-        
-        IERC20( sFOX ).safeTransfer( warmupContract, _amount );
+
+        IERC20(sFOX).safeTransfer(warmupContract, _amount);
         return true;
     }
 
@@ -258,11 +283,14 @@ contract FoxStaking is Ownable {
         @notice retrieve sFOX from warmup
         @param _recipient address
      */
-    function claim ( address _recipient ) public {
-        Claim memory info = warmupInfo[ _recipient ];
-        if ( epoch.number >= info.expiry && info.expiry != 0 ) {
-            delete warmupInfo[ _recipient ];
-            IWarmup( warmupContract ).retrieve( _recipient, IsFOX( sFOX ).balanceForGons( info.gons ) );
+    function claim(address _recipient) public {
+        Claim memory info = warmupInfo[_recipient];
+        if (epoch.number >= info.expiry && info.expiry != 0) {
+            delete warmupInfo[_recipient];
+            IWarmup(warmupContract).retrieve(
+                _recipient,
+                IsFOX(sFOX).balanceForGons(info.gons)
+            );
         }
     }
 
@@ -270,18 +298,21 @@ contract FoxStaking is Ownable {
         @notice forfeit sFOX in warmup and retrieve FOX
      */
     function forfeit() external {
-        Claim memory info = warmupInfo[ msg.sender ];
-        delete warmupInfo[ msg.sender ];
+        Claim memory info = warmupInfo[msg.sender];
+        delete warmupInfo[msg.sender];
 
-        IWarmup( warmupContract ).retrieve( address(this), IsFOX( sFOX ).balanceForGons( info.gons ) );
-        IERC20( FOX ).safeTransfer( msg.sender, info.deposit );
+        IWarmup(warmupContract).retrieve(
+            address(this),
+            IsFOX(sFOX).balanceForGons(info.gons)
+        );
+        IERC20(FOX).safeTransfer(msg.sender, info.deposit);
     }
 
     /**
         @notice prevent new deposits to address (protection from malicious activity)
      */
     function toggleDepositLock() external {
-        warmupInfo[ msg.sender ].lock = !warmupInfo[ msg.sender ].lock;
+        warmupInfo[msg.sender].lock = !warmupInfo[msg.sender].lock;
     }
 
     /**
@@ -289,40 +320,39 @@ contract FoxStaking is Ownable {
         @param _amount uint
         @param _trigger bool
      */
-    function unstake( uint _amount, bool _trigger ) external {
-        if ( _trigger ) {
+    function unstake(uint256 _amount, bool _trigger) external {
+        if (_trigger) {
             rebase();
         }
-        IERC20( sFOX ).safeTransferFrom( msg.sender, address(this), _amount );
-        IERC20( FOX ).safeTransfer( msg.sender, _amount );
+        IERC20(sFOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(FOX).safeTransfer(msg.sender, _amount);
     }
 
     /**
         @notice returns the sFOX index, which tracks rebase growth
         @return uint
      */
-    function index() public view returns ( uint ) {
-        return IsFOX( sFOX ).index();
+    function index() public view returns (uint256) {
+        return IsFOX(sFOX).index();
     }
 
     /**
         @notice trigger rebase if epoch over
      */
     function rebase() public {
-        if( epoch.endBlock <= block.number ) {
+        if (epoch.endBlock <= block.number) {
+            IsFOX(sFOX).rebase(epoch.distribute, epoch.number);
 
-            IsFOX( sFOX ).rebase( epoch.distribute, epoch.number );
-
-            epoch.endBlock = epoch.endBlock.add( epoch.length );
+            epoch.endBlock = epoch.endBlock.add(epoch.length);
             epoch.number++;
-            
-            uint balance = contractBalance();
-            uint staked = IsFOX( sFOX ).circulatingSupply();
 
-            if( balance <= staked ) {
+            uint256 balance = contractBalance();
+            uint256 staked = IsFOX(sFOX).circulatingSupply();
+
+            if (balance <= staked) {
                 epoch.distribute = 0;
             } else {
-                epoch.distribute = balance.sub( staked );
+                epoch.distribute = balance.sub(staked);
             }
         }
     }
@@ -331,31 +361,36 @@ contract FoxStaking is Ownable {
         @notice returns contract FOX holdings
         @return uint
      */
-    function contractBalance() public view returns ( uint ) {
-        return IERC20( FOX ).balanceOf( address(this) );
+    function contractBalance() public view returns (uint256) {
+        return IERC20(FOX).balanceOf(address(this));
     }
 
     /**
         @notice sets the contract address for LP staking
         @param _address address
      */
-    function setWarmupContract(address _address ) external onlyManager() {
-        require( warmupContract == address( 0 ), "Warmup cannot be set more than once" );
+    function setWarmupContract(address _address) external onlyManager {
+        require(
+            warmupContract == address(0),
+            "Warmup cannot be set more than once"
+        );
         warmupContract = _address;
     }
-    
+
     /**
      * @notice set warmup period for new stakers
      * @param _warmupPeriod uint
      */
-    function setWarmup( uint _warmupPeriod ) external onlyManager() {
+    function setWarmup(uint256 _warmupPeriod) external onlyManager {
         warmupPeriod = _warmupPeriod;
     }
 
-    function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase) external {
-      IERC20( FOX ).safeTransferFrom( msg.sender, address(this), _amount );
-      if(_isTriggerRebase) {
-        rebase();
-      }
+    function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
+        external
+    {
+        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
+        if (_isTriggerRebase) {
+            rebase();
+        }
     }
 }
