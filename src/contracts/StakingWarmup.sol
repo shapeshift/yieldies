@@ -4,19 +4,18 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract StakingWarmup {
-
     address public immutable staking;
-    address public immutable sFOX;
+    address public immutable FOXy;
 
-    constructor ( address _staking, address _sFOX ) {
-        require( _staking != address(0) );
+    constructor(address _staking, address _FOXy) {
+        require(_staking != address(0));
         staking = _staking;
-        require( _sFOX != address(0) );
-        sFOX = _sFOX;
+        require(_FOXy != address(0));
+        FOXy = _FOXy;
     }
 
-    function retrieve( address _staker, uint _amount ) external {
-        require( msg.sender == staking );
-        IERC20( sFOX ).transfer( _staker, _amount );
+    function retrieve(address _staker, uint256 _amount) external {
+        require(msg.sender == staking);
+        IERC20(FOXy).transfer(_staker, _amount);
     }
 }

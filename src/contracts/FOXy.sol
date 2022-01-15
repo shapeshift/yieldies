@@ -4,7 +4,6 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
  * checks.
@@ -825,7 +824,7 @@ contract Ownable is IOwnable {
     }
 }
 
-contract sFox is ERC20Permit, Ownable {
+contract Foxy is ERC20Permit, Ownable {
     using SafeMath for uint256;
 
     modifier onlyStakingContract() {
@@ -873,7 +872,7 @@ contract sFox is ERC20Permit, Ownable {
 
     mapping(address => mapping(address => uint256)) private _allowedValue;
 
-    constructor() ERC20("Staked FOX", "sFOX", 18) ERC20Permit() {
+    constructor() ERC20("FOX Yield", "FOXy", 18) ERC20Permit() {
         initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         _gonsPerFragment = TOTAL_GONS.div(_totalSupply);

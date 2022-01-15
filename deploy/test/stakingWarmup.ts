@@ -8,15 +8,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { admin } = await getNamedAccounts();
-  const sFox = await deployments.get("sFox");
+  const foxy = await deployments.get("Foxy");
   const foxStaking = await deployments.get("FoxStaking"); 
 
   await deploy("StakingWarmup", {
     from: admin,
-    args: [foxStaking.address, sFox.address ],
+    args: [foxStaking.address, foxy.address ],
     log: true,
   });
 };
 export default func;
 func.tags = ["StakingWarmup"];
-func.dependencies = ["sFox", "FoxStaking"];
+func.dependencies = ["Foxy", "FoxStaking"];
