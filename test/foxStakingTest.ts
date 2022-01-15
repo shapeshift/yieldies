@@ -9,7 +9,7 @@ import { BigNumber, Signer } from "ethers";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
-  let sFOX: SFox;
+  let FOXy: SFox;
   let foxStaking: FoxStaking;
   let fox: ERC20;
   let stakingWarmup: StakingWarmup;
@@ -17,10 +17,10 @@ describe("FoxStaking", function () {
   beforeEach(async () => {
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    const sFOXDeployment = await deployments.get("sFox");
-    sFOX = new ethers.Contract(
-      sFOXDeployment.address,
-      sFOXDeployment.abi,
+    const FOXyDeployment = await deployments.get("sFox");
+    FOXy = new ethers.Contract(
+      FOXyDeployment.address,
+      FOXyDeployment.abi,
       accounts[0]
     ) as SFox;
     const foxStakingDeployment = await deployments.get("FoxStaking");
@@ -36,7 +36,7 @@ describe("FoxStaking", function () {
       accounts[0]
     ) as StakingWarmup; // is there a better way to avoid this cast?
 
-    await sFOX.initialize(foxStakingDeployment.address); // initialize our contract
+    await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
     await foxStaking.setWarmupContract(stakingWarmup.address);
 
     const foxDeployment = await deployments.get("Fox");
@@ -48,9 +48,9 @@ describe("FoxStaking", function () {
   });
 
   describe("initialize", function () {
-    it("Should assign the total supply of sFOX to the stakingContract", async () => {
-      const stakingContractBalance = await sFOX.balanceOf(foxStaking.address);
-      const supply = await sFOX.totalSupply();
+    it("Should assign the total supply of FOXy to the stakingContract", async () => {
+      const stakingContractBalance = await FOXy.balanceOf(foxStaking.address);
+      const supply = await FOXy.totalSupply();
       expect(stakingContractBalance.eq(supply)).true;
     });
   });
@@ -67,8 +67,8 @@ describe("FoxStaking", function () {
       staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(transferAmount)).true;
 
-      let staker1sFOXBalance = await sFOX.balanceOf(staker1);
-      expect(staker1sFOXBalance.eq(0)).true;
+      let staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
 
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -81,25 +81,25 @@ describe("FoxStaking", function () {
       await foxStakingStaker1.stake(stakingAmount, staker1);
 
       // balance should still be zero, until we claim the sfox.
-      staker1sFOXBalance = await sFOX.balanceOf(staker1);
-      expect(staker1sFOXBalance.eq(0)).true;
+      staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
 
-      let warmupsFoxBalance = await sFOX.balanceOf(stakingWarmup.address);
+      let warmupsFoxBalance = await FOXy.balanceOf(stakingWarmup.address);
       expect(warmupsFoxBalance.eq(stakingAmount)).true;
 
-      // claim should move the sFOX from warmup to the staker
+      // claim should move the FOXy from warmup to the staker
       await foxStakingStaker1.claim(staker1);
-      staker1sFOXBalance = await sFOX.balanceOf(staker1);
-      expect(staker1sFOXBalance.eq(stakingAmount)).true;
+      staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(stakingAmount)).true;
 
-      warmupsFoxBalance = await sFOX.balanceOf(stakingWarmup.address);
+      warmupsFoxBalance = await FOXy.balanceOf(stakingWarmup.address);
       expect(warmupsFoxBalance.eq(0)).true;
 
       // unstake
-      await sFOX.connect(staker1Signer as Signer).approve(foxStaking.address, stakingAmount);
+      await FOXy.connect(staker1Signer as Signer).approve(foxStaking.address, stakingAmount);
       await foxStakingStaker1.unstake(stakingAmount, false);
-      staker1sFOXBalance = await sFOX.balanceOf(staker1);
-      expect(staker1sFOXBalance.eq(0)).true;
+      staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
 
       staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(transferAmount)).true;
@@ -135,12 +135,12 @@ describe("FoxStaking", function () {
       await foxStaker2.approve(foxStaking.address, stakingAmount2);
       await foxStakingStaker2.stake(stakingAmount2, staker2);
 
-      // claim should move the sFOX from warmup to the staker
+      // claim should move the FOXy from warmup to the staker
       await foxStakingStaker1.claim(staker1);
       await foxStakingStaker2.claim(staker2);
 
-      let sFoxBalanceStaker1 = await sFOX.balanceOf(staker1);
-      let sFoxBalanceStaker2 = await sFOX.balanceOf(staker2);
+      let sFoxBalanceStaker1 = await FOXy.balanceOf(staker1);
+      let sFoxBalanceStaker2 = await FOXy.balanceOf(staker2);
 
       expect(sFoxBalanceStaker1.eq(stakingAmount1)).true;
       expect(sFoxBalanceStaker2.eq(stakingAmount2)).true;
@@ -148,8 +148,8 @@ describe("FoxStaking", function () {
       // call rebase without rewards, no change should occur in balances.
       await foxStaking.rebase();
 
-      sFoxBalanceStaker1 = await sFOX.balanceOf(staker1);
-      sFoxBalanceStaker2 = await sFOX.balanceOf(staker2);
+      sFoxBalanceStaker1 = await FOXy.balanceOf(staker1);
+      sFoxBalanceStaker2 = await FOXy.balanceOf(staker2);
 
       expect(sFoxBalanceStaker1.eq(stakingAmount1)).true;
       expect(sFoxBalanceStaker2.eq(stakingAmount2)).true;
@@ -159,8 +159,8 @@ describe("FoxStaking", function () {
       const awardAmount = BigNumber.from("1000");
       await foxStaking.addRewardsForStakers(awardAmount, true);
 
-      sFoxBalanceStaker1 = await sFOX.balanceOf(staker1);
-      sFoxBalanceStaker2 = await sFOX.balanceOf(staker2);
+      sFoxBalanceStaker1 = await FOXy.balanceOf(staker1);
+      sFoxBalanceStaker2 = await FOXy.balanceOf(staker2);
 
       expect(sFoxBalanceStaker1.eq(stakingAmount1)).true;
       expect(sFoxBalanceStaker2.eq(stakingAmount2)).true;
@@ -175,8 +175,8 @@ describe("FoxStaking", function () {
 
       // call rebase - no change still rewards are issued in a 1 period lagging fashion...
       await foxStaking.rebase();
-      sFoxBalanceStaker1 = await sFOX.balanceOf(staker1);
-      sFoxBalanceStaker2 = await sFOX.balanceOf(staker2);
+      sFoxBalanceStaker1 = await FOXy.balanceOf(staker1);
+      sFoxBalanceStaker2 = await FOXy.balanceOf(staker2);
 
       expect(sFoxBalanceStaker1.eq(stakingAmount1)).true;
       expect(sFoxBalanceStaker2.eq(stakingAmount2)).true;
@@ -190,8 +190,8 @@ describe("FoxStaking", function () {
 
       // finally rewards should be issued
       await foxStaking.rebase();
-      sFoxBalanceStaker1 = await sFOX.balanceOf(staker1);
-      sFoxBalanceStaker2 = await sFOX.balanceOf(staker2);
+      sFoxBalanceStaker1 = await FOXy.balanceOf(staker1);
+      sFoxBalanceStaker2 = await FOXy.balanceOf(staker2);
       expect(sFoxBalanceStaker1.eq(stakingAmount1.add(909))).true;
       expect(sFoxBalanceStaker2.eq(stakingAmount2.add(90))).true;
     });

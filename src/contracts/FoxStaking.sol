@@ -186,7 +186,7 @@ contract Ownable is IOwnable {
     }
 }
 
-interface IsFOX {
+interface IFOXy {
     function rebase(uint256 ohmProfit_, uint256 epoch_)
         external
         returns (uint256);
@@ -211,7 +211,7 @@ contract FoxStaking is Ownable {
     using SafeERC20 for IERC20;
 
     address public immutable FOX;
-    address public immutable sFOX;
+    address public immutable FOXy;
 
     struct Epoch {
         uint256 length;
@@ -226,15 +226,15 @@ contract FoxStaking is Ownable {
 
     constructor(
         address _FOX,
-        address _sFOX,
+        address _FOXy,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
         require(_FOX != address(0));
         FOX = _FOX;
-        require(_sFOX != address(0));
-        sFOX = _sFOX;
+        require(_FOXy != address(0));
+        FOXy = _FOXy;
 
         epoch = Epoch({
             length: _epochLength,
@@ -270,17 +270,17 @@ contract FoxStaking is Ownable {
 
         warmupInfo[_recipient] = Claim({
             deposit: info.deposit.add(_amount),
-            gons: info.gons.add(IsFOX(sFOX).gonsForBalance(_amount)),
+            gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
         });
 
-        IERC20(sFOX).safeTransfer(warmupContract, _amount);
+        IERC20(FOXy).safeTransfer(warmupContract, _amount);
         return true;
     }
 
     /**
-        @notice retrieve sFOX from warmup
+        @notice retrieve FOXy from warmup
         @param _recipient address
      */
     function claim(address _recipient) public {
@@ -289,13 +289,13 @@ contract FoxStaking is Ownable {
             delete warmupInfo[_recipient];
             IWarmup(warmupContract).retrieve(
                 _recipient,
-                IsFOX(sFOX).balanceForGons(info.gons)
+                IFOXy(FOXy).balanceForGons(info.gons)
             );
         }
     }
 
     /**
-        @notice forfeit sFOX in warmup and retrieve FOX
+        @notice forfeit FOXy in warmup and retrieve FOX
      */
     function forfeit() external {
         Claim memory info = warmupInfo[msg.sender];
@@ -303,7 +303,7 @@ contract FoxStaking is Ownable {
 
         IWarmup(warmupContract).retrieve(
             address(this),
-            IsFOX(sFOX).balanceForGons(info.gons)
+            IFOXy(FOXy).balanceForGons(info.gons)
         );
         IERC20(FOX).safeTransfer(msg.sender, info.deposit);
     }
@@ -316,7 +316,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice redeem sFOX for FOX
+        @notice redeem FOXy for FOX
         @param _amount uint
         @param _trigger bool
      */
@@ -324,16 +324,16 @@ contract FoxStaking is Ownable {
         if (_trigger) {
             rebase();
         }
-        IERC20(sFOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
         IERC20(FOX).safeTransfer(msg.sender, _amount);
     }
 
     /**
-        @notice returns the sFOX index, which tracks rebase growth
+        @notice returns the FOXy index, which tracks rebase growth
         @return uint
      */
     function index() public view returns (uint256) {
-        return IsFOX(sFOX).index();
+        return IFOXy(FOXy).index();
     }
 
     /**
@@ -341,13 +341,13 @@ contract FoxStaking is Ownable {
      */
     function rebase() public {
         if (epoch.endBlock <= block.number) {
-            IsFOX(sFOX).rebase(epoch.distribute, epoch.number);
+            IFOXy(FOXy).rebase(epoch.distribute, epoch.number);
 
             epoch.endBlock = epoch.endBlock.add(epoch.length);
             epoch.number++;
 
             uint256 balance = contractBalance();
-            uint256 staked = IsFOX(sFOX).circulatingSupply();
+            uint256 staked = IFOXy(FOXy).circulatingSupply();
 
             if (balance <= staked) {
                 epoch.distribute = 0;
