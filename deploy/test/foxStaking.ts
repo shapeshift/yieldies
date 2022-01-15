@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { admin } = await getNamedAccounts();
-  const sFox = await deployments.get("sFox");
+  const foxy = await deployments.get("Foxy");
   const fox = await deployments.get("Fox"); // mock fox token
 
   const epochLength = 100; 
@@ -18,10 +18,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy("FoxStaking", {
     from: admin,
-    args: [fox.address, sFox.address, epochLength, firstEpochNumber, firstEpochBlock ],
+    args: [fox.address, foxy.address, epochLength, firstEpochNumber, firstEpochBlock ],
     log: true,
   });
 };
 export default func;
 func.tags = ["FoxStaking"];
-func.dependencies = ["sFox", "Fox"];
+func.dependencies = ["Foxy", "Fox"];

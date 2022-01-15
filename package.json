@@ -1,5 +1,5 @@
 {
-  "name": "@shapeshiftoss/sfox",
+  "name": "@shapeshiftoss/foxy",
   "version": "0.0.1",
   "description": "Rebasing Rewards for FOX Stakers",
   "main": "index.js",
@@ -14,18 +14,19 @@
     "lint:solidity": "npx solhint src/**/*.sol",
     "lint:fix": "npx solhint src/**/*.sol --fix && npx eslint '**/*.{js,ts}' --fix",
     "prettier": "npx prettier '**/*.{json,sol,md}' --write",
+    "clean": "rm -rf node_modules artifacts cache typechain-types",
     "test": "npx hardhat test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shapeshift/sfox.git"
+    "url": "git+https://github.com/shapeshift/foxy.git"
   },
   "author": "Shapeshift DAO",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/shapeshift/sfox/issues"
+    "url": "https://github.com/shapeshift/foxy/issues"
   },
-  "homepage": "https://github.com/shapeshift/sfox#readme",
+  "homepage": "https://github.com/shapeshift/foxy#readme",
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"

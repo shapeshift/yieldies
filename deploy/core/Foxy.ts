@@ -6,11 +6,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { admin } = await getNamedAccounts();
-  await deploy("sFox", {
+  await deploy("Foxy", {
     from: admin,
     // args: [],
     log: true,
   });
 };
 export default func;
-func.tags = ["sFox"];
+func.tags = ["Foxy"];

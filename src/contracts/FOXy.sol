@@ -824,7 +824,7 @@ contract Ownable is IOwnable {
     }
 }
 
-contract FOXy is ERC20Permit, Ownable {
+contract Foxy is ERC20Permit, Ownable {
     using SafeMath for uint256;
 
     modifier onlyStakingContract() {
