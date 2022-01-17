@@ -1,22 +1,26 @@
-import { ethers, deployments, getNamedAccounts } from "hardhat";
+import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
 import { Foxy } from "../typechain-types/Foxy";
 import { FoxStaking } from "../typechain-types/FoxStaking";
 import { StakingWarmup } from "../typechain-types/StakingWarmup";
-import { ERC20 } from "../typechain-types/ERC20";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
+import { foxAbi } from "./fox-abi";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
   let FOXy: Foxy;
   let foxStaking: FoxStaking;
-  let fox: ERC20;
+  let fox: any;
   let stakingWarmup: StakingWarmup;
+
+  const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // Keep updated with a whale's FOX address.  Address must have ETH
+  const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
 
   beforeEach(async () => {
     await deployments.fixture();
     accounts = await ethers.getSigners();
+    // console.log('deployments', await deployments.all())
     const FoxyDeployment = await deployments.get("Foxy");
     FOXy = new ethers.Contract(
       FoxyDeployment.address,
@@ -38,16 +42,27 @@ describe("FoxStaking", function () {
 
     await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
     await foxStaking.setWarmupContract(stakingWarmup.address);
-
-    const foxDeployment = await deployments.get("Fox");
-    fox = new ethers.Contract(
-      foxDeployment.address,
-      foxDeployment.abi,
-      accounts[0]
-    ) as ERC20; 
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [FOX_WHALE],
+    });
+    const whaleSigner = await ethers.getSigner(FOX_WHALE);
+    fox = new ethers.Contract(FOX, foxAbi, whaleSigner); 
   });
 
   describe("initialize", function () {
+    it("Should transfer FOX from whales", async () => {
+      // Used for getting FOX into admin account.  If this fails, check that the FOX_WHALE
+      // address has ETH and FOX allocated to it.
+      const { admin } = await getNamedAccounts();
+      const transferAmount = BigNumber.from("1000000000");
+      await fox.transfer(admin, transferAmount, { from: FOX_WHALE });
+      const myBalance = await fox.balanceOf(admin);
+
+      expect(BigNumber.from(myBalance).toNumber()).gte(
+        transferAmount.toNumber()
+      );
+    });
     it("Should assign the total supply of FOXy to the stakingContract", async () => {
       const stakingContractBalance = await FOXy.balanceOf(foxStaking.address);
       const supply = await FOXy.totalSupply();
@@ -57,13 +72,13 @@ describe("FoxStaking", function () {
 
   describe("stake", function () {
     it("User can stake, claim and unstake full amount when warmup period is 0", async () => {
-      const { staker1 } = await getNamedAccounts();
+      const { admin, staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(0)).true;
       // transfer FOX to staker 1
       const transferAmount = BigNumber.from("10000");
-      await fox.transfer(staker1, transferAmount);
 
+      await fox.transfer(staker1, transferAmount, { from: FOX_WHALE });
       staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(transferAmount)).true;
 
@@ -96,24 +111,27 @@ describe("FoxStaking", function () {
       expect(warmupFoxyBalance.eq(0)).true;
 
       // unstake
-      await FOXy.connect(staker1Signer as Signer).approve(foxStaking.address, stakingAmount);
+      await FOXy.connect(staker1Signer as Signer).approve(
+        foxStaking.address,
+        stakingAmount
+      );
       await foxStakingStaker1.unstake(stakingAmount, false);
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
 
       staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(transferAmount)).true;
-    })
+    });
   });
 
-  describe("reward", function (){
+  describe("reward", function () {
     it("Rewards can be added to contract and rebase rewards users", async () => {
       const { admin, staker1, staker2 } = await getNamedAccounts();
       // transfer FOX to staker 1
       const transferAmount = BigNumber.from("10000");
-      await fox.transfer(staker1, transferAmount);
-      await fox.transfer(staker2, transferAmount);
-      
+      await fox.transfer(staker1, transferAmount, { from: FOX_WHALE });
+      await fox.transfer(staker2, transferAmount, { from: FOX_WHALE });
+
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
       );
@@ -156,8 +174,9 @@ describe("FoxStaking", function () {
 
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
       await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin
+
       const awardAmount = BigNumber.from("1000");
-      await foxStaking.addRewardsForStakers(awardAmount, true);
+      await foxStaking.addRewardsForStakers(awardAmount, true); // TODO: Fix transferring mainnet FOX
 
       foxyBalanceStaker1 = await FOXy.balanceOf(staker1);
       foxyBalanceStaker2 = await FOXy.balanceOf(staker2);
@@ -167,10 +186,10 @@ describe("FoxStaking", function () {
 
       // fast forward to after reward block
       let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = ((await foxStaking.epoch()).endBlock).toNumber();
+      let nextRewardBlock = (await foxStaking.epoch()).endBlock.toNumber();
 
-      for(let i = currentBlock; i <= nextRewardBlock; i++) {
-        await ethers.provider.send('evm_mine', []);
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
       }
 
       // call rebase - no change still rewards are issued in a 1 period lagging fashion...
@@ -182,10 +201,10 @@ describe("FoxStaking", function () {
       expect(foxyBalanceStaker2.eq(stakingAmount2)).true;
 
       currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = ((await foxStaking.epoch()).endBlock).toNumber();
+      nextRewardBlock = (await foxStaking.epoch()).endBlock.toNumber();
 
-      for(let i = currentBlock; i <= nextRewardBlock; i++) {
-        await ethers.provider.send('evm_mine', []);
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
       }
 
       // finally rewards should be issued

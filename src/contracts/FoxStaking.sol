@@ -4,6 +4,7 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "hardhat/console.sol";
 
 library SafeMath {
   /**
@@ -203,13 +204,17 @@ interface IWarmup {
   function retrieve(address staker_, uint256 amount_) external;
 }
 
+interface ITokePool {
+  function deposit(uint256 amount) external;
+}
+
 contract FoxStaking is Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
   address public immutable FOX;
   address public immutable FOXy;
-  // what if tFOX pool address is updated, should we allow this to be updated as well?
+  // TODO: what if tFOX pool address is updated, should we allow this to be updated as well?
   address public constant tokePool = 0x808D3E6b23516967ceAE4f17a5F9038383ED5311;
 
   struct Epoch {
@@ -231,10 +236,15 @@ contract FoxStaking is Ownable {
     uint256 _firstEpochBlock
   ) {
     require(_FOX != address(0));
-    FOX = _FOX;
+    FOX = 0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d;
     require(_FOXy != address(0));
     FOXy = _FOXy;
 
+    // TODO: update approval amount
+    IERC20(FOX).approve(
+      tokePool,
+      99999999999999999999999999999999999999999999999999
+    );
     epoch = Epoch({
       length: _epochLength,
       number: _firstEpochNumber,
@@ -252,13 +262,24 @@ contract FoxStaking is Ownable {
   mapping(address => Claim) public warmupInfo;
 
   /**
+        @notice deposit FOX to tFOX Tokemak reactor
+        @param _amount uint
+        @return bool
+     */
+  function depositToTokemak(uint256 _amount) internal returns (bool) {
+    ITokePool tokePoolContract = ITokePool(tokePool);
+    tokePoolContract.deposit(_amount);
+    return true; // TODO: TOKE deposit function doesn't return anything.  Need to check for proper event emitted
+  }
+
+  /**
         @notice stake FOX to enter warmup
         @param _amount uint
         @return bool
      */
   function stake(uint256 _amount, address _recipient) external returns (bool) {
     rebase();
-
+    console.log("balanceOf", IERC20(FOX).balanceOf(msg.sender));
     IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
 
     Claim memory info = warmupInfo[_recipient];
@@ -270,21 +291,8 @@ contract FoxStaking is Ownable {
       expiry: epoch.number.add(warmupPeriod),
       lock: false
     });
-
+    // depositToTokemak(_amount);
     IERC20(FOXy).safeTransfer(warmupContract, _amount);
-    return true;
-  }
-
-  /**
-        @notice stake FOX to enter warmup
-        @param _amount uint
-        @return bool
-     */
-  function depositToTokemak(uint256 _amount, address _recipient)
-    external
-    returns (bool)
-  {
-      
     return true;
   }
 

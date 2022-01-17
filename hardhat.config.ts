@@ -31,9 +31,13 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       deploy: ["deploy/core", "deploy/test"],
+      forking: {
+        url: process.env.MAINNET_URL || "",
+        enabled: true, // Set to false to disable forked mainnet mode
+      },
     },
     goerli: {
-      url: process.env.GOERLI_URL || "",
+      url: "127.0.0.1:8545",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
