@@ -4,23 +4,24 @@ import { Foxy } from "../typechain-types/Foxy";
 import { FoxStaking } from "../typechain-types/FoxStaking";
 import { StakingWarmup } from "../typechain-types/StakingWarmup";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, Contract, Signer } from "ethers";
 import { foxAbi } from "./fox-abi";
+import { ERC20 } from "../typechain-types";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
   let FOXy: Foxy;
   let foxStaking: FoxStaking;
-  let fox: any;
+  let fox: Contract;
   let stakingWarmup: StakingWarmup;
 
   const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // Keep updated with a whale's FOX address.  Address must have ETH
   const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
 
   beforeEach(async () => {
+    const { admin } = await getNamedAccounts();
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    // console.log('deployments', await deployments.all())
     const FoxyDeployment = await deployments.get("Foxy");
     FOXy = new ethers.Contract(
       FoxyDeployment.address,
@@ -46,23 +47,19 @@ describe("FoxStaking", function () {
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
     });
+    fox = new ethers.Contract(FOX, foxAbi, accounts[0]);
+    const transferAmount = BigNumber.from("1000000000");
     const whaleSigner = await ethers.getSigner(FOX_WHALE);
-    fox = new ethers.Contract(FOX, foxAbi, whaleSigner); 
+    const foxWhale = fox.connect(whaleSigner);
+    await foxWhale.transfer(admin, transferAmount);
+    const myBalance = await fox.balanceOf(admin);
+
+    expect(BigNumber.from(myBalance).toNumber()).gte(
+      transferAmount.toNumber()
+    );
   });
 
   describe("initialize", function () {
-    it("Should transfer FOX from whales", async () => {
-      // Used for getting FOX into admin account.  If this fails, check that the FOX_WHALE
-      // address has ETH and FOX allocated to it.
-      const { admin } = await getNamedAccounts();
-      const transferAmount = BigNumber.from("1000000000");
-      await fox.transfer(admin, transferAmount, { from: FOX_WHALE });
-      const myBalance = await fox.balanceOf(admin);
-
-      expect(BigNumber.from(myBalance).toNumber()).gte(
-        transferAmount.toNumber()
-      );
-    });
     it("Should assign the total supply of FOXy to the stakingContract", async () => {
       const stakingContractBalance = await FOXy.balanceOf(foxStaking.address);
       const supply = await FOXy.totalSupply();
@@ -77,8 +74,8 @@ describe("FoxStaking", function () {
       expect(staker1FoxBalance.eq(0)).true;
       // transfer FOX to staker 1
       const transferAmount = BigNumber.from("10000");
+      await fox.transfer(staker1, transferAmount);
 
-      await fox.transfer(staker1, transferAmount, { from: FOX_WHALE });
       staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(transferAmount)).true;
 
@@ -129,8 +126,9 @@ describe("FoxStaking", function () {
       const { admin, staker1, staker2 } = await getNamedAccounts();
       // transfer FOX to staker 1
       const transferAmount = BigNumber.from("10000");
-      await fox.transfer(staker1, transferAmount, { from: FOX_WHALE });
-      await fox.transfer(staker2, transferAmount, { from: FOX_WHALE });
+
+      await fox.transfer(staker1, transferAmount);
+      await fox.transfer(staker2, transferAmount);
 
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -173,8 +171,7 @@ describe("FoxStaking", function () {
       expect(foxyBalanceStaker2.eq(stakingAmount2)).true;
 
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
-      await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin
-
+      await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin   
       const awardAmount = BigNumber.from("1000");
       await foxStaking.addRewardsForStakers(awardAmount, true); // TODO: Fix transferring mainnet FOX
 
