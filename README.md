@@ -9,4 +9,6 @@ FOXy is a proposed staking rewards system that allows FOX token holders the abil
 ## Local development
 
 1. `yarn`
-2. `yarn test` will run the basic test examples.
+2. `yarn compile`
+3. `yarn local-node` will run the forked mainnet locally
+4. `yarn test` will run the basic test examples.
