@@ -48,6 +48,8 @@ describe("FoxStaking", function () {
       params: [FOX_WHALE],
     });
     fox = new ethers.Contract(FOX, foxAbi, accounts[0]);
+
+    // Transfer to admin account for FOX to be easily transferred to other accounts
     const transferAmount = BigNumber.from("1000000000");
     const whaleSigner = await ethers.getSigner(FOX_WHALE);
     const foxWhale = fox.connect(whaleSigner);
