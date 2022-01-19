@@ -966,7 +966,6 @@ contract Foxy is ERC20Permit, Ownable {
     }
 
     function balanceOf(address who) public view override returns (uint256) {
-        // console.log("test");
         return _gonBalances[who].div(_gonsPerFragment);
     }
 

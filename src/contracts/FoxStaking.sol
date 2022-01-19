@@ -215,11 +215,11 @@ contract FoxStaking is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public immutable FOX;
-    address public immutable FOXy;
-    // TODO: what if tFOX pool address is updated, should we allow this to be updated as well?
+    // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public constant tokePool =
         0x808D3E6b23516967ceAE4f17a5F9038383ED5311;
+    address public immutable FOX = 0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d;
+    address public immutable FOXy;
 
     struct Epoch {
         uint256 length;
@@ -233,14 +233,11 @@ contract FoxStaking is Ownable {
     uint256 public warmupPeriod;
 
     constructor(
-        address _FOX,
         address _FOXy,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
-        require(_FOX != address(0));
-        FOX = 0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d;
         require(_FOXy != address(0));
         FOXy = _FOXy;
 

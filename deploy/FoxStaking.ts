@@ -9,7 +9,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { admin } = await getNamedAccounts();
   const foxy = await deployments.get("Foxy");
-  const fox = await deployments.get("Fox"); // mock fox token
 
   const epochLength = 100; 
   const firstEpochNumber = 1;
@@ -18,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy("FoxStaking", {
     from: admin,
-    args: [fox.address, foxy.address, epochLength, firstEpochNumber, firstEpochBlock ],
+    args: [foxy.address, epochLength, firstEpochNumber, firstEpochBlock ],
     log: true,
   });
 };
