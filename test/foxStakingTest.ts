@@ -5,8 +5,8 @@ import { FoxStaking } from "../typechain-types/FoxStaking";
 import { StakingWarmup } from "../typechain-types/StakingWarmup";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { foxAbi } from "./fox-abi";
-import { ERC20 } from "../typechain-types";
+import { ERC20__factory, Foxy__factory } from "../typechain-types";
+import { AbiCoder } from "ethers/lib/utils";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
@@ -15,7 +15,7 @@ describe("FoxStaking", function () {
   let fox: Contract;
   let stakingWarmup: StakingWarmup;
 
-  const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // Keep updated with a whale's FOX address.  Address must have ETH
+  const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
   const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
 
   beforeEach(async () => {
@@ -47,7 +47,7 @@ describe("FoxStaking", function () {
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
     });
-    fox = new ethers.Contract(FOX, foxAbi, accounts[0]);
+    fox = new ethers.Contract(FOX, ERC20__factory.abi, accounts[0]);
 
     // Transfer to admin account for FOX to be easily transferred to other accounts
     const transferAmount = BigNumber.from("1000000000");

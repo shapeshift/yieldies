@@ -33,6 +33,7 @@ const config: HardhatUserConfig = {
       deploy: 'deploy',
       forking: {
         url: process.env.MAINNET_URL || "",
+        blockNumber: 14043149,
         enabled: true, // Set to false to disable forked mainnet mode
       },
     },
