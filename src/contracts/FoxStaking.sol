@@ -218,8 +218,7 @@ contract FoxStaking is Ownable {
     using SafeERC20 for IERC20;
 
     // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
-    address public constant tokePool =
-        0x808D3E6b23516967ceAE4f17a5F9038383ED5311;
+    address public immutable tokePool;
     address public immutable FOX;
     address public immutable FOXy;
 
@@ -237,6 +236,7 @@ contract FoxStaking is Ownable {
     constructor(
         address _FOX,
         address _FOXy,
+        address _TokePool,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -245,6 +245,9 @@ contract FoxStaking is Ownable {
         FOX = _FOX;
         require(_FOXy != address(0));
         FOXy = _FOXy;
+        require(_TokePool != address(0));
+        tokePool = _TokePool;
+        
         IERC20(FOX).approve(tokePool, type(uint256).max);
 
         epoch = Epoch({
