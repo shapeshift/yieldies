@@ -71,7 +71,7 @@ describe("FoxStaking", function () {
 
   describe("stake", function () {
     it("User can stake, claim and unstake full amount when warmup period is 0", async () => {
-      const { admin, staker1 } = await getNamedAccounts();
+      const { staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);
       expect(staker1FoxBalance.eq(0)).true;
       // transfer FOX to staker 1
@@ -123,7 +123,7 @@ describe("FoxStaking", function () {
 
   describe("reward", function () {
     it("Rewards can be added to contract and rebase rewards users", async () => {
-      const { admin, staker1, staker2 } = await getNamedAccounts();
+      const { staker1, staker2 } = await getNamedAccounts();
       // transfer FOX to staker 1
       const transferAmount = BigNumber.from("10000");
 
@@ -173,7 +173,7 @@ describe("FoxStaking", function () {
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
       await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin   
       const awardAmount = BigNumber.from("1000");
-      await foxStaking.addRewardsForStakers(awardAmount, true); // TODO: Fix transferring mainnet FOX
+      await foxStaking.addRewardsForStakers(awardAmount, true);
 
       foxyBalanceStaker1 = await FOXy.balanceOf(staker1);
       foxyBalanceStaker2 = await FOXy.balanceOf(staker2);
