@@ -115,11 +115,9 @@ describe("FoxStaking", function () {
         stakingAmount
       );
       await foxStakingStaker1.unstake(stakingAmount, false);
+
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
-
-      staker1FoxBalance = await fox.balanceOf(staker1);
-      expect(staker1FoxBalance.eq(transferAmount)).true;
     });
   });
 
