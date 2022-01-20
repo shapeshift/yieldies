@@ -5,8 +5,7 @@ import { FoxStaking } from "../typechain-types/FoxStaking";
 import { StakingWarmup } from "../typechain-types/StakingWarmup";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { ERC20__factory, Foxy__factory } from "../typechain-types";
-import { AbiCoder } from "ethers/lib/utils";
+import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
@@ -47,7 +46,7 @@ describe("FoxStaking", function () {
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
     });
-    fox = new ethers.Contract(FOX, ERC20__factory.abi, accounts[0]);
+    fox = new ethers.Contract(FOX, ERC20.abi, accounts[0]);
 
     // Transfer to admin account for FOX to be easily transferred to other accounts
     const transferAmount = BigNumber.from("1000000000");
@@ -56,9 +55,7 @@ describe("FoxStaking", function () {
     await foxWhale.transfer(admin, transferAmount);
     const myBalance = await fox.balanceOf(admin);
 
-    expect(BigNumber.from(myBalance).toNumber()).gte(
-      transferAmount.toNumber()
-    );
+    expect(BigNumber.from(myBalance).toNumber()).gte(transferAmount.toNumber());
   });
 
   describe("initialize", function () {
@@ -171,7 +168,7 @@ describe("FoxStaking", function () {
       expect(foxyBalanceStaker2.eq(stakingAmount2)).true;
 
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
-      await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin   
+      await fox.approve(foxStaking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("1000");
       await foxStaking.addRewardsForStakers(awardAmount, true);
 

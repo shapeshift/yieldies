@@ -247,7 +247,7 @@ contract FoxStaking is Ownable {
         FOXy = _FOXy;
         require(_TokePool != address(0));
         tokePool = _TokePool;
-        
+
         IERC20(FOX).approve(tokePool, type(uint256).max);
 
         epoch = Epoch({
