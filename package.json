@@ -15,7 +15,8 @@
     "lint:fix": "npx solhint src/**/*.sol --fix && npx eslint '**/*.{js,ts}' --fix",
     "prettier": "npx prettier '**/*.{json,sol,md}' --write",
     "clean": "rm -rf node_modules artifacts cache typechain-types",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test --network localhost",
+    "local-node": "dotenv cross-var npx hardhat node --fork %MAINNET_URL%"
   },
   "repository": {
     "type": "git",
@@ -43,7 +44,9 @@
     "@typescript-eslint/eslint-plugin": "^5.8.1",
     "@typescript-eslint/parser": "^5.8.1",
     "chai": "^4.3.4",
+    "cross-var": "^1.1.0",
     "dotenv": "^10.0.0",
+    "dotenv-cli": "^4.1.1",
     "eslint": "^8.5.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-standard": "^16.0.3",

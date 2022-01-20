@@ -105,6 +105,7 @@ dist
 
 
 artifacts/
+deployments/
 cache/
 typechain-types/
 coverage.json

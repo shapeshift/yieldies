@@ -30,7 +30,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core", "deploy/test"],
+      deploy: 'deploy',
+      forking: {
+        url: process.env.MAINNET_URL || "",
+        blockNumber: 14043149,
+        enabled: true, // Set to false to disable forked mainnet mode
+      },
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
@@ -39,7 +44,7 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    deploy: ["deploy/core"],
+    deploy: 'deploy',
     sources: "./src",
   },
   namedAccounts: {
