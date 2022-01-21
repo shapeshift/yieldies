@@ -6,16 +6,21 @@ import { StakingWarmup } from "../typechain-types/StakingWarmup";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
+import { StakingCooldown } from "../typechain-types";
+import { tokePoolAbi } from "./tokePoolAbi";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
   let FOXy: Foxy;
   let foxStaking: FoxStaking;
   let fox: Contract;
+  let tFOX: Contract;
   let stakingWarmup: StakingWarmup;
+  let stakingCooldown: StakingCooldown;
 
   const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
   const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
+  const tFOXAddress = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311";
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -27,6 +32,7 @@ describe("FoxStaking", function () {
       FoxyDeployment.abi,
       accounts[0]
     ) as Foxy;
+    tFOX = new ethers.Contract(tFOXAddress, tokePoolAbi, accounts[0]);
     const foxStakingDeployment = await deployments.get("FoxStaking");
     foxStaking = new ethers.Contract(
       foxStakingDeployment.address,
@@ -39,9 +45,16 @@ describe("FoxStaking", function () {
       stakingWarmupDeployment.abi,
       accounts[0]
     ) as StakingWarmup; // is there a better way to avoid this cast?
+    const stakingCooldownDeployment = await deployments.get("StakingCooldown");
+    stakingCooldown = new ethers.Contract(
+      stakingCooldownDeployment.address,
+      stakingCooldownDeployment.abi,
+      accounts[0]
+    ) as StakingCooldown; // is there a better way to avoid this cast?
 
     await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
     await foxStaking.setWarmupContract(stakingWarmup.address);
+    await foxStaking.setCooldownContract(stakingWarmup.address);
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
@@ -105,6 +118,8 @@ describe("FoxStaking", function () {
 
       warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
       expect(warmupFoxyBalance.eq(0)).true;
+      
+      
 
       // unstake
       await FOXy.connect(staker1Signer as Signer).approve(
@@ -115,6 +130,7 @@ describe("FoxStaking", function () {
 
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
+      expect(stakingCooldown)
     });
   });
 
@@ -207,6 +223,76 @@ describe("FoxStaking", function () {
       foxyBalanceStaker2 = await FOXy.balanceOf(staker2);
       expect(foxyBalanceStaker1.eq(stakingAmount1.add(909))).true;
       expect(foxyBalanceStaker2.eq(stakingAmount2.add(90))).true;
+    });
+  });
+
+  describe("tokemak", function () {
+    it("Staking gives tFOX to the FoxStaking contract", async () => {
+      const { staker1 } = await getNamedAccounts();      
+      // transfer FOX to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await fox.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
+
+      let tFoxBalance = await tFOX.balanceOf(foxStakingStaker1.address);
+      expect(tFoxBalance.eq(0)).true;
+
+      const stakingAmount = transferAmount.div(2);
+      const foxStaker1 = fox.connect(staker1Signer as Signer);
+      await foxStaker1.approve(foxStaking.address, stakingAmount);
+      await foxStakingStaker1.stake(stakingAmount, staker1);
+
+      tFoxBalance = await tFOX.balanceOf(foxStakingStaker1.address);
+      expect(tFoxBalance.eq(stakingAmount)).true;
+    });
+    it("Unstaking creates requestedWithdrawals", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+
+      // transfer FOX to staker 1
+      const transferAmount = BigNumber.from("100000");
+      await fox.transfer(staker1, transferAmount);
+      await fox.transfer(staker2, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const staker2Signer = accounts.find(
+        (account) => account.address === staker2
+      );
+
+      const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
+      const stakingAmount1 = transferAmount.div(4);
+      const foxStaker1 = fox.connect(staker1Signer as Signer);
+      await foxStaker1.approve(foxStaking.address, stakingAmount1);
+      await foxStakingStaker1.stake(stakingAmount1, staker1);
+      await foxStakingStaker1.claim(staker1);
+
+      const foxStakingStaker2 = foxStaking.connect(staker2Signer as Signer);
+      const stakingAmount2 = transferAmount.div(2);
+      const foxStaker2 = fox.connect(staker2Signer as Signer);
+      await foxStaker2.approve(foxStaking.address, stakingAmount2);
+      await foxStakingStaker2.stake(stakingAmount2, staker2);
+      await foxStakingStaker2.claim(staker2);
+
+      // unstake
+      await FOXy.connect(staker1Signer as Signer).approve(
+        foxStaking.address,
+        stakingAmount1
+      );
+      await foxStakingStaker1.unstake(stakingAmount1, false);
+
+      await FOXy.connect(staker2Signer as Signer).approve(
+        foxStaking.address,
+        stakingAmount2
+      );
+      await foxStakingStaker2.unstake(stakingAmount2, false);
+
+      const requestedWithdrawals = await tFOX.requestedWithdrawals(foxStakingStaker1.address);
+      console.log('withdrawals', requestedWithdrawals)
     });
   });
 });

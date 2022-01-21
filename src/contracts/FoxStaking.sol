@@ -210,6 +210,8 @@ interface IWarmup {
 interface ITokePool {
     function deposit(uint256 amount) external;
 
+    function requestWithdrawal(uint256 amount) external;
+
     function balanceOf(address owner) external view returns (uint256);
 }
 
@@ -231,6 +233,7 @@ contract FoxStaking is Ownable {
     Epoch public epoch;
 
     address public warmupContract;
+    address public cooldownContract;
     uint256 public warmupPeriod;
 
     constructor(
@@ -265,6 +268,21 @@ contract FoxStaking is Ownable {
         bool lock; // prevents malicious delays
     }
     mapping(address => Claim) public warmupInfo;
+    mapping(address => Claim) public cooldownInfo;
+
+    /**
+        @notice creates a withdrawRequest with Tokemak
+        @param _amount uint
+        @return bool
+     */
+    function requestWithdrawalFromTokemak(uint256 _amount)
+        internal
+        returns (bool)
+    {
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        tokePoolContract.requestWithdrawal(_amount);
+        return true; // TODO: TOKE requestWithdrawal function doesn't return anything.  Need to check for proper event emitted
+    }
 
     /**
         @notice deposit FOX to tFOX Tokemak reactor
@@ -289,10 +307,10 @@ contract FoxStaking is Ownable {
     /**
         @notice stake FOX to enter warmup
         @param _amount uint
-        @return bool
+        @param _recipient address
      */
     function stake(uint256 _amount, address _recipient)
-        external
+        public
         returns (bool)
     {
         rebase();
@@ -312,6 +330,14 @@ contract FoxStaking is Ownable {
         IERC20(FOXy).safeTransfer(warmupContract, _amount);
         return true;
     }
+
+    // /**
+    //     @notice stake FOX to enter warmup
+    //     @param _amount uint
+    //  */
+    // function stake(uint256 _amount) external {
+    //     stake(_amount, msg.sender);
+    // }
 
     /**
         @notice retrieve FOXy from warmup
@@ -354,12 +380,26 @@ contract FoxStaking is Ownable {
         @param _amount uint
         @param _trigger bool
      */
-    function unstake(uint256 _amount, bool _trigger) external {
+    function unstake(uint256 _amount, bool _trigger) external returns (bool) {
         if (_trigger) {
             rebase();
         }
         IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
-        // TODO: withdraw from TOKE and create cooldown claim
+
+        Claim memory info = cooldownInfo[msg.sender];
+        require(!info.lock, "Deposits for account are locked");
+
+        cooldownInfo[msg.sender] = Claim({
+            deposit: info.deposit.add(_amount),
+            gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
+            expiry: epoch.number.add(warmupPeriod),
+            lock: false
+        });
+
+        requestWithdrawalFromTokemak(_amount);
+        // TODO: Verify Withdraw request
+        IERC20(FOXy).safeTransfer(cooldownContract, _amount);
+        return true;
     }
 
     /**
@@ -410,6 +450,18 @@ contract FoxStaking is Ownable {
             "Warmup cannot be set more than once"
         );
         warmupContract = _address;
+    }
+
+    /**
+        @notice sets the contract address for LP staking
+        @param _address address
+     */
+    function setCooldownContract(address _address) external onlyManager {
+        require(
+            cooldownContract == address(0),
+            "Cooldown cannot be set more than once"
+        );
+        cooldownContract = _address;
     }
 
     /**
