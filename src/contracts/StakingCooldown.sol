@@ -5,17 +5,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract StakingCooldown {
     address public immutable staking;
-    address public immutable FOX;
+    address public immutable FOXy;
 
-    constructor(address _staking, address _FOX) {
+    constructor(address _staking, address _FOXy) {
         require(_staking != address(0));
         staking = _staking;
-        require(_FOX != address(0));
-        FOX = _FOX;
+        require(_FOXy != address(0));
+        FOXy = _FOXy;
     }
 
     function retrieve(address _staker, uint256 _amount) external {
         require(msg.sender == staking);
-        IERC20(FOX).transfer(_staker, _amount);
+        IERC20(FOXy).transfer(_staker, _amount);
     }
 }

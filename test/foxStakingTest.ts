@@ -54,7 +54,7 @@ describe("FoxStaking", function () {
 
     await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
     await foxStaking.setWarmupContract(stakingWarmup.address);
-    await foxStaking.setCooldownContract(stakingWarmup.address);
+    await foxStaking.setCooldownContract(stakingCooldown.address);
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
@@ -128,7 +128,9 @@ describe("FoxStaking", function () {
 
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
-      expect(stakingCooldown);
+
+      let cooldownFoxyBalance = await FOXy.balanceOf(stakingCooldown.address);
+      expect(cooldownFoxyBalance.eq(stakingAmount)).true;
     });
   });
 

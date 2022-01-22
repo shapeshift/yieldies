@@ -304,7 +304,13 @@ contract FoxStaking is Ownable {
         return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
     }
 
-    function stake(uint256 _amount, address _recipient) public {
+    /**
+        @notice stake FOX to enter warmup
+        @param _amount uint
+        @param _recipient address
+        @return bool
+     */
+    function stake(uint256 _amount, address _recipient) public returns (bool) {
         rebase();
         IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -320,10 +326,17 @@ contract FoxStaking is Ownable {
         depositToTokemak(_amount);
 
         IERC20(FOXy).safeTransfer(warmupContract, _amount);
+        return true;
     }
 
-    function stake(uint256 _amount) external {
+    /**
+        @notice stake FOX to enter warmup
+        @param _amount uint
+        @return bool
+     */
+    function stake(uint256 _amount) external returns (bool) {
         stake(_amount, msg.sender);
+        return true;
     }
 
     /**
