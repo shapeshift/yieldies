@@ -102,7 +102,7 @@ describe("FoxStaking", function () {
       const stakingAmount = transferAmount.div(2);
       const foxStaker1 = fox.connect(staker1Signer as Signer);
       await foxStaker1.approve(foxStaking.address, stakingAmount);
-      await foxStakingStaker1.stake(stakingAmount, staker1);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // balance should still be zero, until we claim the FOXy.
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
@@ -118,8 +118,6 @@ describe("FoxStaking", function () {
 
       warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
       expect(warmupFoxyBalance.eq(0)).true;
-      
-      
 
       // unstake
       await FOXy.connect(staker1Signer as Signer).approve(
@@ -130,7 +128,7 @@ describe("FoxStaking", function () {
 
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
-      expect(stakingCooldown)
+      expect(stakingCooldown);
     });
   });
 
@@ -158,11 +156,11 @@ describe("FoxStaking", function () {
 
       const foxStaker1 = fox.connect(staker1Signer as Signer);
       await foxStaker1.approve(foxStaking.address, stakingAmount1);
-      await foxStakingStaker1.stake(stakingAmount1, staker1);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount1);
 
       const foxStaker2 = fox.connect(staker2Signer as Signer);
       await foxStaker2.approve(foxStaking.address, stakingAmount2);
-      await foxStakingStaker2.stake(stakingAmount2, staker2);
+      await foxStakingStaker2.functions["stake(uint256)"](stakingAmount2);
 
       // claim should move the FOXy from warmup to the staker
       await foxStakingStaker1.claim(staker1);
@@ -228,8 +226,8 @@ describe("FoxStaking", function () {
 
   describe("tokemak", function () {
     it("Staking gives tFOX to the FoxStaking contract", async () => {
-      const { staker1 } = await getNamedAccounts();      
-      // transfer FOX to staker 1
+      const { staker1 } = await getNamedAccounts();
+
       const transferAmount = BigNumber.from("10000");
       await fox.transfer(staker1, transferAmount);
 
@@ -238,21 +236,22 @@ describe("FoxStaking", function () {
       );
       const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
 
+      // tFOX should be 0 when no TOKE deposits have been made
       let tFoxBalance = await tFOX.balanceOf(foxStakingStaker1.address);
       expect(tFoxBalance.eq(0)).true;
 
       const stakingAmount = transferAmount.div(2);
       const foxStaker1 = fox.connect(staker1Signer as Signer);
       await foxStaker1.approve(foxStaking.address, stakingAmount);
-      await foxStakingStaker1.stake(stakingAmount, staker1);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount);
 
+      // should receive 1:1 tFOX to FOX
       tFoxBalance = await tFOX.balanceOf(foxStakingStaker1.address);
       expect(tFoxBalance.eq(stakingAmount)).true;
     });
     it("Unstaking creates requestedWithdrawals", async () => {
       const { staker1, staker2 } = await getNamedAccounts();
 
-      // transfer FOX to staker 1
       const transferAmount = BigNumber.from("100000");
       await fox.transfer(staker1, transferAmount);
       await fox.transfer(staker2, transferAmount);
@@ -268,17 +267,16 @@ describe("FoxStaking", function () {
       const stakingAmount1 = transferAmount.div(4);
       const foxStaker1 = fox.connect(staker1Signer as Signer);
       await foxStaker1.approve(foxStaking.address, stakingAmount1);
-      await foxStakingStaker1.stake(stakingAmount1, staker1);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount1);
       await foxStakingStaker1.claim(staker1);
 
       const foxStakingStaker2 = foxStaking.connect(staker2Signer as Signer);
       const stakingAmount2 = transferAmount.div(2);
       const foxStaker2 = fox.connect(staker2Signer as Signer);
       await foxStaker2.approve(foxStaking.address, stakingAmount2);
-      await foxStakingStaker2.stake(stakingAmount2, staker2);
+      await foxStakingStaker2.functions["stake(uint256)"](stakingAmount2);
       await foxStakingStaker2.claim(staker2);
 
-      // unstake
       await FOXy.connect(staker1Signer as Signer).approve(
         foxStaking.address,
         stakingAmount1
@@ -291,8 +289,11 @@ describe("FoxStaking", function () {
       );
       await foxStakingStaker2.unstake(stakingAmount2, false);
 
-      const requestedWithdrawals = await tFOX.requestedWithdrawals(foxStakingStaker1.address);
-      console.log('withdrawals', requestedWithdrawals)
+      const requestedWithdrawals = await tFOX.requestedWithdrawals(
+        foxStakingStaker1.address
+      );
+      expect(requestedWithdrawals.amount.eq(stakingAmount2)).true; // TODO: fix once able to stack requestedWithdrawals
+      expect(requestedWithdrawals.minCycle.eq(167)).true;
     });
   });
 });
