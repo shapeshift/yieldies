@@ -18,6 +18,4 @@ contract StakingCooldown {
         require(msg.sender == staking);
         IERC20(FOX).transfer(_staker, _amount);
     }
-
-    function unstake(uint256) external {}
 }

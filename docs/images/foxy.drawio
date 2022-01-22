@@ -56,13 +56,13 @@
                     <mxGeometry y="90" width="140" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="16" value="Cool Down" style="swimlane;" parent="1" vertex="1">
-                    <mxGeometry x="425" y="-410" width="160" height="290" as="geometry"/>
+                    <mxGeometry x="425" y="-300" width="160" height="180" as="geometry"/>
                 </mxCell>
-                <mxCell id="17" value="unstake(amount)" style="rounded=0;whiteSpace=wrap;html=1;" parent="16" vertex="1">
+                <mxCell id="17" value="store FOXy" style="rounded=0;whiteSpace=wrap;html=1;" parent="16" vertex="1">
                     <mxGeometry x="10" y="40" width="140" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="19" value="claim(amount)" style="rounded=0;whiteSpace=wrap;html=1;" parent="16" vertex="1">
-                    <mxGeometry x="10" y="210" width="140" height="60" as="geometry"/>
+                <mxCell id="19" value="retrieve(amount)" style="rounded=0;whiteSpace=wrap;html=1;" parent="16" vertex="1">
+                    <mxGeometry x="10" y="110" width="140" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="22" value="Tokemak Rewards" style="swimlane;" parent="1" vertex="1">
                     <mxGeometry x="880" y="560" width="405" height="240" as="geometry"/>
@@ -188,7 +188,7 @@
                         <Array as="points">
                             <mxPoint x="460" y="290"/>
                             <mxPoint x="350" y="290"/>
-                            <mxPoint x="350" y="-340"/>
+                            <mxPoint x="350" y="-230"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
@@ -209,7 +209,7 @@
                         <mxPoint x="570" y="50" as="targetPoint"/>
                         <Array as="points">
                             <mxPoint x="310" y="395"/>
-                            <mxPoint x="310" y="-170"/>
+                            <mxPoint x="310" y="-160"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
@@ -318,7 +318,7 @@
                         <mxPoint x="490" y="130" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="89" style="edgeStyle=none;html=1;" edge="1" parent="1" source="51">
+                <mxCell id="89" style="edgeStyle=none;html=1;" parent="1" source="51" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="920" y="110" as="targetPoint"/>
                         <Array as="points">
@@ -328,7 +328,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="90" value="reserve&lt;br&gt;has FOX" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                <mxCell id="90" value="reserve&lt;br&gt;has FOX" style="rhombus;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="860" y="140" width="80" height="80" as="geometry"/>
                 </mxCell>
             </root>
