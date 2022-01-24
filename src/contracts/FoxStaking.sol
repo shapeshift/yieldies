@@ -262,7 +262,7 @@ contract FoxStaking is Ownable {
     }
 
     struct Claim {
-        uint256 deposit;
+        uint256 amount;
         uint256 gons;
         uint256 expiry;
         bool lock; // prevents malicious delays
@@ -318,7 +318,7 @@ contract FoxStaking is Ownable {
         require(!info.lock, "Deposits for account are locked");
 
         warmupInfo[_recipient] = Claim({
-            deposit: info.deposit.add(_amount),
+            amount: info.amount.add(_amount),
             gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
@@ -365,7 +365,7 @@ contract FoxStaking is Ownable {
             address(this),
             IFOXy(FOXy).balanceForGons(info.gons)
         );
-        IERC20(FOX).safeTransfer(msg.sender, info.deposit);
+        IERC20(FOX).safeTransfer(msg.sender, info.amount);
     }
 
     /**
@@ -384,13 +384,14 @@ contract FoxStaking is Ownable {
         if (_trigger) {
             rebase();
         }
+
         IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
 
         Claim memory info = cooldownInfo[msg.sender];
         require(!info.lock, "Deposits for account are locked");
 
         cooldownInfo[msg.sender] = Claim({
-            deposit: info.deposit.add(_amount),
+            amount: info.amount.add(_amount),
             gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
