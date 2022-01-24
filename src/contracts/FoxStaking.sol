@@ -395,7 +395,7 @@ contract FoxStaking is Ownable {
 
         if (hasWarmupFoxy) {
             uint256 newAmount = userWarmInfo.amount.sub(_amount);
-            require(newAmount >= 0, "Withdraws for account are locked");
+            require(newAmount >= 0, "Not enough funds");
 
             if (newAmount == 0) {
                 delete warmupInfo[msg.sender];
