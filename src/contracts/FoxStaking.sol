@@ -378,7 +378,7 @@ contract FoxStaking is Ownable {
         @param _amount uint
         @param _trigger bool
      */
-    function unstake(uint256 _amount, bool _trigger) external returns (bool) {
+    function unstake(uint256 _amount, bool _trigger) external {
         if (_trigger) {
             rebase();
         }
@@ -398,7 +398,6 @@ contract FoxStaking is Ownable {
         requestWithdrawalFromTokemak(_amount);
         // TODO: Verify Withdraw request
         IERC20(FOXy).safeTransfer(cooldownContract, _amount);
-        return true;
     }
 
     /**
