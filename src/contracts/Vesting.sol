@@ -3,7 +3,7 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract StakingCooldown {
+contract Vesting {
     address public immutable staking;
     address public immutable FOXy;
 
@@ -12,6 +12,8 @@ contract StakingCooldown {
         staking = _staking;
         require(_FOXy != address(0));
         FOXy = _FOXy;
+
+        IERC20(FOXy).approve(staking, type(uint256).max);
     }
 
     function retrieve(address _staker, uint256 _amount) external {
