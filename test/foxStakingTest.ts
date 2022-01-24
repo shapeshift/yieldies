@@ -7,7 +7,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { tokePoolAbi } from "./tokePoolAbi";
-import { vestingAbi } from "./vestingAbi";
+import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
