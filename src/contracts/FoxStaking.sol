@@ -273,26 +273,21 @@ contract FoxStaking is Ownable {
     /**
         @notice creates a withdrawRequest with Tokemak
         @param _amount uint
-        @return bool
      */
-    function requestWithdrawalFromTokemak(uint256 _amount)
-        internal
-        returns (bool)
-    {
+    function requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.requestWithdrawal(_amount);
-        return true; // TODO: TOKE requestWithdrawal function doesn't return anything.  Need to check for proper event emitted
+        // TODO: TOKE requestWithdrawal function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
         @notice deposit FOX to tFOX Tokemak reactor
         @param _amount uint
-        @return bool
      */
-    function depositToTokemak(uint256 _amount) internal returns (bool) {
+    function depositToTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.deposit(_amount);
-        return true; // TODO: TOKE deposit function doesn't return anything.  Need to check for proper event emitted
+        // TODO: TOKE deposit function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
@@ -308,9 +303,8 @@ contract FoxStaking is Ownable {
         @notice stake FOX to enter warmup
         @param _amount uint
         @param _recipient address
-        @return bool
      */
-    function stake(uint256 _amount, address _recipient) public returns (bool) {
+    function stake(uint256 _amount, address _recipient) public {
         rebase();
         IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -326,17 +320,14 @@ contract FoxStaking is Ownable {
         depositToTokemak(_amount);
 
         IERC20(FOXy).safeTransfer(warmupContract, _amount);
-        return true;
     }
 
     /**
         @notice stake FOX to enter warmup
         @param _amount uint
-        @return bool
      */
-    function stake(uint256 _amount) external returns (bool) {
+    function stake(uint256 _amount) external {
         stake(_amount, msg.sender);
-        return true;
     }
 
     /**
@@ -388,7 +379,8 @@ contract FoxStaking is Ownable {
         IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
 
         Claim memory info = cooldownInfo[msg.sender];
-        require(!info.lock, "Deposits for account are locked");
+        require(!info.lock, "Withdrawals for account are locked");
+
 
         cooldownInfo[msg.sender] = Claim({
             amount: info.amount.add(_amount),

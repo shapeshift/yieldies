@@ -20,7 +20,7 @@ describe("FoxStaking", function () {
 
   const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
   const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
-  const tFOXAddress = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311";
+  const tFOX_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311";
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -32,7 +32,7 @@ describe("FoxStaking", function () {
       FoxyDeployment.abi,
       accounts[0]
     ) as Foxy;
-    tFOX = new ethers.Contract(tFOXAddress, tokePoolAbi, accounts[0]);
+    tFOX = new ethers.Contract(tFOX_ADDRESS, tokePoolAbi, accounts[0]);
     const foxStakingDeployment = await deployments.get("FoxStaking");
     foxStaking = new ethers.Contract(
       foxStakingDeployment.address,
@@ -295,7 +295,7 @@ describe("FoxStaking", function () {
         foxStakingStaker1.address
       );
       expect(requestedWithdrawals.amount.eq(stakingAmount2)).true; // TODO: fix once able to stack requestedWithdrawals
-      expect(requestedWithdrawals.minCycle.eq(167)).true;
+      expect(requestedWithdrawals.minCycle.eq(167)).true; // given block number 14043149 this is the cycle TOKE is on
     });
   });
 });
