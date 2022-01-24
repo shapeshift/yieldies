@@ -40,13 +40,13 @@ describe("FoxStaking", function () {
       accounts[0]
     ) as FoxStaking; // is there a better way to avoid this cast?
 
-    const warmupContract = await foxStaking.warmupContract()
+    const warmupContract = await foxStaking.warmupContract();
     stakingWarmup = new ethers.Contract(
       warmupContract,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
-    const cooldownContract = await foxStaking.cooldownContract()
+    const cooldownContract = await foxStaking.cooldownContract();
     stakingCooldown = new ethers.Contract(
       cooldownContract,
       vestingAbi,
@@ -81,6 +81,37 @@ describe("FoxStaking", function () {
   });
 
   describe("stake", function () {
+    it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
+      const { staker1 } = await getNamedAccounts();
+      let staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(0)).true;
+      // transfer FOX to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await fox.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const foxStaker1 = fox.connect(staker1Signer as Signer);
+      await foxStaker1.approve(foxStaking.address, stakingAmount);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
+      expect(warmupFoxyBalance.eq(stakingAmount)).true;
+
+      // unstake
+      await FOXy.connect(staker1Signer as Signer).approve(
+        foxStaking.address,
+        stakingAmount
+      );
+
+      await expect(
+        foxStakingStaker1.unstake(stakingAmount.add(1), false)
+      ).to.be.revertedWith("SafeMath: subtraction overflow");
+    });
     it("User can stake and unstake full amount without claiming when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);
@@ -127,7 +158,7 @@ describe("FoxStaking", function () {
 
       let cooldownFoxyBalance = await FOXy.balanceOf(stakingCooldown.address);
       expect(cooldownFoxyBalance.eq(stakingAmount)).true;
-    })
+    });
     it("User can stake, claim and unstake full amount when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);

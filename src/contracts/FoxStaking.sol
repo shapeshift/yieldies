@@ -391,7 +391,6 @@ contract FoxStaking is Ownable {
         // if user has warmup claim amount use the FOXy from warmupContract
         address claimAddress = hasWarmupFoxy ? warmupContract : msg.sender;
 
-        console.log("claimAddress", claimAddress);
         IERC20(FOXy).safeTransferFrom(claimAddress, address(this), _amount);
 
         if (hasWarmupFoxy) {
