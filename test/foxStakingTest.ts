@@ -2,12 +2,12 @@ import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
 import { Foxy } from "../typechain-types/Foxy";
 import { FoxStaking } from "../typechain-types/FoxStaking";
-import { StakingWarmup } from "../typechain-types/StakingWarmup";
+import { Vesting } from "../typechain-types/Vesting";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { StakingCooldown } from "../typechain-types";
 import { tokePoolAbi } from "./tokePoolAbi";
+import { vestingAbi } from "./vestingAbi";
 
 describe("FoxStaking", function () {
   let accounts: SignerWithAddress[];
@@ -15,8 +15,8 @@ describe("FoxStaking", function () {
   let foxStaking: FoxStaking;
   let fox: Contract;
   let tFOX: Contract;
-  let stakingWarmup: StakingWarmup;
-  let stakingCooldown: StakingCooldown;
+  let stakingWarmup: Vesting;
+  let stakingCooldown: Vesting;
 
   const FOX_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
   const FOX = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
@@ -39,22 +39,23 @@ describe("FoxStaking", function () {
       foxStakingDeployment.abi,
       accounts[0]
     ) as FoxStaking; // is there a better way to avoid this cast?
-    const stakingWarmupDeployment = await deployments.get("StakingWarmup");
+
+    const warmupContract = await foxStaking.warmupContract()
     stakingWarmup = new ethers.Contract(
-      stakingWarmupDeployment.address,
-      stakingWarmupDeployment.abi,
+      warmupContract,
+      vestingAbi,
       accounts[0]
-    ) as StakingWarmup; // is there a better way to avoid this cast?
-    const stakingCooldownDeployment = await deployments.get("StakingCooldown");
+    ) as Vesting; // is there a better way to avoid this cast?
+    const cooldownContract = await foxStaking.cooldownContract()
     stakingCooldown = new ethers.Contract(
-      stakingCooldownDeployment.address,
-      stakingCooldownDeployment.abi,
+      cooldownContract,
+      vestingAbi,
       accounts[0]
-    ) as StakingCooldown; // is there a better way to avoid this cast?
+    ) as Vesting; // is there a better way to avoid this cast?
 
     await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
-    await foxStaking.setWarmupContract(stakingWarmup.address);
-    await foxStaking.setCooldownContract(stakingCooldown.address);
+    // await foxStaking.setWarmupContract(stakingWarmup.address);
+    // await foxStaking.setCooldownContract(stakingCooldown.address);
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],

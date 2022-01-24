@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
+import "./Vesting.sol";
 
 library SafeMath {
     /**
@@ -232,8 +233,8 @@ contract FoxStaking is Ownable {
     }
     Epoch public epoch;
 
-    address public warmupContract;
-    address public cooldownContract;
+    address public immutable warmupContract;
+    address public immutable cooldownContract;
     uint256 public warmupPeriod;
 
     constructor(
@@ -250,6 +251,12 @@ contract FoxStaking is Ownable {
         FOXy = _FOXy;
         require(_TokePool != address(0));
         tokePool = _TokePool;
+
+        Vesting warmup = new Vesting(address(this), FOXy);
+        warmupContract = address(warmup);
+
+        Vesting cooldown = new Vesting(address(this), FOXy);
+        cooldownContract = address(cooldown);
 
         IERC20(FOX).approve(tokePool, type(uint256).max);
 
@@ -381,7 +388,6 @@ contract FoxStaking is Ownable {
         Claim memory info = cooldownInfo[msg.sender];
         require(!info.lock, "Withdrawals for account are locked");
 
-
         cooldownInfo[msg.sender] = Claim({
             amount: info.amount.add(_amount),
             gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
@@ -431,30 +437,6 @@ contract FoxStaking is Ownable {
     function contractBalance() public view returns (uint256) {
         uint256 tokeFoxBalance = getTokemakFoxBalance();
         return IERC20(FOX).balanceOf(address(this)) + tokeFoxBalance;
-    }
-
-    /**
-        @notice sets the contract address for LP staking
-        @param _address address
-     */
-    function setWarmupContract(address _address) external onlyManager {
-        require(
-            warmupContract == address(0),
-            "Warmup cannot be set more than once"
-        );
-        warmupContract = _address;
-    }
-
-    /**
-        @notice sets the contract address for LP staking
-        @param _address address
-     */
-    function setCooldownContract(address _address) external onlyManager {
-        require(
-            cooldownContract == address(0),
-            "Cooldown cannot be set more than once"
-        );
-        cooldownContract = _address;
     }
 
     /**
