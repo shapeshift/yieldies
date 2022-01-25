@@ -7,124 +7,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 import "./Vesting.sol";
 
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        assert(a == b * c + (a % b)); // There is no case in which this doesn't hold
-
-        return c;
-    }
-}
-
 interface IOwnable {
     function manager() external view returns (address);
 
@@ -188,7 +70,7 @@ contract Ownable is IOwnable {
     }
 }
 
-interface IFOXy {
+interface IRewardToken {
     function rebase(uint256 ohmProfit_, uint256 epoch_)
         external
         returns (uint256);
@@ -216,14 +98,13 @@ interface ITokePool {
     function balanceOf(address owner) external view returns (uint256);
 }
 
-contract FoxStaking is Ownable {
-    using SafeMath for uint256;
+contract Staking is Ownable {
     using SafeERC20 for IERC20;
 
     // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public immutable tokePool;
-    address public immutable FOX;
-    address public immutable FOXy;
+    address public immutable stakingToken;
+    address public immutable rewardToken;
 
     struct Epoch {
         uint256 length;
@@ -238,27 +119,27 @@ contract FoxStaking is Ownable {
     uint256 public warmupPeriod;
 
     constructor(
-        address _FOX,
-        address _FOXy,
-        address _TokePool,
+        address _stakingToken,
+        address _rewardToken,
+        address _tokePool,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
-        require(_FOX != address(0));
-        FOX = _FOX;
-        require(_FOXy != address(0));
-        FOXy = _FOXy;
-        require(_TokePool != address(0));
-        tokePool = _TokePool;
+        require(_stakingToken != address(0));
+        stakingToken = _stakingToken;
+        require(_rewardToken != address(0));
+        rewardToken = _rewardToken;
+        require(_tokePool != address(0));
+        tokePool = _tokePool;
 
-        Vesting warmup = new Vesting(address(this), FOXy);
-        warmupContract = address(warmup);
+        Vesting warmUp = new Vesting(address(this), rewardToken);
+        warmupContract = address(warmUp);
 
-        Vesting cooldown = new Vesting(address(this), FOXy);
-        cooldownContract = address(cooldown);
+        Vesting coolDown = new Vesting(address(this), rewardToken);
+        cooldownContract = address(coolDown);
 
-        IERC20(FOX).approve(tokePool, type(uint256).max);
+        IERC20(stakingToken).approve(tokePool, type(uint256).max);
 
         epoch = Epoch({
             length: _epochLength,
@@ -297,7 +178,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice deposit FOX to tFOX Tokemak reactor
+        @notice deposit stakingToken to tStakingToken Tokemak reactor
         @param _amount uint
      */
     function depositToTokemak(uint256 _amount) internal {
@@ -307,39 +188,43 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice gets balance of FOX that's locked into the TOKE FOX pool
+        @notice gets balance of stakingToken that's locked into the TOKE stakingToken pool
         @return uint
      */
-    function getTokemakFoxBalance() internal view returns (uint256) {
+    function getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(tokePool);
         return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
     }
 
     /**
-        @notice stake FOX to enter warmup
+        @notice stake stakingToken to enter warmup
         @param _amount uint
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
         rebase();
-        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
 
         Claim memory info = warmupInfo[_recipient];
         require(!info.lock, "Deposits for account are locked");
 
         warmupInfo[_recipient] = Claim({
-            amount: info.amount.add(_amount),
-            gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
-            expiry: epoch.number.add(warmupPeriod),
+            amount: info.amount + _amount,
+            gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + warmupPeriod,
             lock: false
         });
         depositToTokemak(_amount);
 
-        IERC20(FOXy).safeTransfer(warmupContract, _amount);
+        IERC20(rewardToken).safeTransfer(warmupContract, _amount);
     }
 
     /**
-        @notice stake FOX to enter warmup
+        @notice stake stakingToken to enter warmup
         @param _amount uint
      */
     function stake(uint256 _amount) external {
@@ -347,7 +232,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice retrieve FOXy from warmup
+        @notice retrieve rewardToken from warmup
         @param _recipient address
      */
     function claim(address _recipient) public {
@@ -356,13 +241,13 @@ contract FoxStaking is Ownable {
             delete warmupInfo[_recipient];
             IWarmup(warmupContract).retrieve(
                 _recipient,
-                IFOXy(FOXy).balanceForGons(info.gons)
+                IRewardToken(rewardToken).balanceForGons(info.gons)
             );
         }
     }
 
     /**
-        @notice forfeit FOXy in warmup and retrieve FOX
+        @notice forfeit rewardToken in warmup and retrieve stakingToken
      */
     function forfeit() external {
         Claim memory info = warmupInfo[msg.sender];
@@ -370,9 +255,9 @@ contract FoxStaking is Ownable {
 
         IWarmup(warmupContract).retrieve(
             address(this),
-            IFOXy(FOXy).balanceForGons(info.gons)
+            IRewardToken(rewardToken).balanceForGons(info.gons)
         );
-        IERC20(FOX).safeTransfer(msg.sender, info.amount);
+        IERC20(stakingToken).safeTransfer(msg.sender, info.amount);
     }
 
     /**
@@ -383,7 +268,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice redeem FOXy for FOX
+        @notice redeem rewardToken for stakingToken
         @param _amount uint
         @param _trigger bool
      */
@@ -395,11 +280,11 @@ contract FoxStaking is Ownable {
         Claim memory userWarmInfo = warmupInfo[msg.sender];
         require(!userWarmInfo.lock, "Withdraws for account are locked");
 
-        bool hasWarmupFoxy = userWarmInfo.amount >= _amount &&
+        bool hasWarmupToken = userWarmInfo.amount >= _amount &&
             isClaimAvailable(userWarmInfo);
 
-        if (hasWarmupFoxy) {
-            uint256 newAmount = userWarmInfo.amount.sub(_amount);
+        if (hasWarmupToken) {
+            uint256 newAmount = userWarmInfo.amount - _amount;
             require(newAmount >= 0, "Not enough funds");
             IWarmup(warmupContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
@@ -407,38 +292,42 @@ contract FoxStaking is Ownable {
             } else {
                 warmupInfo[msg.sender] = Claim({
                     amount: newAmount,
-                    gons: userWarmInfo.gons.sub(
-                        IFOXy(FOXy).gonsForBalance(_amount)
-                    ),
+                    gons: userWarmInfo.gons -
+                        IRewardToken(rewardToken).gonsForBalance(_amount),
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
         } else {
-            IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
+            IERC20(rewardToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
         }
 
         Claim memory userCoolInfo = cooldownInfo[msg.sender];
         require(!userCoolInfo.lock, "Withdrawals for account are locked");
 
         cooldownInfo[msg.sender] = Claim({
-            amount: userCoolInfo.amount.add(_amount),
-            gons: userCoolInfo.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
-            expiry: epoch.number.add(warmupPeriod),
+            amount: userCoolInfo.amount + _amount,
+            gons: userCoolInfo.gons +
+                IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + warmupPeriod,
             lock: false
         });
 
         requestWithdrawalFromTokemak(_amount);
         // TODO: Verify Withdraw request
-        IERC20(FOXy).safeTransfer(cooldownContract, _amount);
+        IERC20(rewardToken).safeTransfer(cooldownContract, _amount);
     }
 
     /**
-        @notice returns the FOXy index, which tracks rebase growth
+        @notice returns the rewardToken index, which tracks rebase growth
         @return uint
      */
     function index() public view returns (uint256) {
-        return IFOXy(FOXy).index();
+        return IRewardToken(rewardToken).index();
     }
 
     /**
@@ -446,29 +335,29 @@ contract FoxStaking is Ownable {
      */
     function rebase() public {
         if (epoch.endBlock <= block.number) {
-            IFOXy(FOXy).rebase(epoch.distribute, epoch.number);
+            IRewardToken(rewardToken).rebase(epoch.distribute, epoch.number);
 
-            epoch.endBlock = epoch.endBlock.add(epoch.length);
+            epoch.endBlock = epoch.endBlock + epoch.length;
             epoch.number++;
 
             uint256 balance = contractBalance();
-            uint256 staked = IFOXy(FOXy).circulatingSupply();
+            uint256 staked = IRewardToken(rewardToken).circulatingSupply();
 
             if (balance <= staked) {
                 epoch.distribute = 0;
             } else {
-                epoch.distribute = balance.sub(staked);
+                epoch.distribute = balance - staked;
             }
         }
     }
 
     /**
-        @notice returns contract FOX holdings
+        @notice returns contract stakingToken holdings
         @return uint
      */
     function contractBalance() public view returns (uint256) {
-        uint256 tokeFoxBalance = getTokemakFoxBalance();
-        return IERC20(FOX).balanceOf(address(this)) + tokeFoxBalance;
+        uint256 tokeBalance = getTokemakBalance();
+        return IERC20(stakingToken).balanceOf(address(this)) + tokeBalance;
     }
 
     /**
@@ -482,7 +371,11 @@ contract FoxStaking is Ownable {
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
-        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
         if (_isTriggerRebase) {
             rebase();
         }

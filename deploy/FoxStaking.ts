@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const currentBlock = await ethers.provider.getBlockNumber();
   const firstEpochBlock = currentBlock + epochLength;
 
-  await deploy("FoxStaking", {
+  await deploy("Staking", {
     from: admin,
     args: [
       yieldToken,
@@ -31,5 +31,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 export default func;
-func.tags = ["FoxStaking"];
+func.tags = ["Staking"];
 func.dependencies = ["Foxy", "Fox"];

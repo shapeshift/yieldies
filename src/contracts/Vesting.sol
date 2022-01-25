@@ -5,17 +5,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Vesting {
     address public immutable staking;
-    address public immutable FOXy;
+    address public immutable rewardToken;
 
-    constructor(address _staking, address _FOXy) {
+    constructor(address _staking, address _rewardToken) {
         require(_staking != address(0));
         staking = _staking;
-        require(_FOXy != address(0));
-        FOXy = _FOXy;
+        require(_rewardToken != address(0));
+        rewardToken = _rewardToken;
     }
 
     function retrieve(address _staker, uint256 _amount) external {
         require(msg.sender == staking);
-        IERC20(FOXy).transfer(_staker, _amount);
+        IERC20(rewardToken).transfer(_staker, _amount);
     }
 }
