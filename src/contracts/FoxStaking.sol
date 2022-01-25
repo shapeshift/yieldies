@@ -278,6 +278,15 @@ contract FoxStaking is Ownable {
     mapping(address => Claim) public cooldownInfo;
 
     /**
+        @notice checks to see if claim is available
+        @param info Claim
+        @return bool
+     */
+    function isClaimAvailable(Claim memory info) internal view returns (bool) {
+        return epoch.number >= info.expiry && info.expiry != 0;
+    }
+
+    /**
         @notice creates a withdrawRequest with Tokemak
         @param _amount uint
      */
@@ -343,7 +352,7 @@ contract FoxStaking is Ownable {
      */
     function claim(address _recipient) public {
         Claim memory info = warmupInfo[_recipient];
-        if (epoch.number >= info.expiry && info.expiry != 0) {
+        if (isClaimAvailable(info)) {
             delete warmupInfo[_recipient];
             IWarmup(warmupContract).retrieve(
                 _recipient,
@@ -383,14 +392,38 @@ contract FoxStaking is Ownable {
             rebase();
         }
 
-        IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
+        Claim memory userWarmInfo = warmupInfo[msg.sender];
+        require(!userWarmInfo.lock, "Withdraws for account are locked");
 
-        Claim memory info = cooldownInfo[msg.sender];
-        require(!info.lock, "Withdrawals for account are locked");
+        bool hasWarmupFoxy = userWarmInfo.amount >= _amount &&
+            isClaimAvailable(userWarmInfo);
+
+        if (hasWarmupFoxy) {
+            uint256 newAmount = userWarmInfo.amount.sub(_amount);
+            require(newAmount >= 0, "Not enough funds");
+            IWarmup(warmupContract).retrieve(address(this), _amount);
+            if (newAmount == 0) {
+                delete warmupInfo[msg.sender];
+            } else {
+                warmupInfo[msg.sender] = Claim({
+                    amount: newAmount,
+                    gons: userWarmInfo.gons.sub(
+                        IFOXy(FOXy).gonsForBalance(_amount)
+                    ),
+                    expiry: userWarmInfo.expiry,
+                    lock: false
+                });
+            }
+        } else {
+            IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
+        }
+
+        Claim memory userCoolInfo = cooldownInfo[msg.sender];
+        require(!userCoolInfo.lock, "Withdrawals for account are locked");
 
         cooldownInfo[msg.sender] = Claim({
-            amount: info.amount.add(_amount),
-            gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
+            amount: userCoolInfo.amount.add(_amount),
+            gons: userCoolInfo.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
         });
