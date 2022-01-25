@@ -388,25 +388,24 @@ contract FoxStaking is Ownable {
 
         bool hasWarmupFoxy = userWarmInfo.amount >= _amount;
 
-        // if user has warmup claim amount use the FOXy from warmupContract
-        address claimAddress = hasWarmupFoxy ? warmupContract : msg.sender;
-
-        IERC20(FOXy).safeTransferFrom(claimAddress, address(this), _amount);
-
         if (hasWarmupFoxy) {
             uint256 newAmount = userWarmInfo.amount.sub(_amount);
             require(newAmount >= 0, "Not enough funds");
-
+            IWarmup(warmupContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
                 delete warmupInfo[msg.sender];
             } else {
                 warmupInfo[msg.sender] = Claim({
                     amount: newAmount,
-                    gons: userWarmInfo.gons.sub(IFOXy(FOXy).gonsForBalance(_amount)),
+                    gons: userWarmInfo.gons.sub(
+                        IFOXy(FOXy).gonsForBalance(_amount)
+                    ),
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
+        } else {
+            IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
         }
 
         Claim memory userCoolInfo = cooldownInfo[msg.sender];

@@ -178,6 +178,7 @@ describe("FoxStaking", function () {
 
       warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
       expect(warmupFoxyBalance.eq(0)).true;
+      await foxStakingStaker1.unstake(stakingAmount, false);
     });
     it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -246,6 +247,7 @@ describe("FoxStaking", function () {
         foxStaking.address,
         stakingAmount
       );
+
       await foxStakingStaker1.unstake(stakingAmount, false);
 
       warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);

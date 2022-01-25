@@ -12,8 +12,6 @@ contract Vesting {
         staking = _staking;
         require(_FOXy != address(0));
         FOXy = _FOXy;
-
-        IERC20(FOXy).approve(staking, type(uint256).max);
     }
 
     function retrieve(address _staker, uint256 _amount) external {
