@@ -188,7 +188,7 @@ contract Ownable is IOwnable {
     }
 }
 
-interface IFOXy {
+interface IRewardToken {
     function rebase(uint256 ohmProfit_, uint256 epoch_)
         external
         returns (uint256);
@@ -216,14 +216,14 @@ interface ITokePool {
     function balanceOf(address owner) external view returns (uint256);
 }
 
-contract FoxStaking is Ownable {
+contract Staking is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public immutable tokePool;
-    address public immutable FOX;
-    address public immutable FOXy;
+    address public immutable stakingToken;
+    address public immutable rewardToken;
 
     struct Epoch {
         uint256 length;
@@ -238,27 +238,27 @@ contract FoxStaking is Ownable {
     uint256 public warmupPeriod;
 
     constructor(
-        address _FOX,
-        address _FOXy,
+        address _stakingToken,
+        address _rewardToken,
         address _TokePool,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
-        require(_FOX != address(0));
-        FOX = _FOX;
-        require(_FOXy != address(0));
-        FOXy = _FOXy;
+        require(_stakingToken != address(0));
+        stakingToken = _stakingToken;
+        require(_rewardToken != address(0));
+        rewardToken = _rewardToken;
         require(_TokePool != address(0));
         tokePool = _TokePool;
 
-        Vesting warmup = new Vesting(address(this), FOXy);
+        Vesting warmup = new Vesting(address(this), rewardToken);
         warmupContract = address(warmup);
 
-        Vesting cooldown = new Vesting(address(this), FOXy);
+        Vesting cooldown = new Vesting(address(this), rewardToken);
         cooldownContract = address(cooldown);
 
-        IERC20(FOX).approve(tokePool, type(uint256).max);
+        IERC20(stakingToken).approve(tokePool, type(uint256).max);
 
         epoch = Epoch({
             length: _epochLength,
@@ -297,7 +297,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice deposit FOX to tFOX Tokemak reactor
+        @notice deposit stakingToken to tStakingToken Tokemak reactor
         @param _amount uint
      */
     function depositToTokemak(uint256 _amount) internal {
@@ -307,39 +307,39 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice gets balance of FOX that's locked into the TOKE FOX pool
+        @notice gets balance of stakingToken that's locked into the TOKE stakingToken pool
         @return uint
      */
-    function getTokemakFoxBalance() internal view returns (uint256) {
+    function getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(tokePool);
         return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
     }
 
     /**
-        @notice stake FOX to enter warmup
+        @notice stake stakingToken to enter warmup
         @param _amount uint
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
         rebase();
-        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
         Claim memory info = warmupInfo[_recipient];
         require(!info.lock, "Deposits for account are locked");
 
         warmupInfo[_recipient] = Claim({
             amount: info.amount.add(_amount),
-            gons: info.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
+            gons: info.gons.add(IRewardToken(rewardToken).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
         });
         depositToTokemak(_amount);
 
-        IERC20(FOXy).safeTransfer(warmupContract, _amount);
+        IERC20(rewardToken).safeTransfer(warmupContract, _amount);
     }
 
     /**
-        @notice stake FOX to enter warmup
+        @notice stake stakingToken to enter warmup
         @param _amount uint
      */
     function stake(uint256 _amount) external {
@@ -347,7 +347,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice retrieve FOXy from warmup
+        @notice retrieve rewardToken from warmup
         @param _recipient address
      */
     function claim(address _recipient) public {
@@ -356,13 +356,13 @@ contract FoxStaking is Ownable {
             delete warmupInfo[_recipient];
             IWarmup(warmupContract).retrieve(
                 _recipient,
-                IFOXy(FOXy).balanceForGons(info.gons)
+                IRewardToken(rewardToken).balanceForGons(info.gons)
             );
         }
     }
 
     /**
-        @notice forfeit FOXy in warmup and retrieve FOX
+        @notice forfeit rewardToken in warmup and retrieve stakingToken
      */
     function forfeit() external {
         Claim memory info = warmupInfo[msg.sender];
@@ -370,9 +370,9 @@ contract FoxStaking is Ownable {
 
         IWarmup(warmupContract).retrieve(
             address(this),
-            IFOXy(FOXy).balanceForGons(info.gons)
+            IRewardToken(rewardToken).balanceForGons(info.gons)
         );
-        IERC20(FOX).safeTransfer(msg.sender, info.amount);
+        IERC20(stakingToken).safeTransfer(msg.sender, info.amount);
     }
 
     /**
@@ -383,7 +383,7 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice redeem FOXy for FOX
+        @notice redeem rewardToken for stakingToken
         @param _amount uint
         @param _trigger bool
      */
@@ -395,10 +395,10 @@ contract FoxStaking is Ownable {
         Claim memory userWarmInfo = warmupInfo[msg.sender];
         require(!userWarmInfo.lock, "Withdraws for account are locked");
 
-        bool hasWarmupFoxy = userWarmInfo.amount >= _amount &&
+        bool hasWarmupToken = userWarmInfo.amount >= _amount &&
             isClaimAvailable(userWarmInfo);
 
-        if (hasWarmupFoxy) {
+        if (hasWarmupToken) {
             uint256 newAmount = userWarmInfo.amount.sub(_amount);
             require(newAmount >= 0, "Not enough funds");
             IWarmup(warmupContract).retrieve(address(this), _amount);
@@ -408,14 +408,14 @@ contract FoxStaking is Ownable {
                 warmupInfo[msg.sender] = Claim({
                     amount: newAmount,
                     gons: userWarmInfo.gons.sub(
-                        IFOXy(FOXy).gonsForBalance(_amount)
+                        IRewardToken(rewardToken).gonsForBalance(_amount)
                     ),
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
         } else {
-            IERC20(FOXy).safeTransferFrom(msg.sender, address(this), _amount);
+            IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), _amount);
         }
 
         Claim memory userCoolInfo = cooldownInfo[msg.sender];
@@ -423,22 +423,22 @@ contract FoxStaking is Ownable {
 
         cooldownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount.add(_amount),
-            gons: userCoolInfo.gons.add(IFOXy(FOXy).gonsForBalance(_amount)),
+            gons: userCoolInfo.gons.add(IRewardToken(rewardToken).gonsForBalance(_amount)),
             expiry: epoch.number.add(warmupPeriod),
             lock: false
         });
 
         requestWithdrawalFromTokemak(_amount);
         // TODO: Verify Withdraw request
-        IERC20(FOXy).safeTransfer(cooldownContract, _amount);
+        IERC20(rewardToken).safeTransfer(cooldownContract, _amount);
     }
 
     /**
-        @notice returns the FOXy index, which tracks rebase growth
+        @notice returns the rewardToken index, which tracks rebase growth
         @return uint
      */
     function index() public view returns (uint256) {
-        return IFOXy(FOXy).index();
+        return IRewardToken(rewardToken).index();
     }
 
     /**
@@ -446,13 +446,13 @@ contract FoxStaking is Ownable {
      */
     function rebase() public {
         if (epoch.endBlock <= block.number) {
-            IFOXy(FOXy).rebase(epoch.distribute, epoch.number);
+            IRewardToken(rewardToken).rebase(epoch.distribute, epoch.number);
 
             epoch.endBlock = epoch.endBlock.add(epoch.length);
             epoch.number++;
 
             uint256 balance = contractBalance();
-            uint256 staked = IFOXy(FOXy).circulatingSupply();
+            uint256 staked = IRewardToken(rewardToken).circulatingSupply();
 
             if (balance <= staked) {
                 epoch.distribute = 0;
@@ -463,12 +463,12 @@ contract FoxStaking is Ownable {
     }
 
     /**
-        @notice returns contract FOX holdings
+        @notice returns contract stakingToken holdings
         @return uint
      */
     function contractBalance() public view returns (uint256) {
-        uint256 tokeFoxBalance = getTokemakFoxBalance();
-        return IERC20(FOX).balanceOf(address(this)) + tokeFoxBalance;
+        uint256 tokeBalance = getTokemakBalance();
+        return IERC20(stakingToken).balanceOf(address(this)) + tokeBalance;
     }
 
     /**
@@ -482,7 +482,7 @@ contract FoxStaking is Ownable {
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
-        IERC20(FOX).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
         if (_isTriggerRebase) {
             rebase();
         }
