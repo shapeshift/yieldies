@@ -7,124 +7,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "hardhat/console.sol";
 import "./Vesting.sol";
 
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        assert(a == b * c + (a % b)); // There is no case in which this doesn't hold
-
-        return c;
-    }
-}
-
 interface IOwnable {
     function manager() external view returns (address);
 
@@ -217,7 +99,6 @@ interface ITokePool {
 }
 
 contract Staking is Ownable {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
@@ -322,15 +203,19 @@ contract Staking is Ownable {
      */
     function stake(uint256 _amount, address _recipient) public {
         rebase();
-        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
 
         Claim memory info = warmupInfo[_recipient];
         require(!info.lock, "Deposits for account are locked");
 
         warmupInfo[_recipient] = Claim({
-            amount: info.amount.add(_amount),
-            gons: info.gons.add(IRewardToken(rewardToken).gonsForBalance(_amount)),
-            expiry: epoch.number.add(warmupPeriod),
+            amount: info.amount + _amount,
+            gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + warmupPeriod,
             lock: false
         });
         depositToTokemak(_amount);
@@ -399,7 +284,7 @@ contract Staking is Ownable {
             isClaimAvailable(userWarmInfo);
 
         if (hasWarmupToken) {
-            uint256 newAmount = userWarmInfo.amount.sub(_amount);
+            uint256 newAmount = userWarmInfo.amount - _amount;
             require(newAmount >= 0, "Not enough funds");
             IWarmup(warmupContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
@@ -407,24 +292,28 @@ contract Staking is Ownable {
             } else {
                 warmupInfo[msg.sender] = Claim({
                     amount: newAmount,
-                    gons: userWarmInfo.gons.sub(
-                        IRewardToken(rewardToken).gonsForBalance(_amount)
-                    ),
+                    gons: userWarmInfo.gons -
+                        IRewardToken(rewardToken).gonsForBalance(_amount),
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
         } else {
-            IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), _amount);
+            IERC20(rewardToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
         }
 
         Claim memory userCoolInfo = cooldownInfo[msg.sender];
         require(!userCoolInfo.lock, "Withdrawals for account are locked");
 
         cooldownInfo[msg.sender] = Claim({
-            amount: userCoolInfo.amount.add(_amount),
-            gons: userCoolInfo.gons.add(IRewardToken(rewardToken).gonsForBalance(_amount)),
-            expiry: epoch.number.add(warmupPeriod),
+            amount: userCoolInfo.amount + _amount,
+            gons: userCoolInfo.gons +
+                IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + warmupPeriod,
             lock: false
         });
 
@@ -448,7 +337,7 @@ contract Staking is Ownable {
         if (epoch.endBlock <= block.number) {
             IRewardToken(rewardToken).rebase(epoch.distribute, epoch.number);
 
-            epoch.endBlock = epoch.endBlock.add(epoch.length);
+            epoch.endBlock = epoch.endBlock + epoch.length;
             epoch.number++;
 
             uint256 balance = contractBalance();
@@ -457,7 +346,7 @@ contract Staking is Ownable {
             if (balance <= staked) {
                 epoch.distribute = 0;
             } else {
-                epoch.distribute = balance.sub(staked);
+                epoch.distribute = balance - staked;
             }
         }
     }
@@ -482,7 +371,11 @@ contract Staking is Ownable {
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
-        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(stakingToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
         if (_isTriggerRebase) {
             rebase();
         }
