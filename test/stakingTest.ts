@@ -487,5 +487,34 @@ describe("Staking", function () {
       expect(requestedWithdrawals.amount.eq(stakingAmount2)).true; // TODO: fix once able to stack requestedWithdrawals
       expect(requestedWithdrawals.minCycle.eq(167)).true; // given block number 14043149 this is the cycle TOKE is on
     });
+    it("Withdrawing gives the user their stakingToken back from Tokemak", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("100000");
+      await stakingToken.transfer(staker1, transferAmount);
+      await stakingToken.transfer(staker2, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+      const stakingAmount1 = transferAmount.div(4);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount1);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
+      await stakingStaker1.claim(staker1);
+
+      await rewardToken.connect(staker1Signer as Signer).approve(
+        staking.address,
+        stakingAmount1
+      );
+      await stakingStaker1.unstake(stakingAmount1, false);
+
+      const requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+        
+    });
   });
 });

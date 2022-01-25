@@ -93,6 +93,8 @@ interface IWarmup {
 interface ITokePool {
     function deposit(uint256 amount) external;
 
+    function withdraw(uint256 amount) external;
+
     function requestWithdrawal(uint256 amount) external;
 
     function balanceOf(address owner) external view returns (uint256);
@@ -168,6 +170,15 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice withdraw from Tokemak
+        @param _amount uint
+     */
+    function withdrawFromTokemak(uint256 _amount) internal {
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        tokePoolContract.withdraw(_amount);
+    }
+
+    /**
         @notice creates a withdrawRequest with Tokemak
         @param _amount uint
      */
@@ -236,6 +247,21 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function claim(address _recipient) public {
+        Claim memory info = warmupInfo[_recipient];
+        if (isClaimAvailable(info)) {
+            delete warmupInfo[_recipient];
+            IWarmup(warmupContract).retrieve(
+                _recipient,
+                IRewardToken(rewardToken).balanceForGons(info.gons)
+            );
+        }
+    }
+
+    /**
+        @notice claims stakingToken after cooldown period
+        @param _recipient address
+     */
+    function claimWithdraw(address _recipient) public {
         Claim memory info = warmupInfo[_recipient];
         if (isClaimAvailable(info)) {
             delete warmupInfo[_recipient];
