@@ -54,8 +54,7 @@ describe("FoxStaking", function () {
     ) as Vesting; // is there a better way to avoid this cast?
 
     await FOXy.initialize(foxStakingDeployment.address); // initialize our contract
-    // await foxStaking.setWarmupContract(stakingWarmup.address);
-    // await foxStaking.setCooldownContract(stakingCooldown.address);
+
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [FOX_WHALE],
@@ -211,6 +210,62 @@ describe("FoxStaking", function () {
         foxStakingStaker1.unstake(stakingAmount.add(1), false)
       ).to.be.revertedWith("SafeMath: subtraction overflow");
     });
+    it("User can stake and unstake half amount without claiming when warmup period is 0", async () => {
+      const { staker1 } = await getNamedAccounts();
+      let staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(0)).true;
+      // transfer FOX to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await fox.transfer(staker1, transferAmount);
+
+      staker1FoxBalance = await fox.balanceOf(staker1);
+      expect(staker1FoxBalance.eq(transferAmount)).true;
+
+      let staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const foxStakingStaker1 = foxStaking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const foxStaker1 = fox.connect(staker1Signer as Signer);
+      await foxStaker1.approve(foxStaking.address, stakingAmount);
+      await foxStakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      // warmupInfo for staker1 should be stakingAmount
+      let warmupInfo = await foxStaking.warmupInfo(staker1);
+      expect(warmupInfo.amount).eq(stakingAmount);
+
+      // balance should still be zero, until we unstake the FOXy.
+      staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
+
+      let warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
+      expect(warmupFoxyBalance.eq(stakingAmount)).true;
+
+      // unstake
+      await FOXy.connect(staker1Signer as Signer).approve(
+        foxStaking.address,
+        stakingAmount
+      );
+
+      await foxStakingStaker1.unstake(stakingAmount.div(2), false);
+
+      staker1FOXyBalance = await FOXy.balanceOf(staker1);
+      expect(staker1FOXyBalance.eq(0)).true;
+
+      let cooldownFoxyBalance = await FOXy.balanceOf(stakingCooldown.address);
+      expect(cooldownFoxyBalance).eq(stakingAmount.div(2));
+
+      // warmupInfo for staker1 should be 2500
+      warmupInfo = await foxStaking.warmupInfo(staker1);
+      expect(warmupInfo.amount).eq(stakingAmount.div(2));
+
+      warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
+      expect(warmupFoxyBalance).eq(stakingAmount.div(2));
+    })
     it("User can stake and unstake full amount without claiming when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
       let staker1FoxBalance = await fox.balanceOf(staker1);
@@ -235,6 +290,10 @@ describe("FoxStaking", function () {
       await foxStaker1.approve(foxStaking.address, stakingAmount);
       await foxStakingStaker1.functions["stake(uint256)"](stakingAmount);
 
+      // warmupInfo for staker1 should be stakingAmount
+      let warmupInfo = await foxStaking.warmupInfo(staker1);
+      expect(warmupInfo.amount).eq(stakingAmount);
+
       // balance should still be zero, until we unstake the FOXy.
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
@@ -250,14 +309,18 @@ describe("FoxStaking", function () {
 
       await foxStakingStaker1.unstake(stakingAmount, false);
 
-      warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
-      expect(warmupFoxyBalance.eq(0)).true;
-
       staker1FOXyBalance = await FOXy.balanceOf(staker1);
       expect(staker1FOXyBalance.eq(0)).true;
 
       let cooldownFoxyBalance = await FOXy.balanceOf(stakingCooldown.address);
       expect(cooldownFoxyBalance.eq(stakingAmount)).true;
+
+      // warmupInfo for staker1 should have been deleted
+      warmupInfo = await foxStaking.warmupInfo(staker1);
+      expect(warmupInfo.amount.eq(0)).true;
+
+      warmupFoxyBalance = await FOXy.balanceOf(stakingWarmup.address);
+      expect(warmupFoxyBalance.eq(0)).true;
     });
   });
 

@@ -393,6 +393,7 @@ contract FoxStaking is Ownable {
             require(newAmount >= 0, "Not enough funds");
             IWarmup(warmupContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
+                console.log("what");
                 delete warmupInfo[msg.sender];
             } else {
                 warmupInfo[msg.sender] = Claim({
