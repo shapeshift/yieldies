@@ -208,7 +208,7 @@ describe("Staking", function () {
       // unstake fails due to too incorrect amount
       await expect(
         stakingStaker1.unstake(stakingAmount.add(1), false)
-      ).to.be.revertedWith("SafeMath: subtraction overflow");
+      ).to.be.revertedWith("reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)");
     });
     it("User can stake and unstake half amount without claiming when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
