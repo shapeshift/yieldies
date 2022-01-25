@@ -121,7 +121,7 @@ contract Staking is Ownable {
     constructor(
         address _stakingToken,
         address _rewardToken,
-        address _TokePool,
+        address _tokePool,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -130,14 +130,14 @@ contract Staking is Ownable {
         stakingToken = _stakingToken;
         require(_rewardToken != address(0));
         rewardToken = _rewardToken;
-        require(_TokePool != address(0));
-        tokePool = _TokePool;
+        require(_tokePool != address(0));
+        tokePool = _tokePool;
 
-        Vesting warmup = new Vesting(address(this), rewardToken);
-        warmupContract = address(warmup);
+        Vesting warmUp = new Vesting(address(this), rewardToken);
+        warmupContract = address(warmUp);
 
-        Vesting cooldown = new Vesting(address(this), rewardToken);
-        cooldownContract = address(cooldown);
+        Vesting coolDown = new Vesting(address(this), rewardToken);
+        cooldownContract = address(coolDown);
 
         IERC20(stakingToken).approve(tokePool, type(uint256).max);
 
