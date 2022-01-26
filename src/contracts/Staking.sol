@@ -268,7 +268,7 @@ contract Staking is Ownable {
                 info.gons
             );
             withdrawFromTokemak(amount);
-            IERC20(stakingToken).safeTransfer(msg.sender, amount);
+            IERC20(stakingToken).safeTransfer(_recipient, amount);
             delete cooldownInfo[_recipient];
             IVesting(cooldownContract).retrieve(_recipient, amount);
         }
