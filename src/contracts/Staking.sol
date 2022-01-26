@@ -86,12 +86,14 @@ interface IRewardToken {
     function index() external view returns (uint256);
 }
 
-interface IWarmup {
+interface IVesting {
     function retrieve(address staker_, uint256 amount_) external;
 }
 
 interface ITokePool {
     function deposit(uint256 amount) external;
+
+    function withdraw(uint256 amount) external;
 
     function requestWithdrawal(uint256 amount) external;
 
@@ -168,6 +170,15 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice withdraw from Tokemak
+        @param _amount uint
+     */
+    function withdrawFromTokemak(uint256 _amount) internal {
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        tokePoolContract.withdraw(_amount);
+    }
+
+    /**
         @notice creates a withdrawRequest with Tokemak
         @param _amount uint
      */
@@ -239,10 +250,27 @@ contract Staking is Ownable {
         Claim memory info = warmupInfo[_recipient];
         if (isClaimAvailable(info)) {
             delete warmupInfo[_recipient];
-            IWarmup(warmupContract).retrieve(
+            IVesting(warmupContract).retrieve(
                 _recipient,
                 IRewardToken(rewardToken).balanceForGons(info.gons)
             );
+        }
+    }
+
+    /**
+        @notice claims stakingToken after cooldown period
+        @param _recipient address
+     */
+    function claimWithdraw(address _recipient) public {
+        Claim memory info = cooldownInfo[_recipient];
+        if (isClaimAvailable(info)) {
+            uint256 amount = IRewardToken(rewardToken).balanceForGons(
+                info.gons
+            );
+            withdrawFromTokemak(amount);
+            IERC20(stakingToken).safeTransfer(_recipient, amount);
+            delete cooldownInfo[_recipient];
+            IVesting(cooldownContract).retrieve(_recipient, amount);
         }
     }
 
@@ -253,7 +281,7 @@ contract Staking is Ownable {
         Claim memory info = warmupInfo[msg.sender];
         delete warmupInfo[msg.sender];
 
-        IWarmup(warmupContract).retrieve(
+        IVesting(warmupContract).retrieve(
             address(this),
             IRewardToken(rewardToken).balanceForGons(info.gons)
         );
@@ -286,7 +314,7 @@ contract Staking is Ownable {
         if (hasWarmupToken) {
             uint256 newAmount = userWarmInfo.amount - _amount;
             require(newAmount >= 0, "Not enough funds");
-            IWarmup(warmupContract).retrieve(address(this), _amount);
+            IVesting(warmupContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
                 delete warmupInfo[msg.sender];
             } else {
