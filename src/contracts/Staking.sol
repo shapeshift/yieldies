@@ -100,11 +100,19 @@ interface ITokePool {
     function balanceOf(address owner) external view returns (uint256);
 }
 
+interface ITokeManager {
+    function getCycleDuration() external view returns (uint256);
+
+    function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
+}
+
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
 
     // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public immutable tokePool;
+    // TODO: what if tokeManager address is updated, we should allow this to be updated as well
+    address public immutable tokeManager;
     address public immutable stakingToken;
     address public immutable rewardToken;
 
@@ -119,11 +127,13 @@ contract Staking is Ownable {
     address public immutable warmupContract;
     address public immutable cooldownContract;
     uint256 public warmupPeriod;
+    uint256 public lastUpdatedTokemakCycle;
 
     constructor(
         address _stakingToken,
         address _rewardToken,
         address _tokePool,
+        address _tokeManager,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -134,6 +144,8 @@ contract Staking is Ownable {
         rewardToken = _rewardToken;
         require(_tokePool != address(0));
         tokePool = _tokePool;
+        require(_tokeManager != address(0));
+        tokeManager = _tokeManager;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmupContract = address(warmUp);
@@ -159,6 +171,7 @@ contract Staking is Ownable {
     }
     mapping(address => Claim) public warmupInfo;
     mapping(address => Claim) public cooldownInfo;
+    uint256 public undepositedAmount;
 
     /**
         @notice checks to see if claim is available
@@ -208,6 +221,30 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice checks TOKE's cycleTime is withink duration to batch the transactions
+        @return bool
+     */
+    function canBatchTransactions() internal view returns (bool) {
+        ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 offset = 10; // amount of blocks before the next cycle to batch the withdrawal requests
+        uint256 duration = iTokeManager.getCycleDuration();
+        uint256 currentCycleStart = iTokeManager.getCurrentCycle();
+        uint256 nextCycleStart = currentCycleStart + duration;
+
+        return block.number + offset > nextCycleStart;
+    }
+
+    /**
+        @notice sends batched requestedWithdrawals
+     */
+    function sendWithdrawalRequests() public {
+        if (canBatchTransactions()) {
+            depositToTokemak(undepositedAmount);
+            undepositedAmount = 0;
+        }
+    }
+
+    /**
         @notice stake stakingToken to enter warmup
         @param _amount uint
         @param _recipient address
@@ -229,7 +266,9 @@ contract Staking is Ownable {
             expiry: epoch.number + warmupPeriod,
             lock: false
         });
-        depositToTokemak(_amount);
+
+        undepositedAmount += _amount;
+        sendWithdrawalRequests();
 
         IERC20(rewardToken).safeTransfer(warmupContract, _amount);
     }
