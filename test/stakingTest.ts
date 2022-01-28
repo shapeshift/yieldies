@@ -74,7 +74,6 @@ describe("Staking", function () {
     );
 
     await rewardToken.initialize(stakingDeployment.address); // initialize our contract
-
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [STAKING_TOKEN_WHALE],
@@ -92,6 +91,10 @@ describe("Staking", function () {
       transferAmount.toNumber()
     );
   });
+
+  // things to test
+  // lastTokeCycleIndex
+  // sendWithdrawalRequests
 
   describe("initialize", function () {
     it("Should assign the total supply of rewardToken to the stakingContract", async () => {

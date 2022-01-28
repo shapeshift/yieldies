@@ -104,6 +104,8 @@ interface ITokeManager {
     function getCycleDuration() external view returns (uint256);
 
     function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
+
+    function getCurrentCycleIndex() external view returns (uint256); // named weird, this is start cycle timestamp
 }
 
 contract Staking is Ownable {
@@ -124,10 +126,21 @@ contract Staking is Ownable {
     }
     Epoch public epoch;
 
+    struct Claim {
+        uint256 amount;
+        uint256 gons;
+        uint256 expiry;
+        bool lock; // prevents malicious delays
+    }
+    mapping(address => Claim) public warmupInfo;
+    mapping(address => Claim) public cooldownInfo;
+
     address public immutable warmupContract;
     address public immutable cooldownContract;
     uint256 public warmupPeriod;
     uint256 public lastUpdatedTokemakCycle;
+    uint256 public undepositedAmount;
+    uint256 public lastTokeCycleIndex;
 
     constructor(
         address _stakingToken,
@@ -162,17 +175,6 @@ contract Staking is Ownable {
             distribute: 0
         });
     }
-
-    struct Claim {
-        uint256 amount;
-        uint256 gons;
-        uint256 expiry;
-        bool lock; // prevents malicious delays
-    }
-    mapping(address => Claim) public warmupInfo;
-    mapping(address => Claim) public cooldownInfo;
-    uint256 public undepositedAmount;
-    uint256 public lastTokeCycle;
 
     /**
         @notice checks to see if claim is available
@@ -238,10 +240,10 @@ contract Staking is Ownable {
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (canBatchTransactions()) {
-            ITokeManager iTokeManager = ITokeManager(tokeManager);
-            currentTokeCycle = iTokeManager.getCurrentCycle();
-            lastTokeCycle = iTokeManager.getCurrentCycle();
+        ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
+        if (canBatchTransactions() && currentCycleIndex > lastTokeCycleIndex) {
+            lastTokeCycleIndex = currentCycleIndex;
             depositToTokemak(undepositedAmount);
             undepositedAmount = 0;
         }
