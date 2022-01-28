@@ -10,6 +10,16 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
+async function mineBlocks(blockNumber: number) {
+  while (blockNumber > 0) {
+    blockNumber--;
+    await network.provider.request({
+      method: "evm_mine",
+      params: [],
+    });
+  }
+}
+
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Foxy;
@@ -118,6 +128,10 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
+
       // balance should still be zero, until we claim the rewardToken.
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance.eq(0)).true;
@@ -129,6 +143,7 @@ describe("Staking", function () {
 
       // claim should move the rewardToken from warmup to the staker
       await stakingStaker1.claim(staker1);
+
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance.eq(stakingAmount)).true;
 
@@ -201,6 +216,11 @@ describe("Staking", function () {
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance.eq(0)).true;
+
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
+
       await stakingStaker1.unstake(stakingAmount, false);
     });
     it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
@@ -279,6 +299,10 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
 
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
+
       await stakingStaker1.unstake(stakingAmount.div(2), false);
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
@@ -339,6 +363,10 @@ describe("Staking", function () {
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
+
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
 
       await stakingStaker1.unstake(stakingAmount, false);
 
@@ -474,6 +502,10 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
+
       // should receive 1:1 tokePool to STAKING_TOKEN
       tokeBalance = await tokePool.balanceOf(stakingStaker1.address);
       expect(tokeBalance.eq(stakingAmount)).true;
@@ -505,6 +537,10 @@ describe("Staking", function () {
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
       await stakingStaker2.claim(staker2);
+
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -545,6 +581,12 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
+      // mine until rollover block
+      // this test will run slow because of this
+      const cycleDuration = await tokeManager.getCycleDuration();
+      await mineBlocks(cycleDuration);
+      await stakingStaker1.sendWithdrawalRequests();
+
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
@@ -554,13 +596,6 @@ describe("Staking", function () {
         stakingStaker1.address
       );
       expect(requestedWithdrawals.amount).eq(stakingAmount);
-
-      // mine until rollover block
-      // this test will run slow because of this
-      let cycleDuration = await tokeManager.getCycleDuration();
-      for (let i = 0; i <= cycleDuration; i++) {
-        await ethers.provider.send("evm_mine", []);
-      }
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -599,7 +634,6 @@ describe("Staking", function () {
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
       await stakingStaker1.claim(staker1);
 
-
       const requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
@@ -620,8 +654,6 @@ describe("Staking", function () {
       const tokeSigner = await ethers.getSigner(TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover("test rollover");
-
-
 
       await stakingStaker1.claimWithdraw(staker1);
 

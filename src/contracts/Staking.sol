@@ -172,6 +172,7 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmupInfo;
     mapping(address => Claim) public cooldownInfo;
     uint256 public undepositedAmount;
+    uint256 public lastTokeCycle;
 
     /**
         @notice checks to see if claim is available
@@ -226,11 +227,10 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 offset = 10; // amount of blocks before the next cycle to batch the withdrawal requests
+        uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
         uint256 nextCycleStart = currentCycleStart + duration;
-
         return block.number + offset > nextCycleStart;
     }
 
@@ -239,6 +239,9 @@ contract Staking is Ownable {
      */
     function sendWithdrawalRequests() public {
         if (canBatchTransactions()) {
+            ITokeManager iTokeManager = ITokeManager(tokeManager);
+            currentTokeCycle = iTokeManager.getCurrentCycle();
+            lastTokeCycle = iTokeManager.getCurrentCycle();
             depositToTokemak(undepositedAmount);
             undepositedAmount = 0;
         }
