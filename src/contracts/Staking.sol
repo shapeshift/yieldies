@@ -7,6 +7,13 @@ import "hardhat/console.sol";
 import "./Vesting.sol";
 import "./types/Ownable.sol";
 
+struct Recipient {
+    uint256 chainId;
+    uint256 cycle;
+    address wallet;
+    uint256 amount;
+}
+
 interface IRewardToken {
     function rebase(uint256 ohmProfit_, uint256 epoch_)
         external
@@ -25,6 +32,20 @@ interface IRewardToken {
 
 interface IVesting {
     function retrieve(address staker_, uint256 amount_) external;
+}
+
+interface ITokeReward {
+    function getClaimableAmount(Recipient calldata recipient)
+        external
+        view
+        returns (uint256);
+
+    function claim(
+        Recipient calldata recipient,
+        uint8 v,
+        bytes32 r,
+        bytes32 s // bytes calldata signature
+    ) external;
 }
 
 interface ITokePool {
@@ -48,10 +69,9 @@ interface ITokeManager {
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
 
-    // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public immutable tokePool;
-    // TODO: what if tokeManager address is updated, we should allow this to be updated as well
     address public immutable tokeManager;
+    address public immutable tokeReward;
     address public immutable stakingToken;
     address public immutable rewardToken;
 
@@ -84,6 +104,7 @@ contract Staking is Ownable {
         address _rewardToken,
         address _tokePool,
         address _tokeManager,
+        address _tokeReward,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -96,6 +117,8 @@ contract Staking is Ownable {
         tokePool = _tokePool;
         require(_tokeManager != address(0));
         tokeManager = _tokeManager;
+        require(_tokeReward != address(0));
+        tokeReward = _tokeReward;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmupContract = address(warmUp);
@@ -118,7 +141,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function claimFromTokemak(uint256 _amount) public onlyManager {
-        // claim reward from reward contract
+        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
+        tokeRewardContract.claim(recipient, v, r, s);
     }
 
     /**
