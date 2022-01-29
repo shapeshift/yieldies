@@ -114,6 +114,14 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice claim TOKE from Tokemak
+        @param _amount uint
+     */
+    function claimFromTokemak(uint256 _amount) public onlyManager {
+        // claim reward from reward contract
+    }
+
+    /**
         @notice checks to see if claim is available
         @param info Claim
         @return bool
