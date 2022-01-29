@@ -138,11 +138,18 @@ contract Staking is Ownable {
 
     /**
         @notice claim TOKE from Tokemak
-        @param _amount uint
      */
-    function claimFromTokemak(uint256 _amount) public onlyManager {
+    function claimFromTokemak() public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         tokeRewardContract.claim(recipient, v, r, s);
+    }
+
+    /**
+        @notice get claimable amount of TOKE from Tokemak
+     */
+    function getClaimableAmountTokemak() public onlyManager {
+        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
+        tokeRewardContract.getClaimableAmount(recipient);
     }
 
     /**
