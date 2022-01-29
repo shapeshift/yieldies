@@ -10,6 +10,7 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
+// mines blocks to the next TOKE cycle
 async function mineBlocksToNextCycle(tokeManager: Contract) {
   const currentBlock = await ethers.provider.getBlockNumber();
   const cycleDuration = await tokeManager.getCycleDuration();
@@ -111,10 +112,6 @@ describe("Staking", function () {
     );
   });
 
-  // things to complete
-  // lastTokeCycleIndex
-  // sendWithdrawalRequests
-
   describe("initialize", function () {
     it("Should assign the total supply of rewardToken to the stakingContract", async () => {
       const stakingContractBalance = await rewardToken.balanceOf(
@@ -173,7 +170,6 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance.eq(0)).true;
 
-      // unstake
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
@@ -212,7 +208,6 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance.eq(stakingAmount)).true;
 
-      // unstake
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
@@ -289,9 +284,6 @@ describe("Staking", function () {
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance.eq(transferAmount)).true;
 
-      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
-
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
       );
@@ -306,16 +298,11 @@ describe("Staking", function () {
       let warmupInfo = await staking.warmupInfo(staker1);
       expect(warmupInfo.amount).eq(stakingAmount);
 
-      // balance should still be zero, until we unstake the rewardToken.
-      staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
-
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance.eq(stakingAmount)).true;
 
-      // unstake
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
@@ -325,9 +312,6 @@ describe("Staking", function () {
       await stakingStaker1.sendWithdrawalRequests();
 
       await stakingStaker1.unstake(stakingAmount.div(2), false);
-
-      staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
 
       let cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
@@ -354,9 +338,6 @@ describe("Staking", function () {
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance.eq(transferAmount)).true;
 
-      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
-
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
       );
@@ -371,16 +352,11 @@ describe("Staking", function () {
       let warmupInfo = await staking.warmupInfo(staker1);
       expect(warmupInfo.amount).eq(stakingAmount);
 
-      // balance should still be zero, until we unstake the rewardToken.
-      staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
-
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance.eq(stakingAmount)).true;
 
-      // unstake
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
@@ -390,9 +366,6 @@ describe("Staking", function () {
       await stakingStaker1.sendWithdrawalRequests();
 
       await stakingStaker1.unstake(stakingAmount, false);
-
-      staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance.eq(0)).true;
 
       let cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
@@ -407,6 +380,119 @@ describe("Staking", function () {
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance.eq(0)).true;
+    });
+    it("Staking needs sendWithdrawalRequests to be called", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      const requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      // has no requestedWithdrawals
+      expect(requestedWithdrawals.amount).eq(0);
+
+      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance.eq(stakingAmount)).true;
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      await expect(
+        stakingStaker1.unstake(stakingAmount, false)
+      ).to.be.revertedWith(
+        "reverted with reason string 'INSUFFICIENT_BALANCE'"
+      );
+    });
+    it("canBatchTransactions is handled appropriately", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      // has no requestedWithdrawals
+      expect(requestedWithdrawals.amount).eq(0);
+
+      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance.eq(0)).true;
+
+      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance.eq(stakingAmount)).true;
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await expect(
+        stakingStaker1.unstake(stakingAmount, false)
+      ).to.be.revertedWith(
+        "reverted with reason string 'INSUFFICIENT_BALANCE'"
+      );
+
+      // no withdrawal requests or cooldowns should be created
+      requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      expect(requestedWithdrawals.amount).eq(0);
+
+      cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance.eq(0)).true;
+
+
+
+      await mineBlocksToNextCycle(tokeManager);
+
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await stakingStaker1.unstake(stakingAmount, false);
+
+      // requestWithdrawal and cooldown should be created
+      requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      expect(requestedWithdrawals.amount).eq(stakingAmount);
+
+      cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance.eq(stakingAmount)).true;
     });
   });
 
@@ -633,9 +719,44 @@ describe("Staking", function () {
       // has stakingBalance after withdrawal
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(stakingAmount);
+    });
+    it("Can't withdraw without first creating a withdrawRequest", async () => {
+      const { staker1 } = await getNamedAccounts();
 
-      // reset wallet balance
-      await stakingTokenStaker1.transfer(STAKING_TOKEN_WHALE, stakingAmount);
+      const stakingAmount = BigNumber.from("100000");
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+      await stakingStaker1.claim(staker1);
+
+      const requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      // has no requestedWithdrawals
+      expect(requestedWithdrawals.amount).eq(0);
+
+      await mineBlocksToNextCycle(tokeManager);
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover("test rollover");
+
+      await stakingStaker1.claimWithdraw(staker1);
+
+      // has no stakingBalance after withdrawal
+      const stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
     });
     it("Can't withdraw without first creating a withdrawRequest", async () => {
       const { staker1 } = await getNamedAccounts();

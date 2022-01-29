@@ -232,17 +232,20 @@ contract Staking is Ownable {
         uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
+        uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
-        return block.number + offset > nextCycleStart;
+        return
+            block.number + offset > nextCycleStart &&
+            currentCycleIndex > lastTokeCycleIndex;
     }
 
     /**
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
-        if (canBatchTransactions() && currentCycleIndex > lastTokeCycleIndex) {
+        if (canBatchTransactions()) {
+            ITokeManager iTokeManager = ITokeManager(tokeManager);
+            uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
             depositToTokemak(undepositedAmount);
             undepositedAmount = 0;
