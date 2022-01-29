@@ -105,7 +105,7 @@ interface ITokeManager {
 
     function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
 
-    function getCurrentCycleIndex() external view returns (uint256); // named weird, this is start cycle timestamp
+    function getCurrentCycleIndex() external view returns (uint256);
 }
 
 contract Staking is Ownable {
@@ -139,7 +139,7 @@ contract Staking is Ownable {
     address public immutable cooldownContract;
     uint256 public warmupPeriod;
     uint256 public lastUpdatedTokemakCycle;
-    uint256 public undepositedAmount;
+    uint256 public requestWithdrawalAmount;
     uint256 public lastTokeCycleIndex;
 
     constructor(
@@ -247,8 +247,8 @@ contract Staking is Ownable {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
-            depositToTokemak(undepositedAmount);
-            undepositedAmount = 0;
+            requestWithdrawalFromTokemak(requestWithdrawalAmount);
+            requestWithdrawalAmount = 0;
         }
     }
 
@@ -275,8 +275,7 @@ contract Staking is Ownable {
             lock: false
         });
 
-        undepositedAmount += _amount;
-        sendWithdrawalRequests();
+        depositToTokemak(_amount);
 
         IERC20(rewardToken).safeTransfer(warmupContract, _amount);
     }
@@ -392,8 +391,9 @@ contract Staking is Ownable {
             lock: false
         });
 
-        requestWithdrawalFromTokemak(_amount);
-        // TODO: Verify Withdraw request
+        requestWithdrawalAmount += _amount;
+        sendWithdrawalRequests();
+
         IERC20(rewardToken).safeTransfer(cooldownContract, _amount);
     }
 
