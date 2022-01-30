@@ -180,12 +180,21 @@ contract Staking is Ownable {
         @notice claim TOKE from Tokemak
      */
     function claimFromTokemak(
-        Recipient memory recipient,
+        address wallet,
+        uint256 amount,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
+        ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+        Recipient memory recipient = Recipient({
+            chainId: 1,
+            cycle: currentCycle - 1,
+            wallet: wallet,
+            amount: amount
+        });
         tokeRewardContract.claim(recipient, v, r, s);
     }
 
