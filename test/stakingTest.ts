@@ -52,7 +52,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            // blockNumber: 14043600,
+            blockNumber: 14043600,
           },
         },
       ],
@@ -800,7 +800,7 @@ describe("Staking", function () {
       });
     });
     describe("rewards", () => {
-      it.only("shows claimableAmount after staking", async () => {
+      it("shows claimableAmount after staking", async () => {
         const { staker1 } = await getNamedAccounts();
 
         const transferAmount = BigNumber.from("10000");
