@@ -7,13 +7,6 @@ import "hardhat/console.sol";
 import "./Vesting.sol";
 import "./types/Ownable.sol";
 
-struct Recipient {
-    uint256 chainId;
-    uint256 cycle;
-    address wallet;
-    uint256 amount;
-}
-
 interface IRewardToken {
     function rebase(uint256 ohmProfit_, uint256 epoch_)
         external
@@ -34,6 +27,13 @@ interface IVesting {
     function retrieve(address staker_, uint256 amount_) external;
 }
 
+struct Recipient {
+    uint256 chainId;
+    uint256 cycle;
+    address wallet;
+    uint256 amount;
+}
+
 interface ITokeReward {
     function getClaimableAmount(Recipient calldata recipient)
         external
@@ -44,7 +44,7 @@ interface ITokeReward {
         Recipient calldata recipient,
         uint8 v,
         bytes32 r,
-        bytes32 s // bytes calldata signature
+        bytes32 s
     ) external;
 }
 
@@ -64,6 +64,11 @@ interface ITokeManager {
     function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
 
     function getCurrentCycleIndex() external view returns (uint256);
+
+    function cycleRewardsHashes(uint256)
+        external
+        view
+        returns (string calldata hash);
 }
 
 contract Staking is Ownable {
@@ -136,10 +141,50 @@ contract Staking is Ownable {
         });
     }
 
+    function toString(address account) public pure returns (string memory) {
+        return toString(abi.encodePacked(account));
+    }
+
+    function toString(uint256 value) public pure returns (string memory) {
+        return toString(abi.encodePacked(value));
+    }
+
+    function toString(bytes32 value) public pure returns (string memory) {
+        return toString(abi.encodePacked(value));
+    }
+
+    function toString(bytes memory data) public pure returns (string memory) {
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(2 + data.length * 2);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < data.length; i++) {
+            str[2 + i * 2] = alphabet[uint256(uint8(data[i] >> 4))];
+            str[3 + i * 2] = alphabet[uint256(uint8(data[i] & 0x0f))];
+        }
+        return string(str);
+    }
+
+    function _buildRequestURI(
+        string memory baseUri,
+        string memory hash,
+        address wallet
+    ) public pure returns (string memory) {
+        string memory rewardWallet = toString(wallet);
+        return
+            string(abi.encodePacked(baseUri, hash, "/", rewardWallet, ".json"));
+    }
+
     /**
         @notice claim TOKE from Tokemak
      */
-    function claimFromTokemak() public onlyManager {
+    function claimFromTokemak(
+        Recipient memory recipient,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         tokeRewardContract.claim(recipient, v, r, s);
     }
@@ -147,9 +192,24 @@ contract Staking is Ownable {
     /**
         @notice get claimable amount of TOKE from Tokemak
      */
-    function getClaimableAmountTokemak() public onlyManager {
+    function getClaimableAmountTokemak(Recipient memory recipient)
+        public
+        view
+        returns (uint256)
+    {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
-        tokeRewardContract.getClaimableAmount(recipient);
+        uint256 amount = tokeRewardContract.getClaimableAmount(recipient);
+        return amount;
+    }
+
+    /**
+        @notice get latest ipfs has from Tokemak
+     */
+    function getLastTokemakIpfsHash() public view returns (string memory) {
+        ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+        string memory hash = iTokeManager.cycleRewardsHashes(currentCycle - 1);
+        return hash;
     }
 
     /**

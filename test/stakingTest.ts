@@ -10,6 +10,8 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
+const ipfsHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
+
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Foxy;
@@ -50,7 +52,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14043600,
+            // blockNumber: 14043600,
           },
         },
       ],
@@ -627,7 +629,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
+        await tokeManagerOwner.completeRollover(ipfsHash);
 
         // shouldn't have stakingToken balance
         stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -671,7 +673,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
+        await tokeManagerOwner.completeRollover(ipfsHash);
 
         await stakingStaker1.claimWithdraw(staker1);
 
@@ -731,7 +733,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
+        await tokeManagerOwner.completeRollover(ipfsHash);
 
         await mineBlocksToNextCycle();
         await stakingStaker1.sendWithdrawalRequests();
@@ -798,7 +800,7 @@ describe("Staking", function () {
       });
     });
     describe("rewards", () => {
-      it("shows claimableAmount after staking", async () => {
+      it.only("shows claimableAmount after staking", async () => {
         const { staker1 } = await getNamedAccounts();
 
         const transferAmount = BigNumber.from("10000");
@@ -818,7 +820,20 @@ describe("Staking", function () {
         );
         await stakingTokenStaker1.approve(staking.address, stakingAmount);
         await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-        // TODO: Check claimable amount
+
+        await mineBlocksToNextCycle();
+        await network.provider.request({
+          method: "hardhat_impersonateAccount",
+          params: [TOKE_OWNER],
+        });
+        const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+        const tokeManagerOwner = tokeManager.connect(tokeSigner);
+        await tokeManagerOwner.completeRollover(ipfsHash);
+
+        const hash  = await stakingStaker1.getLastTokemakIpfsHash();
+        expect(hash).eq(ipfsHash);
+
+        
       });
     });
   });
