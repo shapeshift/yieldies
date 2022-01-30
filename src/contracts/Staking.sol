@@ -46,6 +46,8 @@ interface ITokeReward {
         bytes32 r,
         bytes32 s
     ) external;
+
+    function claimedAmounts(address) external view returns (uint256);
 }
 
 interface ITokePool {
@@ -166,13 +168,14 @@ contract Staking is Ownable {
     /**
         @notice get claimable amount of TOKE from Tokemak
      */
-    function getClaimableAmountTokemak(address wallet, uint256 amount)
+    function getClaimableAmountTokemak(address wallet)
         public
         view
         returns (uint256)
     {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 amount = tokeRewardContract.claimedAmounts(address(this));
         uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
         Recipient memory recipient = Recipient({
             chainId: 1,

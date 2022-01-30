@@ -800,7 +800,7 @@ describe("Staking", function () {
       });
     });
     describe("rewards", () => {
-      it("shows claimableAmount after staking", async () => {
+      it.only("shows claimableAmount after staking", async () => {
         const { staker1 } = await getNamedAccounts();
 
         const transferAmount = BigNumber.from("10000");
@@ -834,6 +834,9 @@ describe("Staking", function () {
 
         expect(info.stakingAddress).eq(staking.address);
         expect(info.hash).eq(ipfsHash);
+
+        const amount = await stakingStaker1.getClaimableAmountTokemak(staking.address)
+        console.log('amount', amount)
       });
     });
   });
