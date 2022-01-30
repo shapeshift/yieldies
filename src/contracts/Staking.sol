@@ -166,24 +166,40 @@ contract Staking is Ownable {
     /**
         @notice get claimable amount of TOKE from Tokemak
      */
-    function getClaimableAmountTokemak(Recipient memory recipient)
+    function getClaimableAmountTokemak(address wallet, uint256 amount)
         public
         view
         returns (uint256)
     {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
-        uint256 amount = tokeRewardContract.getClaimableAmount(recipient);
-        return amount;
+        ITokeManager iTokeManager = ITokeManager(tokeManager);
+        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+        Recipient memory recipient = Recipient({
+            chainId: 1,
+            cycle: currentCycle - 1,
+            wallet: wallet,
+            amount: amount
+        });
+        return tokeRewardContract.getClaimableAmount(recipient);
+    }
+
+    struct IpfsInfo {
+        string hash;
+        address stakingAddress;
     }
 
     /**
-        @notice get latest ipfs has from Tokemak
+        @notice get latest ipfs info from Tokemak
      */
-    function getLastTokemakIpfsHash() public view returns (string memory) {
+    function getTokemakIpfsInfo() public view returns (IpfsInfo memory) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
         uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
-        string memory hash = iTokeManager.cycleRewardsHashes(currentCycle - 1);
-        return hash;
+        IpfsInfo memory info = IpfsInfo({
+            hash: iTokeManager.cycleRewardsHashes(currentCycle - 1),
+            stakingAddress: address(this)
+        });
+
+        return info;
     }
 
     /**

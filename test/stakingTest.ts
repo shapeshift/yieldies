@@ -830,10 +830,10 @@ describe("Staking", function () {
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
         await tokeManagerOwner.completeRollover(ipfsHash);
 
-        const hash  = await stakingStaker1.getLastTokemakIpfsHash();
-        expect(hash).eq(ipfsHash);
+        const info = await stakingStaker1.getTokemakIpfsInfo();
 
-        
+        expect(info.stakingAddress).eq(staking.address);
+        expect(info.hash).eq(ipfsHash);
       });
     });
   });
