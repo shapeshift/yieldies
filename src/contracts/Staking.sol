@@ -160,7 +160,6 @@ contract Staking is Ownable {
         bytes32 s
     ) public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
-        ITokeManager iTokeManager = ITokeManager(tokeManager);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
         uint256 currentCycle = iTokeRewardHash.latestCycleIndex();

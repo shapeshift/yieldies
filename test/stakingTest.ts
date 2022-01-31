@@ -10,7 +10,9 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
-const ipfsHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
+const managerIpfsHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
+const latestClaimableHash = "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+const cycleHash = "Qmf6bFXZfGiuUTdHvre5fzu1AHMPHMAoyePz97ZrAjmPNd";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -629,7 +631,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(ipfsHash);
+        await tokeManagerOwner.completeRollover(managerIpfsHash);
 
         // shouldn't have stakingToken balance
         stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -673,7 +675,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(ipfsHash);
+        await tokeManagerOwner.completeRollover(managerIpfsHash);
 
         await stakingStaker1.claimWithdraw(staker1);
 
@@ -733,7 +735,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(ipfsHash);
+        await tokeManagerOwner.completeRollover(managerIpfsHash);
 
         await mineBlocksToNextCycle();
         await stakingStaker1.sendWithdrawalRequests();
@@ -828,18 +830,18 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(ipfsHash);
+        await tokeManagerOwner.completeRollover(latestClaimableHash);
 
         const info = await stakingStaker1.getTokemakIpfsInfo();
-        console.log('info', info)
-        // expect(info.cycle).eq(staking.address);
-        // expect(info.latestClaimable).eq(ipfsHash);
+
+        expect(info.cycle).eq(cycleHash);
+        expect(info.latestClaimable).eq(latestClaimableHash);
 
         const amount = await stakingStaker1.getClaimableAmountTokemak(
-          "0x705eff7de895dff0d3808481f8e6b5beb188366b",
+          staking.address,
           BigNumber.from("71578818929843382106")
         );
-        console.log("amount", amount);
+        expect(amount).eq("71578818929843382106");
       });
     });
   });
