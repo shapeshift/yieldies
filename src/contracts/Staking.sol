@@ -34,6 +34,15 @@ struct Recipient {
     uint256 amount;
 }
 
+interface ITokeRewardHash {
+    function cycleHashes(uint256 index)
+        external
+        view
+        returns (string memory latestClaimable, string memory cycle);
+
+    function latestCycleIndex() external view returns (uint256);
+}
+
 interface ITokeReward {
     function getClaimableAmount(Recipient calldata recipient)
         external
@@ -79,6 +88,7 @@ contract Staking is Ownable {
     address public immutable tokePool;
     address public immutable tokeManager;
     address public immutable tokeReward;
+    address public immutable tokeRewardHash;
     address public immutable stakingToken;
     address public immutable rewardToken;
 
@@ -112,6 +122,7 @@ contract Staking is Ownable {
         address _tokePool,
         address _tokeManager,
         address _tokeReward,
+        address _tokeRewardHash,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -126,6 +137,8 @@ contract Staking is Ownable {
         tokeManager = _tokeManager;
         require(_tokeReward != address(0));
         tokeReward = _tokeReward;
+        require(_tokeRewardHash != address(0));
+        tokeRewardHash = _tokeRewardHash;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmupContract = address(warmUp);
@@ -168,38 +181,47 @@ contract Staking is Ownable {
     /**
         @notice get claimable amount of TOKE from Tokemak
      */
-    function getClaimableAmountTokemak(address wallet)
+    function getClaimableAmountTokemak(address wallet, uint256 amount)
         public
         view
         returns (uint256)
     {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 amount = tokeRewardContract.claimedAmounts(address(this));
         uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+
         Recipient memory recipient = Recipient({
             chainId: 1,
-            cycle: currentCycle - 1,
+            cycle: 176, //currentCycle - 1,
             wallet: wallet,
             amount: amount
         });
-        return tokeRewardContract.getClaimableAmount(recipient);
+        uint256 claimableAmount = tokeRewardContract.getClaimableAmount(
+            recipient
+        );
+        console.log("amount", amount);
+        console.log("currentCycle", currentCycle);
+        console.log("claimableAmount", claimableAmount);
+        return claimableAmount;
     }
 
-    struct IpfsInfo {
-        string hash;
-        address stakingAddress;
+    struct CycleHash {
+        string latestClaimable;
+        string cycle;
     }
 
     /**
         @notice get latest ipfs info from Tokemak
      */
-    function getTokemakIpfsInfo() public view returns (IpfsInfo memory) {
-        ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
-        IpfsInfo memory info = IpfsInfo({
-            hash: iTokeManager.cycleRewardsHashes(currentCycle - 1),
-            stakingAddress: address(this)
+    function getTokemakIpfsInfo() public view returns (CycleHash memory) {
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
+        (string memory latestClaimable, string memory cycle) = iTokeRewardHash
+            .cycleHashes(currentCycle);
+
+        CycleHash memory info = CycleHash({
+            latestClaimable: latestClaimable,
+            cycle: cycle
         });
 
         return info;

@@ -52,7 +52,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14043600,
+            blockNumber: 14108391, // 14043600,
           },
         },
       ],
@@ -831,12 +831,15 @@ describe("Staking", function () {
         await tokeManagerOwner.completeRollover(ipfsHash);
 
         const info = await stakingStaker1.getTokemakIpfsInfo();
+        console.log('info', info)
+        // expect(info.cycle).eq(staking.address);
+        // expect(info.latestClaimable).eq(ipfsHash);
 
-        expect(info.stakingAddress).eq(staking.address);
-        expect(info.hash).eq(ipfsHash);
-
-        const amount = await stakingStaker1.getClaimableAmountTokemak(staking.address)
-        console.log('amount', amount)
+        const amount = await stakingStaker1.getClaimableAmountTokemak(
+          "0x705eff7de895dff0d3808481f8e6b5beb188366b",
+          BigNumber.from("71578818929843382106")
+        );
+        console.log("amount", amount);
       });
     });
   });
