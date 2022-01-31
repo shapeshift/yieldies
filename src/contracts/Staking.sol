@@ -73,13 +73,6 @@ interface ITokeManager {
     function getCycleDuration() external view returns (uint256);
 
     function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
-
-    function getCurrentCycleIndex() external view returns (uint256);
-
-    function cycleRewardsHashes(uint256)
-        external
-        view
-        returns (string calldata hash);
 }
 
 contract Staking is Ownable {
@@ -168,10 +161,12 @@ contract Staking is Ownable {
     ) public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+
+        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
         Recipient memory recipient = Recipient({
             chainId: 1,
-            cycle: currentCycle - 1,
+            cycle: currentCycle,
             wallet: wallet,
             amount: amount
         });
@@ -187,21 +182,20 @@ contract Staking is Ownable {
         returns (uint256)
     {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
-        ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 currentCycle = iTokeManager.getCurrentCycleIndex();
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+
+        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
 
         Recipient memory recipient = Recipient({
             chainId: 1,
-            cycle: 176, //currentCycle - 1,
+            cycle: currentCycle,
             wallet: wallet,
             amount: amount
         });
         uint256 claimableAmount = tokeRewardContract.getClaimableAmount(
             recipient
         );
-        console.log("amount", amount);
-        console.log("currentCycle", currentCycle);
-        console.log("claimableAmount", claimableAmount);
+
         return claimableAmount;
     }
 
@@ -280,10 +274,11 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
         uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
-        uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
+        uint256 currentCycleIndex = iTokeRewardHash.latestCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
         return
             block.number + offset > nextCycleStart &&
@@ -295,8 +290,8 @@ contract Staking is Ownable {
      */
     function sendWithdrawalRequests() public {
         if (canBatchTransactions()) {
-            ITokeManager iTokeManager = ITokeManager(tokeManager);
-            uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
+            ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+            uint256 currentCycleIndex = iTokeRewardHash.latestCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
             requestWithdrawalFromTokemak(requestWithdrawalAmount);
             requestWithdrawalAmount = 0;
