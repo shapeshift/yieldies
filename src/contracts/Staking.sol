@@ -190,7 +190,7 @@ contract Staking is Ownable {
         @return uint
      */
     function getClaimableAmountTokemak(uint256 _amount)
-        public
+        external
         view
         returns (uint256)
     {
@@ -220,7 +220,7 @@ contract Staking is Ownable {
     /**
         @notice get latest ipfs info from Tokemak
      */
-    function getTokemakIpfsInfo() public view returns (CycleHash memory) {
+    function getTokemakIpfsInfo() external view returns (CycleHash memory) {
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
         uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
         (string memory latestClaimable, string memory cycle) = iTokeRewardHash
