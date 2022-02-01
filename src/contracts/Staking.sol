@@ -7,56 +7,10 @@ import "./Vesting.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IRewardToken.sol";
 import "../interfaces/IVesting.sol";
-
-struct Recipient {
-    uint256 chainId;
-    uint256 cycle;
-    address wallet;
-    uint256 amount;
-}
-
-interface ITokeRewardHash {
-    function cycleHashes(uint256 index)
-        external
-        view
-        returns (string memory latestClaimable, string memory cycle);
-
-    function latestCycleIndex() external view returns (uint256);
-}
-
-interface ITokeReward {
-    function getClaimableAmount(Recipient calldata recipient)
-        external
-        view
-        returns (uint256);
-
-    function claim(
-        Recipient calldata recipient,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
-    function claimedAmounts(address) external view returns (uint256);
-}
-
-interface ITokePool {
-    function deposit(uint256 amount) external;
-
-    function withdraw(uint256 amount) external;
-
-    function requestWithdrawal(uint256 amount) external;
-
-    function balanceOf(address owner) external view returns (uint256);
-}
-
-interface ITokeManager {
-    function getCycleDuration() external view returns (uint256);
-
-    function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
-
-    function getCurrentCycleIndex() external view returns (uint256);
-}
+import "../interfaces/ITokeManager.sol";
+import "../interfaces/ITokePool.sol";
+import "../interfaces/ITokeReward.sol";
+import "../interfaces/ITokeRewardHash.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -277,7 +231,7 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 offset = 1000; // amount of blocks before the next cycle to batch the withdrawal requests
+        uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
         uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
