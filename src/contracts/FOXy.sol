@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "./types/ERC20Permit.sol";
-import "./types/Ownable.sol";
+import "../libraries/ERC20Permit.sol";
+import "../libraries/Ownable.sol";
 
 contract Foxy is ERC20Permit, Ownable {
     modifier onlyStakingContract() {
@@ -69,7 +69,7 @@ contract Foxy is ERC20Permit, Ownable {
         return true;
     }
 
-    function setIndex(uint256 _INDEX) external onlyManager returns (bool) {
+    function setIndex(uint256 _INDEX) external onlyOwner returns (bool) {
         require(INDEX == 0);
         INDEX = gonsForBalance(_INDEX);
         return true;

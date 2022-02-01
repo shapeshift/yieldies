@@ -291,9 +291,9 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // warmupInfo for staker1 should be stakingAmount
-      let warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount);
+      // warmUpInfo for staker1 should be stakingAmount
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
 
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -313,9 +313,9 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount.div(2));
 
-      // warmupInfo for staker1 should be 2500
-      warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount.div(2));
+      // warmUpInfo for staker1 should be 2500
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount.div(2));
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -343,9 +343,9 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // warmupInfo for staker1 should be stakingAmount
-      let warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount);
+      // warmUpInfo for staker1 should be stakingAmount
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
 
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -365,9 +365,9 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
 
-      // warmupInfo for staker1 should have been deleted
-      warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(0);
+      // warmUpInfo for staker1 should have been deleted
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(0);
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -674,8 +674,8 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
         await stakingStaker1.claimWithdraw(staker1);
 
         // has no stakingBalance after withdrawal
@@ -734,6 +734,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
+
         await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         await mineBlocksToNextCycle();

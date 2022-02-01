@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const tokeManager = "0xa86e412109f77c45a3bc1c5870b880492fb86a14";
   const tokeReward = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5";
   const tokeRewardHash = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6";
+
   const foxy = await deployments.get("Foxy");
 
   const epochLength = 100;
