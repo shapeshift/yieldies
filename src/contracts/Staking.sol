@@ -181,7 +181,7 @@ contract Staking is Ownable {
             amount: _amount
         });
         tokeRewardContract.claim(recipient, _v, _r, _s);
-        IERC20(stakingToken).safeTransfer(_claimAddress, _amount);
+        IERC20(tokeToken).safeTransfer(_claimAddress, _amount);
     }
 
     /**
