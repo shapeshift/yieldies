@@ -124,19 +124,21 @@ contract Staking is Ownable {
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
-        require(_stakingToken != address(0));
+        require(
+            _stakingToken != address(0) &&
+                _rewardToken != address(0) &&
+                _rewardToken != address(0) &&
+                _tokePool != address(0) &&
+                _tokeManager != address(0) &&
+                _tokeReward != address(0) &&
+                _tokeRewardHash != address(0)
+        );
         stakingToken = _stakingToken;
-        require(_rewardToken != address(0));
         rewardToken = _rewardToken;
-        require(_rewardToken != address(0));
         tokeToken = _tokeToken;
-        require(_tokePool != address(0));
         tokePool = _tokePool;
-        require(_tokeManager != address(0));
         tokeManager = _tokeManager;
-        require(_tokeReward != address(0));
         tokeReward = _tokeReward;
-        require(_tokeRewardHash != address(0));
         tokeRewardHash = _tokeRewardHash;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
