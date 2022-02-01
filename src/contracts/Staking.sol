@@ -231,7 +231,7 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
+        uint256 offset = 500; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
         uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
