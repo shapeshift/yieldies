@@ -24,6 +24,9 @@ describe("Staking", function () {
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
   const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b";
+  const LATEST_CLAIMABLE_HASH =
+    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+  const CYCLE_HASH = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -50,7 +53,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14043600,
+            blockNumber: 14101169,
           },
         },
       ],
@@ -288,9 +291,9 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // warmupInfo for staker1 should be stakingAmount
-      let warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount);
+      // warmUpInfo for staker1 should be stakingAmount
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
 
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -310,9 +313,9 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount.div(2));
 
-      // warmupInfo for staker1 should be 2500
-      warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount.div(2));
+      // warmUpInfo for staker1 should be 2500
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount.div(2));
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -340,9 +343,9 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // warmupInfo for staker1 should be stakingAmount
-      let warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(stakingAmount);
+      // warmUpInfo for staker1 should be stakingAmount
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
 
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -362,9 +365,9 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
 
-      // warmupInfo for staker1 should have been deleted
-      warmupInfo = await staking.warmupInfo(staker1);
-      expect(warmupInfo.amount).eq(0);
+      // warmUpInfo for staker1 should have been deleted
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(0);
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -396,6 +399,7 @@ describe("Staking", function () {
       let requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
+
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(0);
 
@@ -627,7 +631,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         // shouldn't have stakingToken balance
         stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -671,8 +675,8 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
 
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
         await stakingStaker1.claimWithdraw(staker1);
 
         // has no stakingBalance after withdrawal
@@ -731,7 +735,8 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover("test rollover");
+
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         await mineBlocksToNextCycle();
         await stakingStaker1.sendWithdrawalRequests();
@@ -740,6 +745,7 @@ describe("Staking", function () {
         requestedWithdrawals = await tokePool.requestedWithdrawals(
           stakingStaker1.address
         );
+
         expect(requestedWithdrawals.amount).eq(stakingAmount2);
       });
       it("canBatchTransactions is handled appropriately", async () => {
@@ -818,7 +824,25 @@ describe("Staking", function () {
         );
         await stakingTokenStaker1.approve(staking.address, stakingAmount);
         await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-        // TODO: Check claimable amount
+
+        await mineBlocksToNextCycle();
+        await network.provider.request({
+          method: "hardhat_impersonateAccount",
+          params: [TOKE_OWNER],
+        });
+        const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+        const tokeManagerOwner = tokeManager.connect(tokeSigner);
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+        const info = await stakingStaker1.getTokemakIpfsInfo();
+
+        expect(info.cycle).eq(CYCLE_HASH);
+        expect(info.latestClaimable).eq(LATEST_CLAIMABLE_HASH);
+
+        const amount = await stakingStaker1.getClaimableAmountTokemak(
+          BigNumber.from("71578818929843382106")
+        );
+        expect(amount).eq("71578818929843382106");
       });
     });
   });

@@ -7,34 +7,21 @@ import "./Vesting.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IRewardToken.sol";
 import "../interfaces/IVesting.sol";
-
-interface ITokePool {
-    function deposit(uint256 amount) external;
-
-    function withdraw(uint256 amount) external;
-
-    function requestWithdrawal(uint256 amount) external;
-
-    function balanceOf(address owner) external view returns (uint256);
-}
-
-interface ITokeManager {
-    function getCycleDuration() external view returns (uint256);
-
-    function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
-
-    function getCurrentCycleIndex() external view returns (uint256);
-}
+import "../interfaces/ITokeManager.sol";
+import "../interfaces/ITokePool.sol";
+import "../interfaces/ITokeReward.sol";
+import "../interfaces/ITokeRewardHash.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
 
-    // TODO: what if tFOX pool address is updated, we should allow this to be updated as well
     address public immutable tokePool;
-    // TODO: what if tokeManager address is updated, we should allow this to be updated as well
     address public immutable tokeManager;
+    address public immutable tokeReward;
+    address public immutable tokeRewardHash;
     address public immutable stakingToken;
     address public immutable rewardToken;
+    address public immutable tokeToken;
 
     // TODO: tightly pack for gas optimization 
     struct Epoch {
@@ -65,20 +52,32 @@ contract Staking is Ownable {
     constructor(
         address _stakingToken,
         address _rewardToken,
+        address _tokeToken,
         address _tokePool,
         address _tokeManager,
+        address _tokeReward,
+        address _tokeRewardHash,
+
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
-        require(_stakingToken != address(0));
+        require(
+            _stakingToken != address(0) &&
+                _rewardToken != address(0) &&
+                _rewardToken != address(0) &&
+                _tokePool != address(0) &&
+                _tokeManager != address(0) &&
+                _tokeReward != address(0) &&
+                _tokeRewardHash != address(0)
+        );
         stakingToken = _stakingToken;
-        require(_rewardToken != address(0));
         rewardToken = _rewardToken;
-        require(_tokePool != address(0));
+        tokeToken = _tokeToken;
         tokePool = _tokePool;
-        require(_tokeManager != address(0));
         tokeManager = _tokeManager;
+        tokeReward = _tokeReward;
+        tokeRewardHash = _tokeRewardHash;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmupContract = address(warmUp);
@@ -97,12 +96,97 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice claim TOKE from Tokemak
+        @param _amount uint
+        @param _v uint
+        @param _r bytes
+        @param _s bytes
+     */
+    function claimFromTokemak(
+        uint256 _amount,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) external {
+        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
+        Recipient memory recipient = Recipient({
+            chainId: 1,
+            cycle: latestCycleIndex,
+            wallet: address(this),
+            amount: _amount
+        });
+        tokeRewardContract.claim(recipient, _v, _r, _s);
+    }
+
+    /**
+        @notice transfer TOKE from contract to address
+        @param _claimAddress address
+        **/
+    function transferToke(address _claimAddress) external onlyOwner {
+        uint256 amount = IERC20(tokeToken).balanceOf(address(this));
+        IERC20(tokeToken).safeTransfer(_claimAddress, amount);
+    }
+
+    /**
+        @notice get claimable amount of TOKE from Tokemak
+        @param _amount uint
+        @return uint
+     */
+    function getClaimableAmountTokemak(uint256 _amount)
+        external
+        view
+        returns (uint256)
+    {
+        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
+
+        Recipient memory recipient = Recipient({
+            chainId: 1,
+            cycle: latestCycleIndex,
+            wallet: address(this),
+            amount: _amount
+        });
+        uint256 claimableAmount = tokeRewardContract.getClaimableAmount(
+            recipient
+        );
+
+        return claimableAmount;
+    }
+
+    struct CycleHash {
+        string latestClaimable;
+        string cycle;
+    }
+
+    /**
+        @notice get latest ipfs info from Tokemak
+     */
+    function getTokemakIpfsInfo() external view returns (CycleHash memory) {
+        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
+        (string memory latestClaimable, string memory cycle) = iTokeRewardHash
+            .cycleHashes(latestCycleIndex);
+
+        CycleHash memory info = CycleHash({
+            latestClaimable: latestClaimable,
+            cycle: cycle
+        });
+
+        return info;
+    }
+
+    /**
         @notice checks to see if claim is available
-        @param info Claim
+        @param _info Claim
         @return bool
      */
-    function isClaimAvailable(Claim memory info) internal view returns (bool) {
-        return epoch.number >= info.expiry && info.expiry != 0;
+    function isClaimAvailable(Claim memory _info) internal view returns (bool) {
+        return epoch.number >= _info.expiry && _info.expiry != 0;
     }
 
     /**
@@ -121,7 +205,6 @@ contract Staking is Ownable {
     function requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.requestWithdrawal(_amount);
-        // TODO: TOKE requestWithdrawal function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
@@ -131,7 +214,6 @@ contract Staking is Ownable {
     function depositToTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.deposit(_amount);
-        // TODO: TOKE deposit function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
@@ -149,7 +231,7 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
+        uint256 offset = 500; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
         uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
