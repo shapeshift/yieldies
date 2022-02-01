@@ -159,19 +159,17 @@ contract Staking is Ownable {
 
     /**
         @notice claim TOKE from Tokemak
-        @param _claimAddress address
         @param _amount uint
         @param _v uint
         @param _r bytes
         @param _s bytes
      */
     function claimFromTokemak(
-        address _claimAddress,
         uint256 _amount,
         uint8 _v,
         bytes32 _r,
         bytes32 _s
-    ) public onlyManager {
+    ) external {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
@@ -183,7 +181,15 @@ contract Staking is Ownable {
             amount: _amount
         });
         tokeRewardContract.claim(recipient, _v, _r, _s);
-        IERC20(tokeToken).safeTransfer(_claimAddress, _amount);
+    }
+
+    /**
+        @notice transfer TOKE from contract to address
+        @param _claimAddress address
+        **/
+    function transferToke(address _claimAddress) external onlyManager {
+        uint256 amount = IERC20(tokeToken).balanceOf(address(this));
+        IERC20(tokeToken).safeTransfer(_claimAddress, amount);
     }
 
     /**
