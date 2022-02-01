@@ -73,6 +73,8 @@ interface ITokeManager {
     function getCycleDuration() external view returns (uint256);
 
     function getCurrentCycle() external view returns (uint256); // named weird, this is start cycle timestamp
+
+    function getCurrentCycleIndex() external view returns (uint256);
 }
 
 contract Staking is Ownable {
@@ -84,6 +86,7 @@ contract Staking is Ownable {
     address public immutable tokeRewardHash;
     address public immutable stakingToken;
     address public immutable rewardToken;
+    address public immutable tokeToken;
 
     struct Epoch {
         uint256 length;
@@ -112,6 +115,7 @@ contract Staking is Ownable {
     constructor(
         address _stakingToken,
         address _rewardToken,
+        address _tokeToken,
         address _tokePool,
         address _tokeManager,
         address _tokeReward,
@@ -124,6 +128,8 @@ contract Staking is Ownable {
         stakingToken = _stakingToken;
         require(_rewardToken != address(0));
         rewardToken = _rewardToken;
+        require(_rewardToken != address(0));
+        tokeToken = _tokeToken;
         require(_tokePool != address(0));
         tokePool = _tokePool;
         require(_tokeManager != address(0));
@@ -151,31 +157,39 @@ contract Staking is Ownable {
 
     /**
         @notice claim TOKE from Tokemak
+        @param _claimAddress address
+        @param _amount uint
+        @param _v uint
+        @param _r bytes
+        @param _s bytes
      */
     function claimFromTokemak(
-        address wallet,
-        uint256 amount,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        address _claimAddress,
+        uint256 _amount,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
     ) public onlyManager {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
-        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
         Recipient memory recipient = Recipient({
             chainId: 1,
-            cycle: currentCycle,
-            wallet: wallet,
-            amount: amount
+            cycle: latestCycleIndex,
+            wallet: address(this),
+            amount: _amount
         });
-        tokeRewardContract.claim(recipient, v, r, s);
+        tokeRewardContract.claim(recipient, _v, _r, _s);
+        IERC20(stakingToken).safeTransfer(_claimAddress, _amount);
     }
 
     /**
         @notice get claimable amount of TOKE from Tokemak
+        @param _amount uint
+        @return uint
      */
-    function getClaimableAmountTokemak(address wallet, uint256 amount)
+    function getClaimableAmountTokemak(uint256 _amount)
         public
         view
         returns (uint256)
@@ -183,13 +197,13 @@ contract Staking is Ownable {
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
-        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
 
         Recipient memory recipient = Recipient({
             chainId: 1,
-            cycle: currentCycle,
-            wallet: wallet,
-            amount: amount
+            cycle: latestCycleIndex,
+            wallet: address(this),
+            amount: _amount
         });
         uint256 claimableAmount = tokeRewardContract.getClaimableAmount(
             recipient
@@ -208,9 +222,9 @@ contract Staking is Ownable {
      */
     function getTokemakIpfsInfo() public view returns (CycleHash memory) {
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
-        uint256 currentCycle = iTokeRewardHash.latestCycleIndex();
+        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
         (string memory latestClaimable, string memory cycle) = iTokeRewardHash
-            .cycleHashes(currentCycle);
+            .cycleHashes(latestCycleIndex);
 
         CycleHash memory info = CycleHash({
             latestClaimable: latestClaimable,
@@ -222,11 +236,11 @@ contract Staking is Ownable {
 
     /**
         @notice checks to see if claim is available
-        @param info Claim
+        @param _info Claim
         @return bool
      */
-    function isClaimAvailable(Claim memory info) internal view returns (bool) {
-        return epoch.number >= info.expiry && info.expiry != 0;
+    function isClaimAvailable(Claim memory _info) internal view returns (bool) {
+        return epoch.number >= _info.expiry && _info.expiry != 0;
     }
 
     /**
@@ -245,7 +259,6 @@ contract Staking is Ownable {
     function requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.requestWithdrawal(_amount);
-        // TODO: TOKE requestWithdrawal function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
@@ -255,7 +268,6 @@ contract Staking is Ownable {
     function depositToTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.deposit(_amount);
-        // TODO: TOKE deposit function doesn't return anything.  Need to check for proper event emitted
     }
 
     /**
@@ -273,11 +285,10 @@ contract Staking is Ownable {
      */
     function canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
         uint256 offset = 50; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
-        uint256 currentCycleIndex = iTokeRewardHash.latestCycleIndex();
+        uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
         return
             block.number + offset > nextCycleStart &&
@@ -289,8 +300,8 @@ contract Staking is Ownable {
      */
     function sendWithdrawalRequests() public {
         if (canBatchTransactions()) {
-            ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
-            uint256 currentCycleIndex = iTokeRewardHash.latestCycleIndex();
+            ITokeManager iTokeManager = ITokeManager(tokeManager);
+            uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
             requestWithdrawalFromTokemak(requestWithdrawalAmount);
             requestWithdrawalAmount = 0;

@@ -10,9 +10,8 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
-const managerIpfsHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
 const latestClaimableHash = "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
-const cycleHash = "Qmf6bFXZfGiuUTdHvre5fzu1AHMPHMAoyePz97ZrAjmPNd";
+const cycleHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -54,7 +53,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14108391, // 14043600,
+            blockNumber: 14101669,
           },
         },
       ],
@@ -631,7 +630,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(managerIpfsHash);
+        await tokeManagerOwner.completeRollover(latestClaimableHash);
 
         // shouldn't have stakingToken balance
         stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -675,7 +674,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(managerIpfsHash);
+        await tokeManagerOwner.completeRollover(latestClaimableHash);
 
         await stakingStaker1.claimWithdraw(staker1);
 
@@ -735,7 +734,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(managerIpfsHash);
+        await tokeManagerOwner.completeRollover(latestClaimableHash);
 
         await mineBlocksToNextCycle();
         await stakingStaker1.sendWithdrawalRequests();
@@ -744,6 +743,7 @@ describe("Staking", function () {
         requestedWithdrawals = await tokePool.requestedWithdrawals(
           stakingStaker1.address
         );
+
         expect(requestedWithdrawals.amount).eq(stakingAmount2);
       });
       it("canBatchTransactions is handled appropriately", async () => {
@@ -802,7 +802,7 @@ describe("Staking", function () {
       });
     });
     describe("rewards", () => {
-      it.only("shows claimableAmount after staking", async () => {
+      it("shows claimableAmount after staking", async () => {
         const { staker1 } = await getNamedAccounts();
 
         const transferAmount = BigNumber.from("10000");
@@ -838,7 +838,6 @@ describe("Staking", function () {
         expect(info.latestClaimable).eq(latestClaimableHash);
 
         const amount = await stakingStaker1.getClaimableAmountTokemak(
-          staking.address,
           BigNumber.from("71578818929843382106")
         );
         expect(amount).eq("71578818929843382106");
