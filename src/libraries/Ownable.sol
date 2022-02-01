@@ -1,15 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-interface IOwnable {
-    function manager() external view returns (address);
-
-    function renounceManagement() external;
-
-    function pushManagement(address newOwner_) external;
-
-    function pullManagement() external;
-}
+import "../interfaces/IOwnable.sol";
 
 contract Ownable is IOwnable {
     address internal _owner;
@@ -29,25 +21,25 @@ contract Ownable is IOwnable {
         emit OwnershipPushed(address(0), _owner);
     }
 
-    function manager() public view override returns (address) {
+    function owner() public view override returns (address) {
         return _owner;
     }
 
-    modifier onlyManager() {
+    modifier onlyOwner() {
         require(_owner == msg.sender, "Ownable: caller is not the owner");
         _;
     }
 
-    function renounceManagement() public virtual override onlyManager {
+    function renounceOwner() public virtual override onlyOwner {
         emit OwnershipPushed(_owner, address(0));
         _owner = address(0);
     }
 
-    function pushManagement(address newOwner_)
+    function pushOwner(address newOwner_)
         public
         virtual
         override
-        onlyManager
+        onlyOwner
     {
         require(
             newOwner_ != address(0),
@@ -57,7 +49,7 @@ contract Ownable is IOwnable {
         _newOwner = newOwner_;
     }
 
-    function pullManagement() public virtual override {
+    function pullOwner() public virtual override {
         require(msg.sender == _newOwner, "Ownable: must be new owner to pull");
         emit OwnershipPulled(_owner, _newOwner);
         _owner = _newOwner;

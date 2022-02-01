@@ -3,29 +3,10 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 import "./Vesting.sol";
-import "./types/Ownable.sol";
-
-interface IRewardToken {
-    function rebase(uint256 ohmProfit_, uint256 epoch_)
-        external
-        returns (uint256);
-
-    function circulatingSupply() external view returns (uint256);
-
-    function balanceOf(address who) external view returns (uint256);
-
-    function gonsForBalance(uint256 amount) external view returns (uint256);
-
-    function balanceForGons(uint256 gons) external view returns (uint256);
-
-    function index() external view returns (uint256);
-}
-
-interface IVesting {
-    function retrieve(address staker_, uint256 amount_) external;
-}
+import "../libraries/Ownable.sol";
+import "../interfaces/IRewardToken.sol";
+import "../interfaces/IVesting.sol";
 
 interface ITokePool {
     function deposit(uint256 amount) external;
@@ -376,7 +357,7 @@ contract Staking is Ownable {
      * @notice set warmup period for new stakers
      * @param _warmupPeriod uint
      */
-    function setWarmup(uint256 _warmupPeriod) external onlyManager {
+    function setWarmup(uint256 _warmupPeriod) external onlyOwner {
         warmupPeriod = _warmupPeriod;
     }
 
