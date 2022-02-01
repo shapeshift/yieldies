@@ -20,7 +20,7 @@ dotenv.config();
  */
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.11",
+    version: "0.8.9",
     settings: {
       optimizer: {
         enabled: true,
@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
       deploy: 'deploy',
       forking: {
         url: process.env.MAINNET_URL || "",
-        blockNumber: 14043149,
+        blockNumber: 14043600,
         enabled: true, // Set to false to disable forked mainnet mode
       },
     },
@@ -75,5 +75,8 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  mocha: {
+    timeout: 40000
+  }
 };
 export default config;
