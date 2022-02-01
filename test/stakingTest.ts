@@ -10,9 +10,6 @@ import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 
-const latestClaimableHash = "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
-const cycleHash = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
-
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Foxy;
@@ -27,6 +24,9 @@ describe("Staking", function () {
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
   const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b";
+  const LATEST_CLAIMABLE_HASH =
+    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+  const CYCLE_HASH = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -630,7 +630,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(latestClaimableHash);
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         // shouldn't have stakingToken balance
         stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -674,7 +674,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(latestClaimableHash);
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         await stakingStaker1.claimWithdraw(staker1);
 
@@ -734,7 +734,7 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(latestClaimableHash);
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         await mineBlocksToNextCycle();
         await stakingStaker1.sendWithdrawalRequests();
@@ -830,12 +830,12 @@ describe("Staking", function () {
         });
         const tokeSigner = await ethers.getSigner(TOKE_OWNER);
         const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(latestClaimableHash);
+        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
         const info = await stakingStaker1.getTokemakIpfsInfo();
 
-        expect(info.cycle).eq(cycleHash);
-        expect(info.latestClaimable).eq(latestClaimableHash);
+        expect(info.cycle).eq(CYCLE_HASH);
+        expect(info.latestClaimable).eq(LATEST_CLAIMABLE_HASH);
 
         const amount = await stakingStaker1.getClaimableAmountTokemak(
           BigNumber.from("71578818929843382106")
