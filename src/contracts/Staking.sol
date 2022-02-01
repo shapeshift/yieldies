@@ -44,7 +44,7 @@ contract Staking is Ownable {
 
     address public immutable warmupContract;
     address public immutable cooldownContract;
-    uint256 public warmupPeriod;
+    uint256 public vestingPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
     uint256 public lastTokeCycleIndex;
@@ -273,7 +273,7 @@ contract Staking is Ownable {
         warmUpInfo[_recipient] = Claim({
             amount: info.amount + _amount,
             gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
-            expiry: epoch.number + warmupPeriod,
+            expiry: epoch.number + vestingPeriod,
             lock: false
         });
 
@@ -389,7 +389,7 @@ contract Staking is Ownable {
             amount: userCoolInfo.amount + _amount,
             gons: userCoolInfo.gons +
                 IRewardToken(rewardToken).gonsForBalance(_amount),
-            expiry: epoch.number + warmupPeriod,
+            expiry: epoch.number + vestingPeriod,
             lock: false
         });
 
@@ -439,10 +439,10 @@ contract Staking is Ownable {
 
     /**
      * @notice set warmup period for new stakers
-     * @param _warmupPeriod uint
+     * @param _vestingPeriod uint
      */
-    function setWarmup(uint256 _warmupPeriod) external onlyOwner {
-        warmupPeriod = _warmupPeriod;
+    function setWarmup(uint256 _vestingPeriod) external onlyOwner {
+        vestingPeriod = _vestingPeriod;
     }
 
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
