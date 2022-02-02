@@ -37,31 +37,57 @@ contract LiquidityReserve is ERC20, Ownable {
         return true;
     }
 
+    function calculateReserveTokenValue() internal view returns (uint256) {
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+            address(this)
+        );
+        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
+        uint256 lrFoxSupply = totalSupply();
+        uint256 convertedAmount = (stakingTokenBalance + rewardTokenBalance) /
+            lrFoxSupply;
+        return convertedAmount;
+    }
+
     function deposit(uint256 _amount) external {
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+            address(this)
+        );
+        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+            address(this)
+        );
+        uint256 lrFoxSupply = totalSupply();
+        uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance;
+        uint256 amountToMint = (_amount / reserveSupply) *
+            lrFoxSupply +
+            lrFoxSupply;
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
-        transfer(msg.sender, _amount);
+        _mint(msg.sender, amountToMint);
     }
 
     function withdraw(uint256 _amount) external {
+        uint256 amountToWithdraw = calculateReserveTokenValue() * _amount;
         transferFrom(msg.sender, address(this), _amount);
-        IERC20(stakingToken).safeTransfer(msg.sender, _amount);
+        IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
     function instantUnstake(uint256 _amount) external {
-        uint256 amountMinusFee = _amount - (_amount * fee); 
-         IERC20(rewardToken).safeTransferFrom(
+        uint256 amountMinusFee = _amount - (_amount * fee);
+        require(
+            _amount <= IERC20(stakingToken).balanceOf(address(this)),
+            "Not enough funds to cover instant unstake"
+        );
+        IERC20(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
-        IERC20(stakingToken).safeTransfer(
-            msg.sender,
-            amountMinusFee
-        );
+        IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
     }
 
     function setFee(uint256 _fee) external {
