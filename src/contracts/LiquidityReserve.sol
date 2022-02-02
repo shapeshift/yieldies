@@ -13,7 +13,7 @@ contract LiquidityReserve is ERC20, Ownable {
     address public stakingContract;
     address public initializer;
 
-    constructor() ERC20("FOX Yield", "FOXy", 18) {
+    constructor() ERC20("Liquidity Reserve FOX", "lrFOX", 18) {
         initializer = msg.sender;
     }
 
