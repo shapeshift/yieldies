@@ -438,10 +438,10 @@ contract Staking is Ownable {
     }
 
     /**
-     * @notice set warmup period for new stakers
+     * @notice set vesting period for new stakers
      * @param _vestingPeriod uint
      */
-    function setWarmup(uint256 _vestingPeriod) external onlyOwner {
+    function setVesting(uint256 _vestingPeriod) external onlyOwner {
         vestingPeriod = _vestingPeriod;
     }
 
