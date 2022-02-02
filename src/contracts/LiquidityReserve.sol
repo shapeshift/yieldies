@@ -90,7 +90,7 @@ contract LiquidityReserve is ERC20, Ownable {
         IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
     }
 
-    function setFee(uint256 _fee) external {
+    function setFee(uint256 _fee) external onlyOwner {
         require(_fee >= 0 && fee <= 1, "Must be within range of 0 and 1");
         fee = _fee;
     }
