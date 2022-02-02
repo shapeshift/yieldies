@@ -1,21 +1,23 @@
 import { ethers, deployments, getNamedAccounts } from "hardhat";
 import { expect } from "chai";
-import { Foxy } from "../typechain-types/Foxy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Signer } from "ethers";
+import { LiquidityReserve } from "../typechain-types";
 
-describe("Foxy", function () {
+describe.only("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
-  let foxyDeployment;
-  let foxy: Foxy;
+  let liquidityReserveDeployment;
+  let liquidityReserve: LiquidityReserve;
 
-  beforeEach(async () => {});
-
-  describe("initialize", function () {
-    it("Should assign the total supply of tokens to the stakingContract", async () => {});
+  beforeEach(async () => {
+    await deployments.fixture(["LiquidityReserve"]);
+    accounts = await ethers.getSigners();
+    liquidityReserveDeployment = await deployments.get("LiquidityReserve");
   });
 
-  describe("rebase", function () {
-    it("Should distribute profits with one token holder", async () => {});
+  describe("initialize", function () {
+    it("Should assign the total supply of tokens to the stakingContract", async () => {
+      expect(1).eq(1);
+    });
   });
 });

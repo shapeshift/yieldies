@@ -9,11 +9,6 @@ import "../libraries/Ownable.sol";
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
-    modifier onlyStakingContract() {
-        require(msg.sender == stakingContract);
-        _;
-    }
-
     address public stakingToken;
     address public rewardToken;
     address public stakingContract;
@@ -60,7 +55,6 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 lrFoxSupply = totalSupply();
         uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance;
         uint256 amountToMint = (_amount / reserveSupply) *
-            lrFoxSupply +
             lrFoxSupply;
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
