@@ -96,21 +96,29 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     function withdraw(uint256 _amount) external {
-        IStaking(stakingContract).claimWithdraw(address(this));
-
+        require(
+            _amount <= balanceOf(msg.sender),
+            "Not enough funds to cover instant unstake"
+        );
+        // IStaking(stakingContract).claimWithdraw(address(this));
+        console.log("amount", _amount);
         uint256 amountToWithdraw = calculateReserveTokenValue(_amount);
+        console.log("amountToWithdraw", amountToWithdraw);
+
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
     function instantUnstake(uint256 _amount) external {
-        IStaking(stakingContract).claimWithdraw(address(this));
-
-        uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
         require(
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
             "Not enough funds to cover instant unstake"
         );
+
+        IStaking(stakingContract).claimWithdraw(address(this));
+
+        uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
+
         IERC20(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),

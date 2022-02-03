@@ -211,7 +211,13 @@ describe("Liquidity Reserve", function () {
       expect(liquidityReserveBalance).eq(24047); // 24047 is the new balance based on new liquidity
 
       // withdraw with liquidityProvider
-      
+      await liquidityReserveLiquidityProvider.withdraw(liquidityReserveBalance)
+
+      liquidityProviderStakingBalance = await stakingToken.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityProviderStakingBalance).eq(24999); // receive 24999 stakingTokens back
+
     });
   });
 });
