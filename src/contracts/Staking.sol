@@ -342,6 +342,24 @@ contract Staking is Ownable {
         warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
     }
 
+    // /**
+    //     @notice redeem rewardToken for stakingToken instantly with fee
+    //     @param _amount uint
+    //     @param _trigger bool
+    //  */
+
+    // function instantUnstake(uint256 _amount, bool _trigger) external {
+    //     if (_trigger) {
+    //         rebase();
+    //     }
+
+    //     Claim memory userWarmInfo = warmUpInfo[msg.sender];
+    //     require(!userWarmInfo.lock, "Withdraws for account are locked");
+
+    //     bool hasWarmupToken = userWarmInfo.amount >= _amount &&
+    //         isClaimAvailable(userWarmInfo);
+    // }
+
     /**
         @notice redeem rewardToken for stakingToken
         @param _amount uint

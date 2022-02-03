@@ -90,8 +90,6 @@ describe("Liquidity Reserve", function () {
 
   describe("deposit & withdraw", function () {
     it.only("Should calculate the correct value of lrFOX", async () => {
-      console.log("value", await liquidityReserve.calculateReserveTokenValue());
-
       const { daoTreasury, staker1, liquidityProvider } =
         await getNamedAccounts();
 
@@ -147,7 +145,6 @@ describe("Liquidity Reserve", function () {
       );
       await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // TODO: get warmup rewardToken if not claimed
       await stakingContractStaker1.claim(staker1);
 
       let staker1RewardBalance = await foxy.balanceOf(staker1);
@@ -156,7 +153,6 @@ describe("Liquidity Reserve", function () {
       const fee = await liquidityReserve.fee();
 
       // instant unstake with staker1
-
       const liquidityReserveStaker1 = liquidityReserve.connect(
         staking1Signer as Signer
       );
@@ -175,7 +171,7 @@ describe("Liquidity Reserve", function () {
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(amountMinusFee);
 
-      // deposit with staker2
+      // deposit with liquidityProvider
       await stakingToken.transfer(liquidityProvider, stakingAmount);
 
       let liquidityProviderStakingBalance = await stakingToken.balanceOf(
@@ -194,11 +190,11 @@ describe("Liquidity Reserve", function () {
       const liquidityReserveLiquidityProvider = liquidityReserve.connect(
         liquidityProviderSigner as Signer
       );
-      const stakingTokenStaker2 = stakingToken.connect(
+      const stakingTokenLiquidityProvider = stakingToken.connect(
         liquidityProviderSigner as Signer
       );
 
-      await stakingTokenStaker2.approve(
+      await stakingTokenLiquidityProvider.approve(
         liquidityReserve.address,
         stakingAmount
       );
@@ -212,10 +208,10 @@ describe("Liquidity Reserve", function () {
       liquidityReserveBalance = await liquidityReserve.balanceOf(
         liquidityProvider
       );
-      console.log("liquidityReserveBalance", liquidityReserveBalance);
-      expect(liquidityReserveBalance).eq(24047);
+      expect(liquidityReserveBalance).eq(24047); // 24047 is the new balance based on new liquidity
 
-      console.log("value", await liquidityReserve.calculateReserveTokenValue());
+      // withdraw with liquidityProvider
+      
     });
   });
 });
