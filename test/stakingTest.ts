@@ -5,15 +5,17 @@ import { Staking } from "../typechain-types/Staking";
 import { Vesting } from "../typechain-types/Vesting";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
+import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
+import { LiquidityReserve } from "../typechain-types";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Foxy;
   let staking: Staking;
+  let liquidityReserve: LiquidityReserve;
   let stakingToken: Contract;
   let tokePool: Contract;
   let tokeManager: Contract;
@@ -75,6 +77,13 @@ describe("Staking", function () {
       stakingDeployment.abi,
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
+
+    const liquidityReserveDeployment = await deployments.get("LiquidityReserve");
+    liquidityReserve = new ethers.Contract(
+      liquidityReserveDeployment.address,
+      liquidityReserveDeployment.abi,
+      accounts[0]
+    ) as LiquidityReserve;
 
     const warmupContract = await staking.warmupContract();
     stakingWarmup = new ethers.Contract(

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
+import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -33,16 +34,20 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     function calculateReserveTokenValue() internal view returns (uint256) {
-        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
-            address(this)
-        );
-        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
-            address(this)
-        );
         uint256 lrFoxSupply = totalSupply();
-        uint256 convertedAmount = (stakingTokenBalance + rewardTokenBalance) /
-            lrFoxSupply;
-        return convertedAmount;
+        if (lrFoxSupply == 0) {
+            return 1;
+        } else {
+            uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+                address(this)
+            );
+            uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+                address(this)
+            );
+            uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance;
+            uint256 convertedAmount = totalLockedValue / lrFoxSupply;
+            return convertedAmount;
+        }
     }
 
     function deposit(uint256 _amount) external {
@@ -54,8 +59,14 @@ contract LiquidityReserve is ERC20, Ownable {
         );
         uint256 lrFoxSupply = totalSupply();
         uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance;
-        uint256 amountToMint = (_amount / reserveSupply) *
-            lrFoxSupply;
+        console.log("reserveSupply", reserveSupply);
+        console.log("lrFoxSupply", lrFoxSupply);
+        console.log("_amount", _amount);
+        uint256 amountToMint = reserveSupply == 0
+            ? _amount
+            : (_amount / reserveSupply) * lrFoxSupply;
+        console.log("amountToMint", amountToMint);
+
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -71,7 +82,10 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     function instantUnstake(uint256 _amount) external {
-        uint256 amountMinusFee = _amount - (_amount * fee);
+        uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
+        console.log("amountMinusFee", amountMinusFee);
+        console.log("fee", fee);
+        console.log("_amount", _amount);
         require(
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
             "Not enough funds to cover instant unstake"
@@ -81,11 +95,13 @@ contract LiquidityReserve is ERC20, Ownable {
             address(this),
             _amount
         );
+        console.log("1");
         IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
+        console.log("2");
     }
 
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee >= 0 && fee <= 1, "Must be within range of 0 and 1");
+        require(_fee >= 0 && fee <= 100, "Must be within range of 0 and 1");
         fee = _fee;
     }
 }
