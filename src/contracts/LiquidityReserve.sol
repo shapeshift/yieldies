@@ -41,13 +41,13 @@ contract LiquidityReserve is ERC20, Ownable {
             address(this)
         );
         uint256 lrFoxSupply = totalSupply();
-        uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance;
+        uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance; // TODO: will need to update this to handle FOXy that's being withdrawn from tokemak
         console.log("reserveSupply", reserveSupply);
         console.log("lrFoxSupply", lrFoxSupply);
         console.log("_amount", _amount);
         uint256 amountToMint = reserveSupply == 0
             ? _amount
-            : (_amount / reserveSupply) * lrFoxSupply;
+            : (_amount / reserveSupply) * lrFoxSupply * 100;
         console.log("amountToMint", amountToMint);
 
         IERC20(stakingToken).safeTransferFrom(
@@ -66,10 +66,10 @@ contract LiquidityReserve is ERC20, Ownable {
             uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
                 address(this)
             );
-            uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+            uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf( 
                 address(this)
             );
-            uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance;
+            uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance; // TODO: will need to update this to handle FOXy that's being withdrawn from tokemak
             uint256 convertedAmount = totalLockedValue / lrFoxSupply; // TODO: make work with integers
             return convertedAmount;
         }
