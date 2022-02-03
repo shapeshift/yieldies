@@ -33,23 +33,6 @@ contract LiquidityReserve is ERC20, Ownable {
         return true;
     }
 
-    function calculateReserveTokenValue() internal view returns (uint256) {
-        uint256 lrFoxSupply = totalSupply();
-        if (lrFoxSupply == 0) {
-            return 1;
-        } else {
-            uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
-                address(this)
-            );
-            uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
-                address(this)
-            );
-            uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance;
-            uint256 convertedAmount = totalLockedValue / lrFoxSupply;
-            return convertedAmount;
-        }
-    }
-
     function deposit(uint256 _amount) external {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             address(this)
@@ -75,6 +58,23 @@ contract LiquidityReserve is ERC20, Ownable {
         _mint(msg.sender, amountToMint);
     }
 
+    function calculateReserveTokenValue() internal view returns (uint256) {
+        uint256 lrFoxSupply = totalSupply();
+        if (lrFoxSupply == 0) {
+            return 1;
+        } else {
+            uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+                address(this)
+            );
+            uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+                address(this)
+            );
+            uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance;
+            uint256 convertedAmount = totalLockedValue / lrFoxSupply; // TODO: make work with integers
+            return convertedAmount;
+        }
+    }
+
     function withdraw(uint256 _amount) external {
         uint256 amountToWithdraw = calculateReserveTokenValue() * _amount;
         transferFrom(msg.sender, address(this), _amount);
@@ -83,9 +83,6 @@ contract LiquidityReserve is ERC20, Ownable {
 
     function instantUnstake(uint256 _amount) external {
         uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
-        console.log("amountMinusFee", amountMinusFee);
-        console.log("fee", fee);
-        console.log("_amount", _amount);
         require(
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
             "Not enough funds to cover instant unstake"
@@ -95,9 +92,7 @@ contract LiquidityReserve is ERC20, Ownable {
             address(this),
             _amount
         );
-        console.log("1");
         IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
-        console.log("2");
     }
 
     function setFee(uint256 _fee) external onlyOwner {

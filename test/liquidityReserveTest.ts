@@ -65,7 +65,6 @@ describe("Liquidity Reserve", function () {
       expect(stakingContractBalance.eq(supply)).true;
     });
   });
-
   it.only("Should calculate the correct value of lrFOX", async () => {
     const { daoTreasury, staker1, staker2, stakingContractMock } =
       await getNamedAccounts();
@@ -73,7 +72,7 @@ describe("Liquidity Reserve", function () {
     const transferAmount = BigNumber.from("100000");
     const stakingAmount = transferAmount.div(4);
 
-    // deposit with daoTreasury
+    // deposit stakingToken with daoTreasury
     await stakingToken.transfer(daoTreasury, transferAmount);
 
     let daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
@@ -168,5 +167,39 @@ describe("Liquidity Reserve", function () {
     console.log('liquidityReserveBalance', liquidityReserveBalance)
     // TODO: add updated staking amount
     // expect(liquidityReserveBalance).eq(stakingAmount);
+  });
+  it.skip("Should allow deposit and withdrawal", async () => {
+    const { daoTreasury } =
+      await getNamedAccounts();
+
+    const transferAmount = BigNumber.from("100000");
+    const stakingAmount = transferAmount.div(4);
+
+    // deposit stakingToken with daoTreasury
+    await stakingToken.transfer(daoTreasury, transferAmount);
+
+    let daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+    expect(daoTreasuryStakingBalance).eq(transferAmount);
+
+    let liquidityReserveBalance = await liquidityReserve.balanceOf(daoTreasury);
+    expect(liquidityReserveBalance).eq(0);
+
+    const daoTreasurySigner = accounts.find(
+      (account) => account.address === daoTreasury
+    );
+    const liquidityReserveDao = liquidityReserve.connect(
+      daoTreasurySigner as Signer
+    );
+    const stakingTokenDao = stakingToken.connect(daoTreasurySigner as Signer);
+
+    await stakingTokenDao.approve(liquidityReserve.address, transferAmount);
+    await liquidityReserveDao.deposit(transferAmount);
+
+    daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+    expect(daoTreasuryStakingBalance).eq(0);
+
+    liquidityReserveBalance = await liquidityReserve.balanceOf(daoTreasury);
+    expect(liquidityReserveBalance).eq(transferAmount);
+  
   });
 });
