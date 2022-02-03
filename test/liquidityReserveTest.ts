@@ -100,7 +100,7 @@ describe("Liquidity Reserve", function () {
 
 
 
-    
+    // TODO: Get FOXy normally and not just transfer
     // transfer rewardToken from staking contract to staker1
 
     const stakingContractSigner = accounts.find(
@@ -139,6 +139,8 @@ describe("Liquidity Reserve", function () {
     expect(staker1StakingBalance).eq(amountMinusFee);
 
 
+
+    // TODO: change staker2 to lp provider 2
     // deposit with staker2
     await stakingToken.transfer(staker2, stakingAmount);
 
