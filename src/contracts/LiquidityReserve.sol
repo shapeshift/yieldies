@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
+import "../interfaces/IStaking.sol";
 import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
@@ -35,6 +36,7 @@ contract LiquidityReserve is ERC20, Ownable {
         stakingContract = stakingContract_;
         initializer = address(0);
         _mint(address(this), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+        IERC20(rewardToken).approve(stakingContract, type(uint256).max);
 
         return true;
     }
@@ -47,13 +49,19 @@ contract LiquidityReserve is ERC20, Ownable {
             address(this)
         );
         uint256 lrFoxSupply = totalSupply();
-        uint256 reserveSupply = stakingTokenBalance + rewardTokenBalance; // TODO: will need to update this to handle FOXy that's being withdrawn from tokemak
-        uint256 amountToMint = reserveSupply == 0
+        uint256 coolDownAmount = IStaking(stakingContract)
+            .coolDownInfo(address(this))
+            .amount;
+        uint256 totalLockedValue = stakingTokenBalance +
+            rewardTokenBalance +
+            coolDownAmount;
+        uint256 amountToMint = totalLockedValue == 0
             ? _amount
-            : (_amount * lrFoxSupply) / reserveSupply;
+            : (_amount * lrFoxSupply) / totalLockedValue;
 
+        console.log("_amount", _amount);
         console.log("lrFoxSupply", lrFoxSupply);
-        console.log("reserveSupply", reserveSupply);
+        console.log("totalLockedValue", totalLockedValue);
         console.log("amountToMint", amountToMint);
 
         IERC20(stakingToken).safeTransferFrom(
@@ -69,23 +77,34 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             address(this)
         );
-        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf( // needed?
             address(this)
         );
-        uint256 totalLockedValue = stakingTokenBalance + rewardTokenBalance; // TODO: will need to update this to handle FOXy that's being withdrawn from tokemak
+        uint256 coolDownAmount = IStaking(stakingContract)
+            .coolDownInfo(address(this))
+            .amount;
+        uint256 totalLockedValue = stakingTokenBalance +
+            rewardTokenBalance +
+            coolDownAmount;
+        console.log("lrFoxSupply", lrFoxSupply);
+        console.log("totalLockedValue", totalLockedValue);
         uint256 convertedAmount = totalLockedValue / lrFoxSupply; // TODO: make work with integers
+        console.log("convertedAmount", convertedAmount);
+
         return convertedAmount;
     }
 
-    // TODO: pull FOX from claimWithdrawal
     function withdraw(uint256 _amount) external {
+        IStaking(stakingContract).claimWithdraw(address(this));
+
         uint256 amountToWithdraw = calculateReserveTokenValue() * _amount;
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
-    // TODO: pull FOX from claimWithdrawal
     function instantUnstake(uint256 _amount) external {
+        IStaking(stakingContract).claimWithdraw(address(this));
+
         uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
         require(
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
@@ -97,6 +116,7 @@ contract LiquidityReserve is ERC20, Ownable {
             _amount
         );
         IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
+        IStaking(stakingContract).unstake(_amount, false);
     }
 
     function setFee(uint256 _fee) external onlyOwner {
