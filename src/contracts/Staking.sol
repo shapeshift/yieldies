@@ -46,8 +46,8 @@ contract Staking is Ownable {
     uint256 public lastTokeCycleIndex;
 
     // owner overrides
-    bool public overrideCanStake = false;
-    bool public overrideCanUnstake = false;
+    bool public pauseStaking = false;
+    bool public pauseUnstaking = false;
     bool public overrideCanWithdrawal = false;
 
     constructor(
@@ -140,26 +140,26 @@ contract Staking is Ownable {
 
         /**
         @notice override whether or not withdraws from Tokemak are blocked
-        @param shouldBlock bool
+        @param shouldOverride bool
         **/
-    function overrideWithdrawals(bool shouldBlock) external onlyOwner {
-        overrideCanWithdrawal = shouldBlock;
+    function overrideWithdrawals(bool shouldOverride) external onlyOwner {
+        overrideCanWithdrawal = shouldOverride;
     }
 
     /**
         @notice override whether or not deposits are blocked
-        @param shouldBlock bool
+        @param shouldPause bool
         **/
-    function overrideStaking(bool shouldBlock) external onlyOwner {
-        overrideCanStake = shouldBlock;
+    function overrideStaking(bool shouldPause) external onlyOwner {
+        pauseStaking = shouldPause;
     }
 
     /**
         @notice override whether or not withdraws are blocked
-        @param shouldBlock bool
+        @param shouldPause bool
         **/
-    function overrideUnstaking(bool shouldBlock) external onlyOwner {
-        overrideCanUnstake = shouldBlock;
+    function overrideUnstaking(bool shouldPause) external onlyOwner {
+        pauseUnstaking = shouldPause;
     }
 
     /**
@@ -292,7 +292,7 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
-        if (overrideCanStake) {
+        if (!pauseStaking) {
             rebase();
             IERC20(stakingToken).safeTransferFrom(
                 msg.sender,
@@ -388,7 +388,7 @@ contract Staking is Ownable {
      */
 
     function instantUnstake(uint256 _amount, bool _trigger) external {
-        if (overrideCanUnstake) {
+        if (!pauseUnstaking) {
             if (_trigger) {
                 rebase();
             }
@@ -434,7 +434,7 @@ contract Staking is Ownable {
         @param _trigger bool
      */
     function unstake(uint256 _amount, bool _trigger) external {
-        if (overrideCanUnstake) {
+        if (!pauseUnstaking) {
             if (_trigger) {
                 rebase();
             }
