@@ -108,6 +108,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
         uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
 
+        // transfer from msg.sender due to not knowing if the funds are in warmup or not
         IERC20(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),

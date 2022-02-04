@@ -15,6 +15,7 @@ describe("Liquidity Reserve", function () {
 
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
+  const INSTANT_UNSTAKE_FEE = 20;
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -72,7 +73,7 @@ describe("Liquidity Reserve", function () {
       transferAmount.toNumber()
     );
 
-    await stakingContract.setInstantUnstakeFee(20);
+    await stakingContract.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
     await foxy.initialize(stakingContract.address);
   });
 

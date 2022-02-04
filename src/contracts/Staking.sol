@@ -307,7 +307,7 @@ contract Staking is Ownable {
     function claim(address _recipient) external {
         Claim memory info = warmUpInfo[_recipient];
         if (isClaimAvailable(info)) {
-            delete warmUpInfo[_recipient]; // what if they run out of gas here
+            delete warmUpInfo[_recipient];
             IVesting(warmUpContract).retrieve(
                 _recipient,
                 IRewardToken(rewardToken).balanceForGons(info.gons)
@@ -375,7 +375,7 @@ contract Staking is Ownable {
             require(newAmount >= 0, "Not enough funds");
             IVesting(warmUpContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
-                delete warmUpInfo[msg.sender]; // what if they run out of gas right here
+                delete warmUpInfo[msg.sender];
             } else {
                 warmUpInfo[msg.sender] = Claim({
                     amount: newAmount,
