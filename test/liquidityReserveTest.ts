@@ -148,7 +148,7 @@ describe("Liquidity Reserve", function () {
       const rewardTokenStaker1 = foxy.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
 
-      await liquidityReserveStaker1.instantUnstake(stakingAmount);
+      await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
 
       const feeAmount = stakingAmount.mul(fee).div(100);
       const amountMinusFee = stakingAmount.sub(feeAmount);

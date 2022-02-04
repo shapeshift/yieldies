@@ -392,7 +392,8 @@ contract Staking is Ownable {
                 _amount
             );
         }
-        ILiquidityReserve(liquidityReserve).instantUnstake(_amount);
+        ILiquidityReserve(liquidityReserve).instantUnstake(_amount, msg.sender);
+
     }
 
     /**
@@ -510,6 +511,10 @@ contract Staking is Ownable {
         }
     }
 
+    /**
+     * @notice sets fee for instant unstaking
+     * @param _fee uint
+     */
     function setInstantUnstakeFee(uint256 _fee) external onlyOwner {
         ILiquidityReserve(liquidityReserve).setFee(_fee);
     }
