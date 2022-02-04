@@ -37,13 +37,6 @@ contract Staking is Ownable {
     }
     Epoch public epoch;
 
-    // TODO: tightly pack for gas optimization
-    struct Claim {
-        uint256 amount;
-        uint256 gons;
-        uint256 expiry;
-        bool lock; // prevents malicious delays
-    }
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
@@ -321,7 +314,10 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) external {
         Claim memory info = coolDownInfo[_recipient];
-        if (isClaimAvailable(info)) {
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        WithdrawalInfo memory withdrawalInfo = tokePoolContract
+            .requestedWithdrawals(address(this));
+        if (isClaimAvailable(info) && withdrawalInfo.amount > 0) {
             uint256 amount = IRewardToken(rewardToken).balanceForGons(
                 info.gons
             );
@@ -393,7 +389,6 @@ contract Staking is Ownable {
             );
         }
         ILiquidityReserve(liquidityReserve).instantUnstake(_amount, msg.sender);
-
     }
 
     /**
