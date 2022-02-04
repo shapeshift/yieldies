@@ -74,9 +74,6 @@ contract Staking is Ownable {
         tokeReward = _tokeReward;
         tokeRewardHash = _tokeRewardHash;
 
-        console.log("msg.sender", msg.sender);
-        console.log("address(this)", address(this));
-
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmUpContract = address(warmUp);
 

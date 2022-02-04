@@ -92,12 +92,7 @@ contract LiquidityReserve is ERC20, Ownable {
             rewardTokenBalance +
             coolDownAmount;
         uint256 convertedAmount = (_amount * totalLockedValue) / lrFoxSupply;
-        console.log("lrFoxSupply", lrFoxSupply);
-        console.log("stakingTokenBalance", stakingTokenBalance);
-        console.log("rewardTokenBalance", rewardTokenBalance);
-        console.log("coolDownAmount", coolDownAmount);
-        console.log("totalLockedValue", totalLockedValue);
-        console.log("convertedAmount", convertedAmount);
+        
         return convertedAmount;
     }
 
