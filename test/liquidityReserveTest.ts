@@ -89,7 +89,7 @@ describe("Liquidity Reserve", function () {
   });
 
   describe("deposit & withdraw", function () {
-    it.only("Should calculate the correct value of lrFOX", async () => {
+    it("Should calculate the correct value of lrFOX", async () => {
       const { daoTreasury, staker1, liquidityProvider } =
         await getNamedAccounts();
 

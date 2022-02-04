@@ -112,10 +112,10 @@ contract LiquidityReserve is ERC20, Ownable {
     function instantUnstake(uint256 _amount) external {
         require(
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
-            "Not enough funds to cover instant unstake"
+            "Not enough funds in contract to cover instant unstake"
         );
 
-        IStaking(stakingContract).claimWithdraw(address(this));
+        // IStaking(stakingContract).claimWithdraw(address(this));
 
         uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
 
@@ -125,6 +125,7 @@ contract LiquidityReserve is ERC20, Ownable {
             _amount
         );
         IERC20(stakingToken).safeTransfer(msg.sender, amountMinusFee);
+        console.log("staking", stakingContract);
         IStaking(stakingContract).unstake(_amount, false);
     }
 }

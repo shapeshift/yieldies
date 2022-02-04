@@ -78,7 +78,9 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const liquidityReserveDeployment = await deployments.get("LiquidityReserve");
+    const liquidityReserveDeployment = await deployments.get(
+      "LiquidityReserve"
+    );
     liquidityReserve = new ethers.Contract(
       liquidityReserveDeployment.address,
       liquidityReserveDeployment.abi,
@@ -118,6 +120,10 @@ describe("Staking", function () {
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
+    const liquidityReserveStakingWhale = liquidityReserve.connect(whaleSigner);
+    console.log(1)
+    await stakingTokenWhale.transfer(liquidityReserve.address, transferAmount);
+    console.log(2)
 
     expect(BigNumber.from(stakingTokenBalance).toNumber()).gte(
       transferAmount.toNumber()
@@ -420,6 +426,57 @@ describe("Staking", function () {
       );
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
+    });
+    it.only("can instant unstake", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+      await stakingStaker1.claim(staker1);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+        
+      const rewardBalance = await rewardToken.balanceOf(staker1);
+      console.log("rewardBalance", rewardBalance);
+      console.log("stakingAmount", stakingAmount);
+      await stakingStaker1.instantUnstake(stakingAmount, false);
+    });
+    it.skip("can instant unstake without claiming", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+      const rewardBalance = await rewardToken.balanceOf(staker1);
+      console.log("rewardBalance", rewardBalance);
+      await stakingStaker1.instantUnstake(stakingAmount, false);
     });
   });
 

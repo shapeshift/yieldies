@@ -16,6 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const tokeRewardHash = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6";
 
   const foxy = await deployments.get("Foxy");
+  const liquidityReserve = await deployments.get("LiquidityReserve");
 
   const epochLength = 100;
   const firstEpochNumber = 1;
@@ -26,6 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: admin,
     args: [
       stakingToken,
+      liquidityReserve.address,
       foxy.address,
       tokeToken,
       tokePool,
