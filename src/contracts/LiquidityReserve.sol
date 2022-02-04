@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
-import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -133,8 +132,6 @@ contract LiquidityReserve is ERC20, Ownable {
             "Not enough funds in contract to cover withdraw"
         );
 
-        console.log("amount", _amount);
-        console.log("amountToWithdraw", amountToWithdraw);
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
