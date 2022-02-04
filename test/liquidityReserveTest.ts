@@ -5,6 +5,7 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { Foxy, LiquidityReserve, Staking } from "../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
+import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "./constants";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
@@ -15,8 +16,7 @@ describe("Liquidity Reserve", function () {
 
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-  const INSTANT_UNSTAKE_FEE = 20;
-  const INITIAL_LR_BALANCE = BigNumber.from("1000000000000000");
+
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();

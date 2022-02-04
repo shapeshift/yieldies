@@ -11,6 +11,7 @@ import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vestin
 import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve } from "../typechain-types";
+import { INSTANT_UNSTAKE_FEE } from "./constants";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -30,7 +31,6 @@ describe("Staking", function () {
   const LATEST_CLAIMABLE_HASH =
     "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
   const CYCLE_HASH = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
-  const INSTANT_UNSTAKE_FEE = 20;
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -114,7 +114,7 @@ describe("Staking", function () {
     });
 
     // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
-    const transferAmount = BigNumber.from("2000000000000000");
+    const transferAmount = BigNumber.from("9000000000000000");
     const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
@@ -125,12 +125,11 @@ describe("Staking", function () {
 
     await rewardToken.initialize(stakingDeployment.address); // initialize reward contract
 
-    await stakingToken.approve(liquidityReserve.address, BigNumber.from("1000000000000000")); // approve initial liquidity amount
+    await stakingToken.approve(
+      liquidityReserve.address,
+      BigNumber.from("1000000000000000")
+    ); // approve initial liquidity amount
     await liquidityReserve.initialize(stakingDeployment.address); // initialize liquidity reserve contract
-  
-
-    // TODO: do real deposit
-    await stakingTokenWhale.transfer(liquidityReserve.address, transferAmount);
     await staking.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
   });
 
