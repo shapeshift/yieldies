@@ -122,7 +122,7 @@ contract LiquidityReserve is ERC20, Ownable {
     function withdraw(uint256 _amount) external {
         require(
             _amount <= balanceOf(msg.sender),
-            "Not enough liquitidy reserve tokens"
+            "Not enough liquidity reserve tokens"
         );
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
@@ -130,9 +130,11 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 amountToWithdraw = calculateReserveTokenValue(_amount);
         require(
             IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
-            "Not enough funds to cover withdraw"
+            "Not enough funds in contract to cover withdraw"
         );
 
+        console.log("amount", _amount);
+        console.log("amountToWithdraw", amountToWithdraw);
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
