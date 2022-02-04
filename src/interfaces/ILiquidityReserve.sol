@@ -2,7 +2,7 @@
 pragma solidity 0.8.9;
 
 interface ILiquidityReserve {
-    function initialize(address stakingContract) external;
-
     function instantUnstake(uint256 amount_) external;
+
+    function setFee(uint256 _fee) external;
 }

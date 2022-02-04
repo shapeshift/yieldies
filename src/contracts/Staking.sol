@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./Vesting.sol";
+import "./LiquidityReserve.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IRewardToken.sol";
 import "../interfaces/IVesting.sol";
@@ -21,9 +22,11 @@ contract Staking is Ownable {
     address public immutable tokeReward;
     address public immutable tokeRewardHash;
     address public immutable stakingToken;
-    address public immutable liquidityReserve;
     address public immutable rewardToken;
     address public immutable tokeToken;
+    address public immutable liquidityReserve;
+    address public immutable warmUpContract;
+    address public immutable coolDownContract;
 
     // TODO: tightly pack for gas optimization
     struct Epoch {
@@ -44,9 +47,6 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    address public immutable warmUpContract;
-    address public immutable coolDownContract;
-
     uint256 public vestingPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
@@ -54,7 +54,6 @@ contract Staking is Ownable {
 
     constructor(
         address _stakingToken,
-        address _liquidityReserve,
         address _rewardToken,
         address _tokeToken,
         address _tokePool,
@@ -67,7 +66,6 @@ contract Staking is Ownable {
     ) {
         require(
             _stakingToken != address(0) &&
-                _liquidityReserve != address(0) &&
                 _rewardToken != address(0) &&
                 _rewardToken != address(0) &&
                 _tokePool != address(0) &&
@@ -76,7 +74,6 @@ contract Staking is Ownable {
                 _tokeRewardHash != address(0)
         );
         stakingToken = _stakingToken;
-        liquidityReserve = _liquidityReserve;
         rewardToken = _rewardToken;
         tokeToken = _tokeToken;
         tokePool = _tokePool;
@@ -90,7 +87,12 @@ contract Staking is Ownable {
         Vesting coolDown = new Vesting(address(this), rewardToken);
         coolDownContract = address(coolDown);
 
-        ILiquidityReserve(liquidityReserve).initialize(address(this));
+        LiquidityReserve lrContract = new LiquidityReserve(
+            stakingToken,
+            rewardToken,
+            address(this)
+        );
+        liquidityReserve = address(lrContract);
 
         IERC20(stakingToken).approve(tokePool, type(uint256).max);
         IERC20(rewardToken).approve(liquidityReserve, type(uint256).max);
@@ -506,5 +508,9 @@ contract Staking is Ownable {
         if (_isTriggerRebase) {
             rebase();
         }
+    }
+
+    function setInstantUnstakeFee(uint256 _fee) external onlyOwner {
+        ILiquidityReserve(liquidityReserve).setFee(_fee);
     }
 }

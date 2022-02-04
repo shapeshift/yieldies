@@ -14,31 +14,20 @@ contract LiquidityReserve is ERC20, Ownable {
     address public stakingToken;
     address public rewardToken;
     address public stakingContract;
-    address public initializer;
     uint256 public fee;
     uint256 public constant MINIMUM_LIQUIDITY = 10**3; // using same amount of minimum liquidity as uni
 
-    constructor(address _stakingToken, address _rewardToken)
-        ERC20("Liquidity Reserve FOX", "lrFOX", 18)
-    {
+    constructor(
+        address _stakingToken,
+        address _rewardToken,
+        address _stakingContract
+    ) ERC20("Liquidity Reserve FOX", "lrFOX", 18) {
         require(_stakingToken != address(0) && _rewardToken != address(0));
         stakingToken = _stakingToken;
         rewardToken = _rewardToken;
-        initializer = msg.sender;
-    }
-
-    function initialize(address stakingContract_) external returns (bool) {
-        require(msg.sender == initializer);
-        require(stakingContract_ != address(0));
-        require(
-            IERC20(stakingToken).balanceOf(msg.sender) >= MINIMUM_LIQUIDITY
-        );
-        stakingContract = stakingContract_;
-        initializer = address(0);
+        stakingContract = _stakingContract;
         _mint(address(this), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         IERC20(rewardToken).approve(stakingContract, type(uint256).max);
-
-        return true;
     }
 
     function setFee(uint256 _fee) external onlyOwner {

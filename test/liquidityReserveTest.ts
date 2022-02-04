@@ -2,8 +2,9 @@ import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { LiquidityReserve, Staking } from "../typechain-types";
+import { Foxy, LiquidityReserve, Staking } from "../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
+import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
@@ -33,21 +34,12 @@ describe("Liquidity Reserve", function () {
     await deployments.fixture();
     accounts = await ethers.getSigners();
 
-    const liquidityReserveDeployment = await deployments.get(
-      "LiquidityReserve"
-    );
-    liquidityReserve = new ethers.Contract(
-      liquidityReserveDeployment.address,
-      liquidityReserveDeployment.abi,
-      accounts[0]
-    ) as LiquidityReserve;
-
     const foxyDeployment = await deployments.get("Foxy");
     foxy = new ethers.Contract(
       foxyDeployment.address,
       foxyDeployment.abi,
       accounts[0]
-    ) as LiquidityReserve;
+    ) as Foxy;
 
     const stakingDeployment = await deployments.get("Staking");
     stakingContract = new ethers.Contract(
@@ -55,6 +47,13 @@ describe("Liquidity Reserve", function () {
       stakingDeployment.abi,
       accounts[0]
     ) as Staking;
+
+    const liquidityReserveAddress = await stakingContract.liquidityReserve();
+    liquidityReserve = new ethers.Contract(
+      liquidityReserveAddress,
+      liquidityReserveAbi,
+      accounts[0]
+    ) as LiquidityReserve;
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -73,19 +72,8 @@ describe("Liquidity Reserve", function () {
       transferAmount.toNumber()
     );
 
-    await liquidityReserve.setFee(20);
+    await stakingContract.setInstantUnstakeFee(20);
     await foxy.initialize(stakingContract.address);
-    await liquidityReserve.initialize(stakingContract.address);
-  });
-
-  describe("initialize", function () {
-    it("Should assign the total supply of reward tokens to the stakingContract", async () => {
-      const supply = await foxy.totalSupply();
-      const stakingContractBalance = await foxy.balanceOf(
-        stakingContract.address
-      );
-      expect(stakingContractBalance.eq(supply)).true;
-    });
   });
 
   describe("deposit & withdraw", function () {

@@ -8,6 +8,7 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
+import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve } from "../typechain-types";
 
@@ -78,24 +79,22 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const liquidityReserveDeployment = await deployments.get(
-      "LiquidityReserve"
-    );
+    const liquidityReserveAddress = await staking.liquidityReserve();
     liquidityReserve = new ethers.Contract(
-      liquidityReserveDeployment.address,
-      liquidityReserveDeployment.abi,
+      liquidityReserveAddress,
+      liquidityReserveAbi,
       accounts[0]
     ) as LiquidityReserve;
 
-    const warmUpContract = await staking.warmUpContract();
+    const warmUpAddress = await staking.warmUpContract();
     stakingWarmup = new ethers.Contract(
-      warmUpContract,
+      warmUpAddress,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
-    const coolDownContract = await staking.coolDownContract();
+    const coolDownAddress = await staking.coolDownContract();
     stakingCooldown = new ethers.Contract(
-      coolDownContract,
+      coolDownAddress,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
@@ -120,10 +119,10 @@ describe("Staking", function () {
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
-    const liquidityReserveStakingWhale = liquidityReserve.connect(whaleSigner);
-    console.log(1)
+
+    // TODO: do real deposit
     await stakingTokenWhale.transfer(liquidityReserve.address, transferAmount);
-    console.log(2)
+    await staking.setInstantUnstakeFee(20);
 
     expect(BigNumber.from(stakingTokenBalance).toNumber()).gte(
       transferAmount.toNumber()
@@ -427,7 +426,7 @@ describe("Staking", function () {
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
     });
-    it.only("can instant unstake", async () => {
+    it("can instant unstake", async () => {
       const { staker1 } = await getNamedAccounts();
 
       // transfer STAKING_TOKEN to staker 1
@@ -449,10 +448,13 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
         
-      const rewardBalance = await rewardToken.balanceOf(staker1);
-      console.log("rewardBalance", rewardBalance);
-      console.log("stakingAmount", stakingAmount);
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(stakingAmount);
+
       await stakingStaker1.instantUnstake(stakingAmount, false);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
     });
     it.skip("can instant unstake without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
