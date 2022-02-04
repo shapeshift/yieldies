@@ -27,6 +27,10 @@ contract LiquidityReserve is ERC20, Ownable {
         rewardToken = _rewardToken;
     }
 
+    /**
+        @notice initialize by setting stakingContract & setting initial liquidity
+        @param _stakingContract address
+     */
     function initialize(address _stakingContract) public {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
@@ -35,14 +39,14 @@ contract LiquidityReserve is ERC20, Ownable {
         require(stakingTokenBalance >= MINIMUM_LIQUIDITY);
         stakingContract = _stakingContract;
 
+        // permanently lock the first MINIMUM_LIQUIDITY of lrTokens & stakingTokens
         IERC20(stakingToken).transferFrom(
             msg.sender,
             address(this),
             MINIMUM_LIQUIDITY
         );
-        _mint(address(this), MINIMUM_LIQUIDITY); 
-        transfer(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY of lrTokens & stakingTokens
-        IERC20(stakingToken).transfer(address(0), MINIMUM_LIQUIDITY);
+        _mint(address(this), MINIMUM_LIQUIDITY);
+
         IERC20(rewardToken).approve(stakingContract, type(uint256).max);
     }
 
@@ -118,12 +122,17 @@ contract LiquidityReserve is ERC20, Ownable {
     function withdraw(uint256 _amount) external {
         require(
             _amount <= balanceOf(msg.sender),
-            "Not enough funds to cover instant unstake"
+            "Not enough liquitidy reserve tokens"
         );
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
         uint256 amountToWithdraw = calculateReserveTokenValue(_amount);
+        require(
+            IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
+            "Not enough funds to cover withdraw"
+        );
+
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
