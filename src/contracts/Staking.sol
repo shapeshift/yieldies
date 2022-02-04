@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./Vesting.sol";
+import "./LiquidityReserve.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IRewardToken.sol";
 import "../interfaces/IVesting.sol";
@@ -11,6 +12,7 @@ import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
+import "../interfaces/ILiquidityReserve.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -22,8 +24,11 @@ contract Staking is Ownable {
     address public immutable stakingToken;
     address public immutable rewardToken;
     address public immutable tokeToken;
+    address public immutable liquidityReserve;
+    address public immutable warmUpContract;
+    address public immutable coolDownContract;
 
-    // TODO: tightly pack for gas optimization 
+    // TODO: tightly pack for gas optimization
     struct Epoch {
         uint256 length;
         uint256 number;
@@ -32,18 +37,9 @@ contract Staking is Ownable {
     }
     Epoch public epoch;
 
-    // TODO: tightly pack for gas optimization 
-    struct Claim {
-        uint256 amount;
-        uint256 gons;
-        uint256 expiry;
-        bool lock; // prevents malicious delays
-    }
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    address public immutable warmupContract;
-    address public immutable cooldownContract;
     uint256 public vestingPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
@@ -57,7 +53,6 @@ contract Staking is Ownable {
         address _tokeManager,
         address _tokeReward,
         address _tokeRewardHash,
-
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -80,12 +75,19 @@ contract Staking is Ownable {
         tokeRewardHash = _tokeRewardHash;
 
         Vesting warmUp = new Vesting(address(this), rewardToken);
-        warmupContract = address(warmUp);
+        warmUpContract = address(warmUp);
 
         Vesting coolDown = new Vesting(address(this), rewardToken);
-        cooldownContract = address(coolDown);
+        coolDownContract = address(coolDown);
+
+        LiquidityReserve lrContract = new LiquidityReserve(
+            stakingToken,
+            rewardToken
+        );
+        liquidityReserve = address(lrContract);
 
         IERC20(stakingToken).approve(tokePool, type(uint256).max);
+        IERC20(rewardToken).approve(liquidityReserve, type(uint256).max);
 
         epoch = Epoch({
             length: _epochLength,
@@ -279,7 +281,7 @@ contract Staking is Ownable {
 
         depositToTokemak(_amount);
 
-        IERC20(rewardToken).safeTransfer(warmupContract, _amount);
+        IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
     }
 
     /**
@@ -294,11 +296,11 @@ contract Staking is Ownable {
         @notice retrieve rewardToken from warmup
         @param _recipient address
      */
-    function claim(address _recipient) public {
+    function claim(address _recipient) external {
         Claim memory info = warmUpInfo[_recipient];
         if (isClaimAvailable(info)) {
             delete warmUpInfo[_recipient];
-            IVesting(warmupContract).retrieve(
+            IVesting(warmUpContract).retrieve(
                 _recipient,
                 IRewardToken(rewardToken).balanceForGons(info.gons)
             );
@@ -309,16 +311,19 @@ contract Staking is Ownable {
         @notice claims stakingToken after cooldown period
         @param _recipient address
      */
-    function claimWithdraw(address _recipient) public {
+    function claimWithdraw(address _recipient) external {
         Claim memory info = coolDownInfo[_recipient];
-        if (isClaimAvailable(info)) {
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        WithdrawalInfo memory withdrawalInfo = tokePoolContract
+            .requestedWithdrawals(address(this));
+        if (isClaimAvailable(info) && withdrawalInfo.amount > 0) {
             uint256 amount = IRewardToken(rewardToken).balanceForGons(
                 info.gons
             );
             withdrawFromTokemak(amount);
             IERC20(stakingToken).safeTransfer(_recipient, amount);
             delete coolDownInfo[_recipient];
-            IVesting(cooldownContract).retrieve(_recipient, amount);
+            IVesting(coolDownContract).retrieve(_recipient, amount);
         }
     }
 
@@ -329,7 +334,7 @@ contract Staking is Ownable {
         Claim memory info = warmUpInfo[msg.sender];
         delete warmUpInfo[msg.sender];
 
-        IVesting(warmupContract).retrieve(
+        IVesting(warmUpContract).retrieve(
             address(this),
             IRewardToken(rewardToken).balanceForGons(info.gons)
         );
@@ -341,6 +346,48 @@ contract Staking is Ownable {
      */
     function toggleDepositLock() external {
         warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
+    }
+
+    /**
+        @notice redeem rewardToken for stakingToken instantly with fee
+        @param _amount uint
+        @param _trigger bool
+     */
+
+    function instantUnstake(uint256 _amount, bool _trigger) external {
+        if (_trigger) {
+            rebase();
+        }
+
+        Claim memory userWarmInfo = warmUpInfo[msg.sender];
+        require(!userWarmInfo.lock, "Withdraws for account are locked");
+
+        bool hasWarmupToken = userWarmInfo.amount >= _amount &&
+            isClaimAvailable(userWarmInfo);
+
+        if (hasWarmupToken) {
+            uint256 newAmount = userWarmInfo.amount - _amount;
+            require(newAmount >= 0, "Not enough funds");
+            IVesting(warmUpContract).retrieve(address(this), _amount);
+            if (newAmount == 0) {
+                delete warmUpInfo[msg.sender];
+            } else {
+                warmUpInfo[msg.sender] = Claim({
+                    amount: newAmount,
+                    gons: userWarmInfo.gons -
+                        IRewardToken(rewardToken).gonsForBalance(_amount),
+                    expiry: userWarmInfo.expiry,
+                    lock: false
+                });
+            }
+        } else {
+            IERC20(rewardToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+        }
+        ILiquidityReserve(liquidityReserve).instantUnstake(_amount, msg.sender);
     }
 
     /**
@@ -362,7 +409,7 @@ contract Staking is Ownable {
         if (hasWarmupToken) {
             uint256 newAmount = userWarmInfo.amount - _amount;
             require(newAmount >= 0, "Not enough funds");
-            IVesting(warmupContract).retrieve(address(this), _amount);
+            IVesting(warmUpContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
                 delete warmUpInfo[msg.sender];
             } else {
@@ -396,7 +443,7 @@ contract Staking is Ownable {
         requestWithdrawalAmount += _amount;
         sendWithdrawalRequests();
 
-        IERC20(rewardToken).safeTransfer(cooldownContract, _amount);
+        IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
     }
 
     /**
@@ -438,10 +485,10 @@ contract Staking is Ownable {
     }
 
     /**
-     * @notice set warmup period for new stakers
+     * @notice set vesting period for new stakers
      * @param _vestingPeriod uint
      */
-    function setWarmup(uint256 _vestingPeriod) external onlyOwner {
+    function setVesting(uint256 _vestingPeriod) external onlyOwner {
         vestingPeriod = _vestingPeriod;
     }
 
@@ -456,5 +503,13 @@ contract Staking is Ownable {
         if (_isTriggerRebase) {
             rebase();
         }
+    }
+
+    /**
+     * @notice sets fee for instant unstaking
+     * @param _fee uint
+     */
+    function setInstantUnstakeFee(uint256 _fee) external onlyOwner {
+        ILiquidityReserve(liquidityReserve).setFee(_fee);
     }
 }

@@ -5,15 +5,19 @@ import { Staking } from "../typechain-types/Staking";
 import { Vesting } from "../typechain-types/Vesting";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { tokePoolAbi } from "./abis/tokePoolAbi";
 import { tokeManagerAbi } from "./abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
+import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
+import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
+import { LiquidityReserve } from "../typechain-types";
+import { INSTANT_UNSTAKE_FEE } from "./constants";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Foxy;
   let staking: Staking;
+  let liquidityReserve: LiquidityReserve;
   let stakingToken: Contract;
   let tokePool: Contract;
   let tokeManager: Contract;
@@ -61,6 +65,7 @@ describe("Staking", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
+    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
 
     const rewardTokenDeployment = await deployments.get("Foxy");
     rewardToken = new ethers.Contract(
@@ -76,15 +81,22 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const warmupContract = await staking.warmupContract();
+    const liquidityReserveAddress = await staking.liquidityReserve();
+    liquidityReserve = new ethers.Contract(
+      liquidityReserveAddress,
+      liquidityReserveAbi,
+      accounts[0]
+    ) as LiquidityReserve;
+
+    const warmUpAddress = await staking.warmUpContract();
     stakingWarmup = new ethers.Contract(
-      warmupContract,
+      warmUpAddress,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
-    const cooldownContract = await staking.cooldownContract();
+    const coolDownAddress = await staking.coolDownContract();
     stakingCooldown = new ethers.Contract(
-      cooldownContract,
+      coolDownAddress,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
@@ -96,23 +108,29 @@ describe("Staking", function () {
       accounts[0]
     );
 
-    await rewardToken.initialize(stakingDeployment.address); // initialize our contract
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [STAKING_TOKEN_WHALE],
     });
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
 
     // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
-    const transferAmount = BigNumber.from("1000000000");
+    const transferAmount = BigNumber.from("9000000000000000");
     const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
-
     expect(BigNumber.from(stakingTokenBalance).toNumber()).gte(
       transferAmount.toNumber()
     );
+
+    await rewardToken.initialize(stakingDeployment.address); // initialize reward contract
+
+    await stakingToken.approve(
+      liquidityReserve.address,
+      BigNumber.from("1000000000000000")
+    ); // approve initial liquidity amount
+    await liquidityReserve.initialize(stakingDeployment.address); // initialize liquidity reserve contract
+    await staking.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
   });
 
   describe("initialize", function () {
@@ -199,7 +217,7 @@ describe("Staking", function () {
       let currentBlock = await ethers.provider.getBlockNumber();
       let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
 
-      await staking.setWarmup(1);
+      await staking.setVesting(1);
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
       const stakingAmount = transferAmount.div(2);
@@ -411,6 +429,79 @@ describe("Staking", function () {
       );
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
+    });
+    it("can instant unstake", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+      await stakingStaker1.claim(staker1);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(transferAmount);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      await stakingStaker1.instantUnstake(transferAmount, false);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
+
+      const amountMinusFee = transferAmount.sub(
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+      );
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(amountMinusFee);
+    });
+    it("can instant unstake without claiming", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      await stakingStaker1.instantUnstake(transferAmount, false);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
+
+      const amountMinusFee = transferAmount.sub(
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+      );
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(amountMinusFee);
     });
   });
 
