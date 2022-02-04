@@ -86,9 +86,6 @@ contract Staking is Ownable {
         );
         liquidityReserve = address(lrContract);
 
-        // IERC20(stakingToken).approve(liquidityReserve, type(uint256).max);
-        // ILiquidityReserve(liquidityReserve).initialize(msg.sender);
-
         IERC20(stakingToken).approve(tokePool, type(uint256).max);
         IERC20(rewardToken).approve(liquidityReserve, type(uint256).max);
 
