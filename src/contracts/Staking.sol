@@ -87,8 +87,7 @@ contract Staking is Ownable {
 
         LiquidityReserve lrContract = new LiquidityReserve(
             stakingToken,
-            rewardToken,
-            address(this)
+            rewardToken
         );
         liquidityReserve = address(lrContract);
 
