@@ -65,6 +65,7 @@ describe("Staking", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
+    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
 
     const rewardTokenDeployment = await deployments.get("Foxy");
     rewardToken = new ethers.Contract(
@@ -107,27 +108,30 @@ describe("Staking", function () {
       accounts[0]
     );
 
-    await rewardToken.initialize(stakingDeployment.address); // initialize our contract
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [STAKING_TOKEN_WHALE],
     });
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
 
     // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
-    const transferAmount = BigNumber.from("1000000000");
+    const transferAmount = BigNumber.from("2000000000000000");
     const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
+    expect(BigNumber.from(stakingTokenBalance).toNumber()).gte(
+      transferAmount.toNumber()
+    );
+
+    await rewardToken.initialize(stakingDeployment.address); // initialize reward contract
+
+    await stakingToken.approve(liquidityReserve.address, BigNumber.from("1000000000000000")); // approve initial liquidity amount
+    await liquidityReserve.initialize(stakingDeployment.address); // initialize liquidity reserve contract
+  
 
     // TODO: do real deposit
     await stakingTokenWhale.transfer(liquidityReserve.address, transferAmount);
     await staking.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
-
-    expect(BigNumber.from(stakingTokenBalance).toNumber()).gte(
-      transferAmount.toNumber()
-    );
   });
 
   describe("initialize", function () {
@@ -458,7 +462,9 @@ describe("Staking", function () {
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
 
-      const amountMinusFee = transferAmount.sub(transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100));
+      const amountMinusFee = transferAmount.sub(
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+      );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
@@ -492,7 +498,9 @@ describe("Staking", function () {
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
 
-      const amountMinusFee = transferAmount.sub(transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100));
+      const amountMinusFee = transferAmount.sub(
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+      );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });

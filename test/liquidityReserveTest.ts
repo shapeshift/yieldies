@@ -63,7 +63,7 @@ describe("Liquidity Reserve", function () {
 
     stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
 
-    const transferAmount = BigNumber.from("1000000000");
+    const transferAmount = BigNumber.from("2000000000000000");
     const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
@@ -75,6 +75,9 @@ describe("Liquidity Reserve", function () {
 
     await stakingContract.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
     await foxy.initialize(stakingContract.address);
+
+    await stakingToken.approve(liquidityReserve.address, BigNumber.from("1000000000000000")); // approve initial liquidity amount
+    await liquidityReserve.initialize(stakingContract.address); // initialize liquidity reserve contract
   });
 
   describe("deposit & withdraw", function () {
@@ -82,7 +85,7 @@ describe("Liquidity Reserve", function () {
       const { daoTreasury, staker1, liquidityProvider } =
         await getNamedAccounts();
 
-      const transferAmount = BigNumber.from("100000");
+      const transferAmount = BigNumber.from("100000000000000");
       const stakingAmount = transferAmount.div(4);
 
       // deposit stakingToken with daoTreasury
@@ -197,7 +200,7 @@ describe("Liquidity Reserve", function () {
       liquidityReserveBalance = await liquidityReserve.balanceOf(
         liquidityProvider
       );
-      expect(liquidityReserveBalance).eq(24047); // 24047 is the new balance based on new liquidity
+      expect(liquidityReserveBalance).eq(24886877828054); // 24886877828054 is the new balance based on new liquidity
 
       // withdraw with liquidityProvider
       await liquidityReserveLiquidityProvider.withdraw(liquidityReserveBalance)
@@ -205,7 +208,7 @@ describe("Liquidity Reserve", function () {
       liquidityProviderStakingBalance = await stakingToken.balanceOf(
         liquidityProvider
       );
-      expect(liquidityProviderStakingBalance).eq(24999); // receive 24999 stakingTokens back
+      expect(liquidityProviderStakingBalance).eq(24999999999999); // receive 2492499999999999999 stakingTokens back
 
     });
   });

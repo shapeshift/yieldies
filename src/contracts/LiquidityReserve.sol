@@ -15,17 +15,31 @@ contract LiquidityReserve is ERC20, Ownable {
     address public rewardToken;
     address public stakingContract;
     uint256 public fee;
-    uint256 public constant MINIMUM_LIQUIDITY = 10**3; // using same amount of minimum liquidity as uni
+    uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
+    address public initializer;
 
-    constructor(
-        address _stakingToken,
-        address _rewardToken,
-        address _stakingContract
-    ) ERC20("Liquidity Reserve FOX", "lrFOX", 18) {
+    constructor(address _stakingToken, address _rewardToken)
+        ERC20("Liquidity Reserve FOX", "lrFOX", 18)
+    {
         require(_stakingToken != address(0) && _rewardToken != address(0));
+        initializer = msg.sender;
         stakingToken = _stakingToken;
         rewardToken = _rewardToken;
+    }
+
+    function initialize(address _stakingContract) public {
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+            msg.sender
+        );
+        require(_stakingContract != address(0));
+        require(stakingTokenBalance >= MINIMUM_LIQUIDITY);
         stakingContract = _stakingContract;
+
+        IERC20(stakingToken).transferFrom(
+            msg.sender,
+            address(this),
+            MINIMUM_LIQUIDITY
+        );
         _mint(address(this), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         IERC20(rewardToken).approve(stakingContract, type(uint256).max);
     }
@@ -49,9 +63,7 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 totalLockedValue = stakingTokenBalance +
             rewardTokenBalance +
             coolDownAmount;
-        uint256 amountToMint = totalLockedValue == 0
-            ? _amount
-            : (_amount * lrFoxSupply) / totalLockedValue;
+        uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
 
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
@@ -70,7 +82,7 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             address(this)
         );
-        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf( // needed?
+        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
             address(this)
         );
         uint256 coolDownAmount = IStaking(stakingContract)
@@ -80,7 +92,12 @@ contract LiquidityReserve is ERC20, Ownable {
             rewardTokenBalance +
             coolDownAmount;
         uint256 convertedAmount = (_amount * totalLockedValue) / lrFoxSupply;
-
+        console.log("lrFoxSupply", lrFoxSupply);
+        console.log("stakingTokenBalance", stakingTokenBalance);
+        console.log("rewardTokenBalance", rewardTokenBalance);
+        console.log("coolDownAmount", coolDownAmount);
+        console.log("totalLockedValue", totalLockedValue);
+        console.log("convertedAmount", convertedAmount);
         return convertedAmount;
     }
 

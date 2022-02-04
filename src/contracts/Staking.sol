@@ -74,6 +74,9 @@ contract Staking is Ownable {
         tokeReward = _tokeReward;
         tokeRewardHash = _tokeRewardHash;
 
+        console.log("msg.sender", msg.sender);
+        console.log("address(this)", address(this));
+
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmUpContract = address(warmUp);
 
@@ -82,10 +85,12 @@ contract Staking is Ownable {
 
         LiquidityReserve lrContract = new LiquidityReserve(
             stakingToken,
-            rewardToken,
-            address(this)
+            rewardToken
         );
         liquidityReserve = address(lrContract);
+
+        // IERC20(stakingToken).approve(liquidityReserve, type(uint256).max);
+        // ILiquidityReserve(liquidityReserve).initialize(msg.sender);
 
         IERC20(stakingToken).approve(tokePool, type(uint256).max);
         IERC20(rewardToken).approve(liquidityReserve, type(uint256).max);
