@@ -46,9 +46,9 @@ contract Staking is Ownable {
     uint256 public lastTokeCycleIndex;
 
     // owner overrides
-    bool public overrideCanStake;
-    bool public overrideCanUnstake;
-    bool public overrideWithdrawals;
+    bool public overrideCanStake = false;
+    bool public overrideCanUnstake = false;
+    bool public overrideCanWithdrawal = false;
 
     constructor(
         address _stakingToken,
@@ -143,7 +143,7 @@ contract Staking is Ownable {
         @param shouldBlock bool
         **/
     function overrideWithdrawals(bool shouldBlock) external onlyOwner {
-        overrideWithdrawals = shouldBlock;
+        overrideCanWithdrawal = shouldBlock;
     }
 
     /**
@@ -277,7 +277,7 @@ contract Staking is Ownable {
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (canBatchTransactions() || ) {
+        if (canBatchTransactions() || overrideCanWithdrawal) {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
