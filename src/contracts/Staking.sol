@@ -78,7 +78,6 @@ contract Staking is Ownable {
         tokeManager = _tokeManager;
         tokeReward = _tokeReward;
         tokeRewardHash = _tokeRewardHash;
-
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmUpContract = address(warmUp);
 
@@ -133,6 +132,7 @@ contract Staking is Ownable {
         @param _claimAddress address
         **/
     function transferToke(address _claimAddress) external onlyOwner {
+        require(_claimAddress != address(0));
         uint256 amount = IERC20(tokeToken).balanceOf(address(this));
         IERC20(tokeToken).safeTransfer(_claimAddress, amount);
     }
@@ -469,14 +469,6 @@ contract Staking is Ownable {
 
             IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
         }
-    }
-
-    /**
-        @notice returns the rewardToken index, which tracks rebase growth
-        @return uint
-     */
-    function index() public view returns (uint256) {
-        return IRewardToken(rewardToken).index();
     }
 
     /**
