@@ -19,7 +19,6 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 totalSupply
     );
     event LogRebase(uint256 indexed epoch, uint256 rebase, uint256 index);
-    event LogStakingContractUpdated(address stakingContract);
 
     struct Rebase {
         uint256 epoch;
@@ -28,11 +27,11 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 totalStakedAfter;
         uint256 amountRebased;
         uint256 index;
-        uint256 blockNumberOccured;
+        uint256 blockNumberOccurred;
     }
     Rebase[] public rebases;
 
-    uint256 public INDEX;
+    uint256 public index;
 
     uint256 private constant MAX_UINT256 = ~uint256(0);
     uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5000000 * 10**18;
@@ -63,20 +62,19 @@ contract Foxy is ERC20Permit, Ownable {
         _gonBalances[stakingContract] = TOTAL_GONS;
 
         emit Transfer(address(0x0), stakingContract, _totalSupply);
-        emit LogStakingContractUpdated(stakingContract_);
 
         initializer = address(0);
         return true;
     }
 
-    function setIndex(uint256 _INDEX) external onlyOwner returns (bool) {
-        require(INDEX == 0);
-        INDEX = gonsForBalance(_INDEX);
+    function setIndex(uint256 _index) external onlyOwner returns (bool) {
+        require(index == 0);
+        index = gonsForBalance(_index);
         return true;
     }
 
     /**
-        @notice increases sOHM supply to increase staking balances relative to profit_
+        @notice increases FOXy supply to increase staking balances relative to profit_
         @param profit_ uint256
         @return uint256
      */
@@ -90,7 +88,7 @@ contract Foxy is ERC20Permit, Ownable {
 
         if (profit_ == 0) {
             emit LogSupply(epoch_, block.timestamp, _totalSupply);
-            emit LogRebase(epoch_, 0, index());
+            emit LogRebase(epoch_, 0, getIndex());
             return _totalSupply;
         } else if (circulatingSupply_ > 0) {
             rebaseAmount = (profit_ * _totalSupply) / circulatingSupply_;
@@ -132,14 +130,13 @@ contract Foxy is ERC20Permit, Ownable {
                 totalStakedBefore: previousCirculating_,
                 totalStakedAfter: circulatingSupply(),
                 amountRebased: profit_,
-                index: index(),
-                blockNumberOccured: block.number
+                index: getIndex(),
+                blockNumberOccurred: block.number
             })
         );
 
         emit LogSupply(epoch_, block.timestamp, _totalSupply);
-        emit LogRebase(epoch_, rebasePercent, index());
-
+        emit LogRebase(epoch_, rebasePercent, getIndex());
         return true;
     }
 
@@ -155,13 +152,13 @@ contract Foxy is ERC20Permit, Ownable {
         return gons / _gonsPerFragment;
     }
 
-    // Staking contract holds excess sOHM
+    // Staking contract holds excess FOXy
     function circulatingSupply() public view returns (uint256) {
         return _totalSupply - balanceOf(stakingContract);
     }
 
-    function index() public view returns (uint256) {
-        return balanceForGons(INDEX);
+    function getIndex() public view returns (uint256) {
+        return balanceForGons(index);
     }
 
     function transfer(address to, uint256 value)
