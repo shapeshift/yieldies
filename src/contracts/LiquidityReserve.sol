@@ -50,11 +50,11 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice sets Fee for instant unstaking
+        @notice sets Fee (in basis points eg. 100 bps = 1%) for instant unstaking
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee >= 0 && fee <= 100, "Must be within range of 0 and 1");
+        require(_fee >= 0 && fee <= 10000, "Must be within range of 0 and 1");
         fee = _fee;
     }
 
@@ -149,9 +149,9 @@ contract LiquidityReserve is ERC20, Ownable {
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
-        uint256 amountMinusFee = _amount - ((_amount * fee) / 100);
+        uint256 amountMinusFee = _amount - ((_amount * fee) / 10000);
 
-        // transfer from msg.sender due to not knowing if the funds are in warmup or not
+        // transfer from msg.sender (staking contract) due to not knowing if the funds are in warmup or not
         IERC20(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),

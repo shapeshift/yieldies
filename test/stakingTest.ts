@@ -462,7 +462,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
@@ -498,7 +498,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
