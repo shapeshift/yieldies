@@ -503,6 +503,17 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
+    it("Admin functions work correctly", async () => {
+      const { admin } = await getNamedAccounts();
+      const adminSigner = accounts.find((account) => account.address === admin);
+      const stakingAdmin = staking.connect(adminSigner as Signer);
+
+      await stakingAdmin.overrideWithdrawals(true);
+      await stakingAdmin.overrideStaking(true);
+      await stakingAdmin.overrideUnstaking(true);
+
+      // TODO: Test whether or not admin functions cover everything
+    });
   });
 
   describe("reward", function () {

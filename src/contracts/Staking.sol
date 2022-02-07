@@ -28,6 +28,11 @@ contract Staking is Ownable {
     address public immutable warmUpContract;
     address public immutable coolDownContract;
 
+    // owner overrides
+    bool public pauseStaking = false;
+    bool public pauseUnstaking = false;
+    bool public overrideCanWithdrawal = false;
+
     // TODO: tightly pack for gas optimization
     struct Epoch {
         uint256 length;
@@ -130,6 +135,30 @@ contract Staking is Ownable {
     function transferToke(address _claimAddress) external onlyOwner {
         uint256 amount = IERC20(tokeToken).balanceOf(address(this));
         IERC20(tokeToken).safeTransfer(_claimAddress, amount);
+    }
+
+    /**
+        @notice override whether or not withdraws from Tokemak are blocked
+        @param shouldOverride bool
+        **/
+    function overrideWithdrawals(bool shouldOverride) external onlyOwner {
+        overrideCanWithdrawal = shouldOverride;
+    }
+
+    /**
+        @notice override whether or not deposits are blocked
+        @param shouldPause bool
+        **/
+    function overrideStaking(bool shouldPause) external onlyOwner {
+        pauseStaking = shouldPause;
+    }
+
+    /**
+        @notice override whether or not withdraws are blocked
+        @param shouldPause bool
+        **/
+    function overrideUnstaking(bool shouldPause) external onlyOwner {
+        pauseUnstaking = shouldPause;
     }
 
     /**
@@ -247,7 +276,7 @@ contract Staking is Ownable {
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (canBatchTransactions()) {
+        if (canBatchTransactions() || overrideCanWithdrawal) {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
@@ -262,26 +291,29 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
-        rebase();
-        IERC20(stakingToken).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amount
-        );
+        if (!pauseStaking) {
+            rebase();
+            IERC20(stakingToken).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
 
-        Claim memory info = warmUpInfo[_recipient];
-        require(!info.lock, "Deposits for account are locked");
+            Claim memory info = warmUpInfo[_recipient];
+            require(!info.lock, "Deposits for account are locked");
 
-        warmUpInfo[_recipient] = Claim({
-            amount: info.amount + _amount,
-            gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
-            expiry: epoch.number + vestingPeriod,
-            lock: false
-        });
+            warmUpInfo[_recipient] = Claim({
+                amount: info.amount + _amount,
+                gons: info.gons +
+                    IRewardToken(rewardToken).gonsForBalance(_amount),
+                expiry: epoch.number + vestingPeriod,
+                lock: false
+            });
 
-        depositToTokemak(_amount);
+            depositToTokemak(_amount);
 
-        IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
+            IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
+        }
     }
 
     /**
@@ -355,39 +387,44 @@ contract Staking is Ownable {
      */
 
     function instantUnstake(uint256 _amount, bool _trigger) external {
-        if (_trigger) {
-            rebase();
-        }
-
-        Claim memory userWarmInfo = warmUpInfo[msg.sender];
-        require(!userWarmInfo.lock, "Withdraws for account are locked");
-
-        bool hasWarmupToken = userWarmInfo.amount >= _amount &&
-            isClaimAvailable(userWarmInfo);
-
-        if (hasWarmupToken) {
-            uint256 newAmount = userWarmInfo.amount - _amount;
-            require(newAmount >= 0, "Not enough funds");
-            IVesting(warmUpContract).retrieve(address(this), _amount);
-            if (newAmount == 0) {
-                delete warmUpInfo[msg.sender];
-            } else {
-                warmUpInfo[msg.sender] = Claim({
-                    amount: newAmount,
-                    gons: userWarmInfo.gons -
-                        IRewardToken(rewardToken).gonsForBalance(_amount),
-                    expiry: userWarmInfo.expiry,
-                    lock: false
-                });
+        if (!pauseUnstaking) {
+            if (_trigger) {
+                rebase();
             }
-        } else {
-            IERC20(rewardToken).safeTransferFrom(
-                msg.sender,
-                address(this),
-                _amount
+
+            Claim memory userWarmInfo = warmUpInfo[msg.sender];
+            require(!userWarmInfo.lock, "Withdraws for account are locked");
+
+            bool hasWarmupToken = userWarmInfo.amount >= _amount &&
+                isClaimAvailable(userWarmInfo);
+
+            if (hasWarmupToken) {
+                uint256 newAmount = userWarmInfo.amount - _amount;
+                require(newAmount >= 0, "Not enough funds");
+                IVesting(warmUpContract).retrieve(address(this), _amount);
+                if (newAmount == 0) {
+                    delete warmUpInfo[msg.sender];
+                } else {
+                    warmUpInfo[msg.sender] = Claim({
+                        amount: newAmount,
+                        gons: userWarmInfo.gons -
+                            IRewardToken(rewardToken).gonsForBalance(_amount),
+                        expiry: userWarmInfo.expiry,
+                        lock: false
+                    });
+                }
+            } else {
+                IERC20(rewardToken).safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    _amount
+                );
+            }
+            ILiquidityReserve(liquidityReserve).instantUnstake(
+                _amount,
+                msg.sender
             );
         }
-        ILiquidityReserve(liquidityReserve).instantUnstake(_amount, msg.sender);
     }
 
     /**
@@ -396,54 +433,56 @@ contract Staking is Ownable {
         @param _trigger bool
      */
     function unstake(uint256 _amount, bool _trigger) external {
-        if (_trigger) {
-            rebase();
-        }
-
-        Claim memory userWarmInfo = warmUpInfo[msg.sender];
-        require(!userWarmInfo.lock, "Withdraws for account are locked");
-
-        bool hasWarmupToken = userWarmInfo.amount >= _amount &&
-            isClaimAvailable(userWarmInfo);
-
-        if (hasWarmupToken) {
-            uint256 newAmount = userWarmInfo.amount - _amount;
-            require(newAmount >= 0, "Not enough funds");
-            IVesting(warmUpContract).retrieve(address(this), _amount);
-            if (newAmount == 0) {
-                delete warmUpInfo[msg.sender];
-            } else {
-                warmUpInfo[msg.sender] = Claim({
-                    amount: newAmount,
-                    gons: userWarmInfo.gons -
-                        IRewardToken(rewardToken).gonsForBalance(_amount),
-                    expiry: userWarmInfo.expiry,
-                    lock: false
-                });
+        if (!pauseUnstaking) {
+            if (_trigger) {
+                rebase();
             }
-        } else {
-            IERC20(rewardToken).safeTransferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
+
+            Claim memory userWarmInfo = warmUpInfo[msg.sender];
+            require(!userWarmInfo.lock, "Withdraws for account are locked");
+
+            bool hasWarmupToken = userWarmInfo.amount >= _amount &&
+                isClaimAvailable(userWarmInfo);
+
+            if (hasWarmupToken) {
+                uint256 newAmount = userWarmInfo.amount - _amount;
+                require(newAmount >= 0, "Not enough funds");
+                IVesting(warmUpContract).retrieve(address(this), _amount);
+                if (newAmount == 0) {
+                    delete warmUpInfo[msg.sender];
+                } else {
+                    warmUpInfo[msg.sender] = Claim({
+                        amount: newAmount,
+                        gons: userWarmInfo.gons -
+                            IRewardToken(rewardToken).gonsForBalance(_amount),
+                        expiry: userWarmInfo.expiry,
+                        lock: false
+                    });
+                }
+            } else {
+                IERC20(rewardToken).safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    _amount
+                );
+            }
+
+            Claim memory userCoolInfo = coolDownInfo[msg.sender];
+            require(!userCoolInfo.lock, "Withdrawals for account are locked");
+
+            coolDownInfo[msg.sender] = Claim({
+                amount: userCoolInfo.amount + _amount,
+                gons: userCoolInfo.gons +
+                    IRewardToken(rewardToken).gonsForBalance(_amount),
+                expiry: epoch.number + vestingPeriod,
+                lock: false
+            });
+
+            requestWithdrawalAmount += _amount;
+            sendWithdrawalRequests();
+
+            IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
         }
-
-        Claim memory userCoolInfo = coolDownInfo[msg.sender];
-        require(!userCoolInfo.lock, "Withdrawals for account are locked");
-
-        coolDownInfo[msg.sender] = Claim({
-            amount: userCoolInfo.amount + _amount,
-            gons: userCoolInfo.gons +
-                IRewardToken(rewardToken).gonsForBalance(_amount),
-            expiry: epoch.number + vestingPeriod,
-            lock: false
-        });
-
-        requestWithdrawalAmount += _amount;
-        sendWithdrawalRequests();
-
-        IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
     }
 
     /**
