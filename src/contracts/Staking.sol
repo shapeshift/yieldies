@@ -216,7 +216,7 @@ contract Staking is Ownable {
         @param _info Claim
         @return bool
      */
-    function isClaimAvailable(Claim memory _info) internal view returns (bool) {
+    function _isClaimAvailable(Claim memory _info) internal view returns (bool) {
         return epoch.number >= _info.expiry && _info.expiry != 0;
     }
 
@@ -224,7 +224,7 @@ contract Staking is Ownable {
         @notice withdraw from Tokemak
         @param _amount uint
      */
-    function withdrawFromTokemak(uint256 _amount) internal {
+    function _withdrawFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.withdraw(_amount);
     }
@@ -233,7 +233,7 @@ contract Staking is Ownable {
         @notice creates a withdrawRequest with Tokemak
         @param _amount uint
      */
-    function requestWithdrawalFromTokemak(uint256 _amount) internal {
+    function _requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.requestWithdrawal(_amount);
     }
@@ -242,7 +242,7 @@ contract Staking is Ownable {
         @notice deposit stakingToken to tStakingToken Tokemak reactor
         @param _amount uint
      */
-    function depositToTokemak(uint256 _amount) internal {
+    function _depositToTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.deposit(_amount);
     }
@@ -251,7 +251,7 @@ contract Staking is Ownable {
         @notice gets balance of stakingToken that's locked into the TOKE stakingToken pool
         @return uint
      */
-    function getTokemakBalance() internal view returns (uint256) {
+    function _getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(tokePool);
         return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
     }
@@ -260,7 +260,7 @@ contract Staking is Ownable {
         @notice checks TOKE's cycleTime is withink duration to batch the transactions
         @return bool
      */
-    function canBatchTransactions() internal view returns (bool) {
+    function _canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
         uint256 offset = 500; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
@@ -276,11 +276,11 @@ contract Staking is Ownable {
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (canBatchTransactions() || overrideCanWithdrawal) {
+        if (_canBatchTransactions() || overrideCanWithdrawal) {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
-            requestWithdrawalFromTokemak(requestWithdrawalAmount);
+            _requestWithdrawalFromTokemak(requestWithdrawalAmount);
             requestWithdrawalAmount = 0;
         }
     }
@@ -310,7 +310,7 @@ contract Staking is Ownable {
                 lock: false
             });
 
-            depositToTokemak(_amount);
+            _depositToTokemak(_amount);
 
             IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
         }
@@ -330,7 +330,7 @@ contract Staking is Ownable {
      */
     function claim(address _recipient) external {
         Claim memory info = warmUpInfo[_recipient];
-        if (isClaimAvailable(info)) {
+        if (_isClaimAvailable(info)) {
             delete warmUpInfo[_recipient];
             IVesting(warmUpContract).retrieve(
                 _recipient,
@@ -348,11 +348,11 @@ contract Staking is Ownable {
         ITokePool tokePoolContract = ITokePool(tokePool);
         WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
-        if (isClaimAvailable(info) && withdrawalInfo.amount > 0) {
+        if (_isClaimAvailable(info) && withdrawalInfo.amount > 0) {
             uint256 amount = IRewardToken(rewardToken).balanceForGons(
                 info.gons
             );
-            withdrawFromTokemak(amount);
+            _withdrawFromTokemak(amount);
             IERC20(stakingToken).safeTransfer(_recipient, amount);
             delete coolDownInfo[_recipient];
             IVesting(coolDownContract).retrieve(_recipient, amount);
@@ -382,7 +382,7 @@ contract Staking is Ownable {
             require(!userWarmInfo.lock, "Withdraws for account are locked");
 
             bool hasWarmupToken = userWarmInfo.amount >= _amount &&
-                isClaimAvailable(userWarmInfo);
+                _isClaimAvailable(userWarmInfo);
 
             if (hasWarmupToken) {
                 uint256 newAmount = userWarmInfo.amount - _amount;
@@ -428,7 +428,7 @@ contract Staking is Ownable {
             require(!userWarmInfo.lock, "Withdraws for account are locked");
 
             bool hasWarmupToken = userWarmInfo.amount >= _amount &&
-                isClaimAvailable(userWarmInfo);
+                _isClaimAvailable(userWarmInfo);
 
             if (hasWarmupToken) {
                 uint256 newAmount = userWarmInfo.amount - _amount;
@@ -505,7 +505,7 @@ contract Staking is Ownable {
         @return uint
      */
     function contractBalance() public view returns (uint256) {
-        uint256 tokeBalance = getTokemakBalance();
+        uint256 tokeBalance = _getTokemakBalance();
         return IERC20(stakingToken).balanceOf(address(this)) + tokeBalance;
     }
 

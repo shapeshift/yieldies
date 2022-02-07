@@ -114,13 +114,12 @@ contract Foxy is ERC20Permit, Ownable {
         @param _previousCirculating uint
         @param _profit uint
         @param _epoch uint
-        @return bool
      */
     function _storeRebase(
         uint256 _previousCirculating,
         uint256 _profit,
         uint256 _epoch
-    ) internal returns (bool) {
+    ) internal {
         uint256 rebasePercent = (_profit * 1e18) / _previousCirculating;
 
         rebases.push(
@@ -137,7 +136,6 @@ contract Foxy is ERC20Permit, Ownable {
 
         emit LogSupply(_epoch, block.timestamp, _totalSupply);
         emit LogRebase(_epoch, rebasePercent, getIndex());
-        return true;
     }
 
     function balanceOf(address _wallet) public view override returns (uint256) {

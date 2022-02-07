@@ -91,7 +91,7 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _amount uint
         @return uint
      */
-    function calculateReserveTokenValue(uint256 _amount)
+    function _calculateReserveTokenValue(uint256 _amount)
         internal
         view
         returns (uint256)
@@ -126,7 +126,7 @@ contract LiquidityReserve is ERC20, Ownable {
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
-        uint256 amountToWithdraw = calculateReserveTokenValue(_amount);
+        uint256 amountToWithdraw = _calculateReserveTokenValue(_amount);
         require(
             IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
             "Not enough funds in contract to cover withdraw"
