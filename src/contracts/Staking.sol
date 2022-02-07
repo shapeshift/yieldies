@@ -45,6 +45,7 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
+    uint256 public blocksLeftToRequestWithdrawal;
     uint256 public vestingPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
@@ -80,6 +81,7 @@ contract Staking is Ownable {
         tokeRewardHash = _tokeRewardHash;
         Vesting warmUp = new Vesting(address(this), rewardToken);
         warmUpContract = address(warmUp);
+        blocksLeftToRequestWithdrawal = 500;
 
         Vesting coolDown = new Vesting(address(this), rewardToken);
         coolDownContract = address(coolDown);
@@ -139,76 +141,34 @@ contract Staking is Ownable {
 
     /**
         @notice override whether or not withdraws from Tokemak are blocked
-        @param shouldOverride bool
+        @param _shouldOverride bool
         **/
-    function overrideWithdrawals(bool shouldOverride) external onlyOwner {
-        overrideCanWithdrawal = shouldOverride;
+    function overrideWithdrawals(bool _shouldOverride) external onlyOwner {
+        overrideCanWithdrawal = _shouldOverride;
     }
 
     /**
         @notice override whether or not deposits are blocked
-        @param shouldPause bool
+        @param _shouldPause bool
         **/
-    function overrideStaking(bool shouldPause) external onlyOwner {
-        pauseStaking = shouldPause;
+    function overrideStaking(bool _shouldPause) external onlyOwner {
+        pauseStaking = _shouldPause;
     }
 
     /**
         @notice override whether or not withdraws are blocked
-        @param shouldPause bool
+        @param _shouldPause bool
         **/
-    function overrideUnstaking(bool shouldPause) external onlyOwner {
-        pauseUnstaking = shouldPause;
+    function overrideUnstaking(bool _shouldPause) external onlyOwner {
+        pauseUnstaking = _shouldPause;
     }
 
     /**
-        @notice get claimable amount of TOKE from Tokemak
-        @param _amount uint
-        @return uint
-     */
-    function getClaimableAmountTokemak(uint256 _amount)
-        external
-        view
-        returns (uint256)
-    {
-        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
-        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
-
-        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
-
-        Recipient memory recipient = Recipient({
-            chainId: 1,
-            cycle: latestCycleIndex,
-            wallet: address(this),
-            amount: _amount
-        });
-        uint256 claimableAmount = tokeRewardContract.getClaimableAmount(
-            recipient
-        );
-
-        return claimableAmount;
-    }
-
-    struct CycleHash {
-        string latestClaimable;
-        string cycle;
-    }
-
-    /**
-        @notice get latest ipfs info from Tokemak
-     */
-    function getTokemakIpfsInfo() external view returns (CycleHash memory) {
-        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
-        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
-        (string memory latestClaimable, string memory cycle) = iTokeRewardHash
-            .cycleHashes(latestCycleIndex);
-
-        CycleHash memory info = CycleHash({
-            latestClaimable: latestClaimable,
-            cycle: cycle
-        });
-
-        return info;
+        @notice override whether or not withdraws are blocked
+        @param _blocks uint
+        **/
+    function setBlocksLeftToRequestWithdrawal(uint256 _blocks) external onlyOwner {
+        blocksLeftToRequestWithdrawal = _blocks;
     }
 
     /**
@@ -216,7 +176,11 @@ contract Staking is Ownable {
         @param _info Claim
         @return bool
      */
-    function _isClaimAvailable(Claim memory _info) internal view returns (bool) {
+    function _isClaimAvailable(Claim memory _info)
+        internal
+        view
+        returns (bool)
+    {
         return epoch.number >= _info.expiry && _info.expiry != 0;
     }
 
@@ -262,13 +226,12 @@ contract Staking is Ownable {
      */
     function _canBatchTransactions() internal view returns (bool) {
         ITokeManager iTokeManager = ITokeManager(tokeManager);
-        uint256 offset = 500; // amount of blocks before the next cycle to batch the withdrawal requests
         uint256 duration = iTokeManager.getCycleDuration();
         uint256 currentCycleStart = iTokeManager.getCurrentCycle();
         uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
         return
-            block.number + offset > nextCycleStart &&
+            block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
             currentCycleIndex > lastTokeCycleIndex;
     }
 
