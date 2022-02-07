@@ -462,7 +462,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
@@ -498,7 +498,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(100)
+        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
@@ -903,48 +903,6 @@ describe("Staking", function () {
           stakingStaker1.address
         );
         expect(requestedWithdrawals.amount).eq(stakingAmount);
-      });
-    });
-    describe("rewards", () => {
-      it("shows claimableAmount after staking", async () => {
-        const { staker1 } = await getNamedAccounts();
-
-        const transferAmount = BigNumber.from("10000");
-        await stakingToken.transfer(staker1, transferAmount);
-
-        let staker1RewardBalance = await rewardToken.balanceOf(staker1);
-        expect(staker1RewardBalance).eq(0);
-
-        const staker1Signer = accounts.find(
-          (account) => account.address === staker1
-        );
-        const stakingStaker1 = staking.connect(staker1Signer as Signer);
-
-        const stakingAmount = transferAmount.div(2);
-        const stakingTokenStaker1 = stakingToken.connect(
-          staker1Signer as Signer
-        );
-        await stakingTokenStaker1.approve(staking.address, stakingAmount);
-        await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-
-        await mineBlocksToNextCycle();
-        await network.provider.request({
-          method: "hardhat_impersonateAccount",
-          params: [TOKE_OWNER],
-        });
-        const tokeSigner = await ethers.getSigner(TOKE_OWNER);
-        const tokeManagerOwner = tokeManager.connect(tokeSigner);
-        await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
-
-        const info = await stakingStaker1.getTokemakIpfsInfo();
-
-        expect(info.cycle).eq(CYCLE_HASH);
-        expect(info.latestClaimable).eq(LATEST_CLAIMABLE_HASH);
-
-        const amount = await stakingStaker1.getClaimableAmountTokemak(
-          BigNumber.from("71578818929843382106")
-        );
-        expect(amount).eq("71578818929843382106");
       });
     });
   });

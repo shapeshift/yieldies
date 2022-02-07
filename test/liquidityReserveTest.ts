@@ -155,7 +155,7 @@ describe("Liquidity Reserve", function () {
 
       await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
 
-      const feeAmount = stakingAmount.mul(fee).div(100);
+      const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
 
       staker1RewardBalance = await foxy.balanceOf(staker1);
@@ -290,7 +290,7 @@ describe("Liquidity Reserve", function () {
 
       await liquidityReserveStaker1.instantUnstake(transferAmount, staker1);
 
-      const feeAmount = transferAmount.mul(fee).div(100);
+      const feeAmount = transferAmount.mul(fee).div(10000);
       const amountMinusFee = transferAmount.sub(feeAmount);
 
       staker1RewardBalance = await foxy.balanceOf(staker1);
