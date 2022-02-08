@@ -326,7 +326,12 @@ contract Staking is Ownable {
                 info.gons
             );
             _withdrawFromTokemak(amount);
+
             IERC20(stakingToken).safeTransfer(_recipient, amount);
+
+            // give _recipient amount at unstake
+
+
             delete coolDownInfo[_recipient];
             IVesting(coolDownContract).retrieve(_recipient, amount);
         }
@@ -358,7 +363,7 @@ contract Staking is Ownable {
         );
 
         if (hasFullAmountInWarmup) {
-            uint256 newAmount = userWarmInfo.amount - _amount;
+            uint256 newAmount = userWarmInfo.amount - _amount; // TODO: amount is way greater that gons fix
             require(newAmount >= 0, "Not enough funds");
             IVesting(warmUpContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
@@ -401,7 +406,6 @@ contract Staking is Ownable {
             if (_trigger) {
                 rebase();
             }
-
             _getFromWarmupOrWallet(_amount, msg.sender);
 
             ILiquidityReserve(liquidityReserve).instantUnstake(
@@ -490,6 +494,11 @@ contract Staking is Ownable {
             address(this),
             _amount
         );
+        
+        // deposit all stakingToken held in contract to Tokemak
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(address(this));
+        _depositToTokemak(stakingTokenBalance);
+
         if (_isTriggerRebase) {
             rebase();
         }
