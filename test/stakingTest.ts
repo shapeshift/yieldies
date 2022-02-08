@@ -284,9 +284,57 @@ describe("Staking", function () {
       // unstake fails due to too incorrect amount
       await expect(
         stakingStaker1.unstake(stakingAmount.add(1), false)
-      ).to.be.revertedWith(
-        "reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+      ).to.be.revertedWith("Not enough FOXy to claim FOX'");
+    });
+    it("Users can unstake using funds from both wallet and warmup", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
       );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      let staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardTokenBalance).eq(0);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      await stakingStaker1.claim(staker1);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardTokenBalance).eq(stakingAmount);
+
+      // unstake will grab rewardTokens from both warmup & wallet 
+      await stakingStaker1.unstake(transferAmount, false);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(0);
+
+      staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardTokenBalance).eq(0);
     });
     it("User can stake and unstake half amount without claiming when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -606,6 +654,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1.add(909));
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2.add(90));
     });
+    it.skip("Unstakes correct amounts with rewards", async () => {});
   });
 
   describe("tokemak", function () {
