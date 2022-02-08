@@ -417,14 +417,14 @@ describe("Staking", function () {
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      // no need to call sendWithdrawalRequests if previously mined to next block
       await mineBlocksToNextCycle();
 
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
       await stakingStaker1.unstake(stakingAmount, false);
-
-      await stakingStaker1.sendWithdrawalRequests();
 
       let cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
