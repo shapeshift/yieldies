@@ -227,7 +227,7 @@ contract Staking is Ownable {
      */
     function _getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(tokePool);
-        return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
+        return tokePoolContract.balanceOf(address(this));
     }
 
     /**
@@ -329,7 +329,7 @@ contract Staking is Ownable {
 
             IERC20(stakingToken).safeTransfer(_recipient, amount);
 
-            // give _recipient amount at unstake
+            // TODO: give _recipient amount at unstake
 
 
             delete coolDownInfo[_recipient];
@@ -363,23 +363,22 @@ contract Staking is Ownable {
         );
 
         if (hasFullAmountInWarmup) {
-            uint256 newAmount = userWarmInfo.amount - _amount; // TODO: amount is way greater that gons fix
+            uint256 newGonsAmount = userWarmInfo.gons - IRewardToken(rewardToken).gonsForBalance(_amount);
+            uint256 newAmount = IRewardToken(rewardToken).balanceForGons(newGonsAmount);
             require(newAmount >= 0, "Not enough funds");
-            
+
             IVesting(warmUpContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
                 delete warmUpInfo[_recipient];
             } else {
                 warmUpInfo[_recipient] = Claim({
                     amount: newAmount,
-                    gons: userWarmInfo.gons -
-                        IRewardToken(rewardToken).gonsForBalance(_amount),
+                    gons: newGonsAmount,
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
         } else if (hasFullAmountSplit) {
-            //TODO: Need approval by 0xean
             IVesting(warmUpContract).retrieve(address(this), warmUpBalance);
             delete warmUpInfo[_recipient];
             IERC20(rewardToken).safeTransferFrom(
