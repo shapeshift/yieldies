@@ -418,8 +418,7 @@ contract Staking is Ownable {
      */
     function unstake(
         uint256 _amount,
-        bool _trigger,
-        address
+        bool _trigger
     ) external {
         if (!pauseUnstaking) {
             if (_trigger) {
