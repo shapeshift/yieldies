@@ -365,6 +365,7 @@ contract Staking is Ownable {
         if (hasFullAmountInWarmup) {
             uint256 newAmount = userWarmInfo.amount - _amount; // TODO: amount is way greater that gons fix
             require(newAmount >= 0, "Not enough funds");
+            
             IVesting(warmUpContract).retrieve(address(this), _amount);
             if (newAmount == 0) {
                 delete warmUpInfo[_recipient];
