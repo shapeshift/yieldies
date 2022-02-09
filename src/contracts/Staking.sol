@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -31,7 +32,7 @@ contract Staking is Ownable {
     // owner overrides
     bool public pauseStaking = false;
     bool public pauseUnstaking = false;
-    bool public overrideCanWithdrawal = false;
+    bool public overrideCanWithdraw = false;
 
     // TODO: tightly pack for gas optimization
     struct Epoch {
@@ -144,7 +145,7 @@ contract Staking is Ownable {
         @param _shouldOverride bool
         **/
     function overrideWithdrawals(bool _shouldOverride) external onlyOwner {
-        overrideCanWithdrawal = _shouldOverride;
+        overrideCanWithdraw = _shouldOverride;
     }
 
     /**
@@ -227,7 +228,7 @@ contract Staking is Ownable {
      */
     function _getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(tokePool);
-        return tokePoolContract.balanceOf(address(this)); // TODO: verify pending withdraws are a part of this
+        return tokePoolContract.balanceOf(address(this));
     }
 
     /**
@@ -249,7 +250,7 @@ contract Staking is Ownable {
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (_canBatchTransactions() || overrideCanWithdrawal) {
+        if (_canBatchTransactions() || overrideCanWithdraw) {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
@@ -321,14 +322,23 @@ contract Staking is Ownable {
         ITokePool tokePoolContract = ITokePool(tokePool);
         WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
-        if (_isClaimAvailable(info) && withdrawalInfo.amount > 0) {
-            uint256 amount = IRewardToken(rewardToken).balanceForGons(
-                info.gons
-            );
-            _withdrawFromTokemak(amount);
-            IERC20(stakingToken).safeTransfer(_recipient, amount);
+        uint256 totalAmountIncludingRewards = IRewardToken(rewardToken)
+            .balanceForGons(info.gons);
+        if (
+            (_isClaimAvailable(info) || overrideCanWithdraw) &&
+            withdrawalInfo.amount >= totalAmountIncludingRewards
+        ) {
+            _withdrawFromTokemak(totalAmountIncludingRewards);
+
+            // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
+            // this will later be given to users through addRewardsForStakers
+            IERC20(stakingToken).safeTransfer(_recipient, info.amount);
+
             delete coolDownInfo[_recipient];
-            IVesting(coolDownContract).retrieve(_recipient, amount);
+            IVesting(coolDownContract).retrieve(
+                _recipient,
+                totalAmountIncludingRewards
+            );
         }
     }
 
@@ -346,10 +356,15 @@ contract Staking is Ownable {
             userWarmInfo.gons
         );
 
-        bool hasFullAmountInWarmup = warmUpBalance >= _amount &&
+        console.log("warmUpBalance", warmUpBalance);
+        console.log("walletBalance", walletBalance);
+        console.log("_amount", _amount);
+        bool hasFullAmountInWarmup = warmUpBalance >= _amount && // user has full rewardToken amount in warmup contract
             _isClaimAvailable(userWarmInfo);
-        bool hasFullAmountSplit = warmUpBalance + walletBalance >= _amount;
-
+        bool hasFullAmountSplit = warmUpBalance > 0 && // user has full reward amount in both warmup contract and wallet
+            warmUpBalance + walletBalance >= _amount;
+        console.log("hasFullAmountInWarmup", hasFullAmountInWarmup);
+        console.log("hasFullAmountSplit", hasFullAmountSplit);
         require(
             hasFullAmountInWarmup ||
                 hasFullAmountSplit ||
@@ -358,22 +373,26 @@ contract Staking is Ownable {
         );
 
         if (hasFullAmountInWarmup) {
-            uint256 newAmount = userWarmInfo.amount - _amount;
-            require(newAmount >= 0, "Not enough funds");
-            IVesting(warmUpContract).retrieve(address(this), _amount);
-            if (newAmount == 0) {
+            uint256 remainingGonsAmount = userWarmInfo.gons -
+                IRewardToken(rewardToken).gonsForBalance(_amount);
+            uint256 remainingAmount = IRewardToken(rewardToken).balanceForGons(
+                remainingGonsAmount
+            );
+
+            require(remainingAmount >= 0, "Not enough funds");
+
+            IVesting(warmUpContract).retrieve(address(this), _amount); // get in amount
+            if (remainingAmount == 0) {
                 delete warmUpInfo[_recipient];
             } else {
                 warmUpInfo[_recipient] = Claim({
-                    amount: newAmount,
-                    gons: userWarmInfo.gons -
-                        IRewardToken(rewardToken).gonsForBalance(_amount),
+                    amount: remainingAmount,
+                    gons: remainingGonsAmount,
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
         } else if (hasFullAmountSplit) {
-            //TODO: Need approval by 0xean
             IVesting(warmUpContract).retrieve(address(this), warmUpBalance);
             delete warmUpInfo[_recipient];
             IERC20(rewardToken).safeTransferFrom(
@@ -382,6 +401,8 @@ contract Staking is Ownable {
                 _amount - warmUpBalance
             );
         } else {
+            uint256 walletBalance2 = IERC20(rewardToken).balanceOf(_recipient);
+            console.log("walletBalance2", walletBalance2);
             IERC20(rewardToken).safeTransferFrom(
                 _recipient,
                 address(this),
@@ -401,7 +422,6 @@ contract Staking is Ownable {
             if (_trigger) {
                 rebase();
             }
-
             _getFromWarmupOrWallet(_amount, msg.sender);
 
             ILiquidityReserve(liquidityReserve).instantUnstake(
@@ -416,10 +436,7 @@ contract Staking is Ownable {
         @param _amount uint
         @param _trigger bool
      */
-    function unstake(
-        uint256 _amount,
-        bool _trigger
-    ) external {
+    function unstake(uint256 _amount, bool _trigger) external {
         if (!pauseUnstaking) {
             if (_trigger) {
                 rebase();
@@ -490,6 +507,13 @@ contract Staking is Ownable {
             address(this),
             _amount
         );
+
+        // deposit all stakingToken held in contract to Tokemak
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+            address(this)
+        );
+        _depositToTokemak(stakingTokenBalance);
+
         if (_isTriggerRebase) {
             rebase();
         }
