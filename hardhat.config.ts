@@ -30,7 +30,6 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: 'deploy',
       forking: {
         url: process.env.MAINNET_URL || "",
         blockNumber: 14101169,
@@ -42,6 +41,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    localhost: {
+      url: 'http://localhost:8545',
+      accounts: ['0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'],
+      timeout: 20000000
+    }
   },
   paths: {
     deploy: 'deploy',

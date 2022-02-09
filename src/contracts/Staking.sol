@@ -355,16 +355,11 @@ contract Staking is Ownable {
         uint256 warmUpBalance = IRewardToken(rewardToken).balanceForGons(
             userWarmInfo.gons
         );
-
-        console.log("warmUpBalance", warmUpBalance);
-        console.log("walletBalance", walletBalance);
-        console.log("_amount", _amount);
         bool hasFullAmountInWarmup = warmUpBalance >= _amount && // user has full rewardToken amount in warmup contract
             _isClaimAvailable(userWarmInfo);
         bool hasFullAmountSplit = warmUpBalance > 0 && // user has full reward amount in both warmup contract and wallet
             warmUpBalance + walletBalance >= _amount;
-        console.log("hasFullAmountInWarmup", hasFullAmountInWarmup);
-        console.log("hasFullAmountSplit", hasFullAmountSplit);
+
         require(
             hasFullAmountInWarmup ||
                 hasFullAmountSplit ||
@@ -401,8 +396,6 @@ contract Staking is Ownable {
                 _amount - warmUpBalance
             );
         } else {
-            uint256 walletBalance2 = IERC20(rewardToken).balanceOf(_recipient);
-            console.log("walletBalance2", walletBalance2);
             IERC20(rewardToken).safeTransferFrom(
                 _recipient,
                 address(this),
