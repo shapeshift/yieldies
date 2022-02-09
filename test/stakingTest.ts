@@ -325,7 +325,7 @@ describe("Staking", function () {
       staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardTokenBalance).eq(stakingAmount);
 
-      // unstake will grab rewardTokens from both warmup & wallet 
+      // unstake will grab rewardTokens from both warmup & wallet
       await stakingStaker1.unstake(transferAmount, false);
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
@@ -654,7 +654,118 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1.add(909));
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2.add(90));
     });
-    it.skip("Unstakes correct amounts with rewards", async () => {});
+    it("Unstakes correct amounts with rewards", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+
+      await stakingToken.transfer(staker1, transferAmount);
+      await stakingToken.transfer(staker2, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const staker2Signer = accounts.find(
+        (account) => account.address === staker2
+      );
+      const stakingStaker2 = staking.connect(staker2Signer as Signer);
+
+      const stakingAmount1 = BigNumber.from("10000");
+      const stakingAmount2 = BigNumber.from("1000");
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount1);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
+
+      const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
+      await stakingTokenStaker2.approve(staking.address, stakingAmount2);
+      await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
+
+      // claim should move the rewardToken from warmup to the staker
+      await stakingStaker1.claim(staker1);
+      await stakingStaker2.claim(staker2);
+
+      let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      let rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+
+      expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
+
+      // call rebase without rewards, no change should occur in balances.
+      await staking.rebase();
+
+      rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+
+      expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
+
+      // add rewards and trigger rebase, no rebase should occur due to scheduled block
+      await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
+      const awardAmount = BigNumber.from("1000");
+      await staking.addRewardsForStakers(awardAmount, true);
+
+      rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+
+      expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
+
+      // fast forward to after reward block
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+
+      // call rebase - no change still rewards are issued in a 1 period lagging fashion...
+      await staking.rebase();
+      rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+
+      expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
+
+      currentBlock = await ethers.provider.getBlockNumber();
+      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+
+      const newStakingAmount1 = stakingAmount1.add(909)
+      const newStakingAmount2 = stakingAmount2.add(90)
+
+      // finally rewards should be issued
+      await staking.rebase();
+      rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+      expect(rewardTokenBalanceStaker1).eq(newStakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(newStakingAmount2);
+
+      // unstake with new amounts
+      await rewardToken
+      .connect(staker1Signer as Signer)
+      .approve(staking.address, newStakingAmount1);
+      await stakingStaker1.unstake(newStakingAmount1, false);
+
+      await rewardToken
+      .connect(staker2Signer as Signer)
+      .approve(staking.address, newStakingAmount2);
+      await stakingStaker2.unstake(newStakingAmount2, false);
+
+      rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+      expect(rewardTokenBalanceStaker1).eq(0);
+      expect(rewardTokenBalanceStaker2).eq(0);
+
+      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance).eq(newStakingAmount1.add(newStakingAmount2));
+    });
   });
 
   describe("tokemak", function () {
