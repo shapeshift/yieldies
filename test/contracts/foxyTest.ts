@@ -22,6 +22,7 @@ describe("Foxy", function () {
     // contract allows for more localize testing
     const { stakingContractMock } = await getNamedAccounts();
     await foxy.initialize(stakingContractMock);
+    await foxy.setIndex(1000);
   });
 
   describe("initialize", function () {
@@ -29,7 +30,31 @@ describe("Foxy", function () {
       const { stakingContractMock } = await getNamedAccounts();
       const supply = await foxy.totalSupply();
       const stakingContractBalance = await foxy.balanceOf(stakingContractMock);
-      expect(stakingContractBalance.eq(supply)).true;
+      expect(stakingContractBalance).eq(supply);
+    });
+    it("Fails if no stakingContract is passed to initialize", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+
+      const foxyFactory = await ethers.getContractFactory("Foxy");
+      const foxyContract = await foxyFactory.deploy();
+
+      // fails due to no staking/reward token
+      await expect(
+        foxyContract.initialize("0x0000000000000000000000000000000000000000")
+      ).to.be.reverted;
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const staker1Foxy = foxyContract.connect(staker1Signer as Signer);
+
+      // fails due to initializer isn't calling initialize
+      await expect(staker1Foxy.initialize(stakingContractMock)).to.be.reverted;
+    });
+    it("Fails to try and setIndex again", async () => {
+      // fails due to index already being set
+      await expect(foxy.setIndex(0)).to.be.reverted;
     });
   });
 
@@ -47,17 +72,17 @@ describe("Foxy", function () {
 
       await foxyStakingContractSigner.transfer(staker1, initialHoldings);
       const staker1InitialBalance = await foxy.balanceOf(staker1);
-      expect(staker1InitialBalance.eq(initialHoldings)).true;
+      expect(staker1InitialBalance).eq(initialHoldings);
 
       const profit = BigNumber.from("1000");
       await foxyStakingContractSigner.rebase(profit, BigNumber.from(1));
 
       const staker1BalanceAfterRebase = await foxy.balanceOf(staker1);
-      expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit))).true;
+      expect(staker1BalanceAfterRebase).eq(initialHoldings.add(profit));
     });
-
     it("Should distribute profits with two token holders", async () => {
-      const { staker1, staker2, stakingContractMock } = await getNamedAccounts();
+      const { staker1, staker2, stakingContractMock } =
+        await getNamedAccounts();
       const stakingContractSigner = accounts.find(
         (account) => account.address === stakingContractMock
       );
@@ -73,8 +98,8 @@ describe("Foxy", function () {
       const staker1InitialBalance = await foxy.balanceOf(staker1);
       const staker2InitialBalance = await foxy.balanceOf(staker2);
 
-      expect(staker1InitialBalance.eq(initialHoldings)).true;
-      expect(staker2InitialBalance.eq(initialHoldings)).true;
+      expect(staker1InitialBalance).eq(initialHoldings);
+      expect(staker2InitialBalance).eq(initialHoldings);
 
       const profit = BigNumber.from("1000");
       await foxyStakingContractSigner.rebase(profit, BigNumber.from(1));
@@ -82,10 +107,165 @@ describe("Foxy", function () {
       const staker1BalanceAfterRebase = await foxy.balanceOf(staker1);
       const staker2BalanceAfterRebase = await foxy.balanceOf(staker2);
 
-      expect(staker1BalanceAfterRebase.eq(initialHoldings.add(profit.div(2))))
-        .true;
-      expect(staker2BalanceAfterRebase.eq(initialHoldings.add(profit.div(2))))
-        .true;
+      expect(staker1BalanceAfterRebase).eq(initialHoldings.add(profit.div(2)));
+      expect(staker2BalanceAfterRebase).eq(initialHoldings.add(profit.div(2)));
+    });
+    it.skip("Will set as max supply if rebase goes over", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const stakingContractSigner = accounts.find(
+        (account) => account.address === stakingContractMock
+      );
+
+      const initialHoldings = BigNumber.from("10").pow(24);
+      const foxyStakingContractSigner = foxy.connect(
+        stakingContractSigner as Signer
+      );
+
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      const staker1InitialBalance = await foxy.balanceOf(staker1);
+      expect(staker1InitialBalance).eq(initialHoldings);
+
+      const profit = BigNumber.from("10").pow(15);
+      await foxyStakingContractSigner.rebase(
+        initialHoldings,
+        BigNumber.from(1)
+      );
+
+      const staker1BalanceAfterRebase = await foxy.balanceOf(staker1);
+      // expect(staker1BalanceAfterRebase).eq(initialHoldings.add(profit));
+    });
+    it("Only can call rebase from staking contract", async () => {
+      const { staker1 } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const staker1ContractSigner = foxy.connect(staker1Signer as Signer);
+
+      const profit = BigNumber.from("1000");
+      // no circulating supply can't be rebased
+      await expect(staker1ContractSigner.rebase(profit, BigNumber.from(1))).to
+        .be.reverted;
+    });
+    it("Rebase with no circulating supply", async () => {
+      const { stakingContractMock } = await getNamedAccounts();
+      const stakingContractSigner = accounts.find(
+        (account) => account.address === stakingContractMock
+      );
+
+      const foxyStakingContractSigner = foxy.connect(
+        stakingContractSigner as Signer
+      );
+
+      const profit = BigNumber.from("1000");
+      // no circulating supply can't be rebased
+      await expect(foxyStakingContractSigner.rebase(profit, BigNumber.from(1)))
+        .to.be.reverted;
+    });
+    it("If profit = 0 then no additonal funds should be received", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const stakingContractSigner = accounts.find(
+        (account) => account.address === stakingContractMock
+      );
+
+      const initialHoldings = BigNumber.from("1000000");
+      const foxyStakingContractSigner = foxy.connect(
+        stakingContractSigner as Signer
+      );
+
+      await foxyStakingContractSigner.transfer(staker1, initialHoldings);
+      const staker1InitialBalance = await foxy.balanceOf(staker1);
+      expect(staker1InitialBalance).eq(initialHoldings);
+
+      const profit = BigNumber.from("0");
+      await foxyStakingContractSigner.rebase(profit, BigNumber.from(1));
+
+      const staker1BalanceAfterRebase = await foxy.balanceOf(staker1);
+      expect(staker1BalanceAfterRebase).eq(initialHoldings);
+    });
+  });
+  describe("approve", () => {
+    it("sets the allowed value between sender and spender", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      await foxy.connect(staker1Signer as Signer).approve(stakingContractMock, 10);
+      expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(10);
+    });
+    it("emits an Approval event", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      await expect(await foxy.connect(staker1Signer as Signer).approve(stakingContractMock, 10))
+        .to.emit(foxy, "Approval")
+        .withArgs(staker1, stakingContractMock, 10);
+    });
+  });
+  describe("increaseAllowance", () => {
+    it("increases the allowance between sender and spender", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+
+      await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
+      await foxy.connect(staker1Signer).increaseAllowance(stakingContractMock, 4);
+
+      expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(14);
+    });
+    it("emits an Approval event", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+
+      await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
+      await expect(await foxy.connect(staker1Signer).increaseAllowance(stakingContractMock, 4))
+        .to.emit(foxy, "Approval")
+        .withArgs(staker1, stakingContractMock, 14);
+    });
+  });
+  describe("decreaseAllowance", () => {
+    it("decreases the allowance between sender and spender", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+
+      await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
+      await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 4);
+
+      expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(6);
+    });
+    it("will not make the value negative", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+
+      await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
+      await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 11);
+
+      expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(0);
+    });
+    it("emits an Approval event", async () => {
+      const { staker1, stakingContractMock } = await getNamedAccounts();
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+
+      await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
+      await expect(await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 4))
+        .to.emit(foxy, "Approval")
+        .withArgs(staker1, stakingContractMock, 6);
     });
   });
 });
