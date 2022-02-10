@@ -2,10 +2,10 @@ import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { Foxy, LiquidityReserve, Staking } from "../typechain-types";
+import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
-import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "./constants";
+import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
+import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];

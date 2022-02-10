@@ -1,17 +1,15 @@
 import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
-import { Foxy } from "../typechain-types/Foxy";
-import { Staking } from "../typechain-types/Staking";
-import { Vesting } from "../typechain-types/Vesting";
+import { Foxy } from "../../typechain-types/Foxy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { tokePoolAbi } from "../src/abis/tokePoolAbi";
-import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
-import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
-import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
+import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
+import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
+import { abi as vestingAbi } from "../../artifacts/src/contracts/Vesting.sol/Vesting.json";
+import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { LiquidityReserve } from "../typechain-types";
-import { INSTANT_UNSTAKE_FEE } from "./constants";
+import { LiquidityReserve, Vesting, Staking } from "../../typechain-types";
+import { INSTANT_UNSTAKE_FEE } from "../constants";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -561,7 +559,6 @@ describe("Staking", function () {
       await stakingAdmin.overrideUnstaking(true);
 
       // TODO: Test whether or not admin functions cover everything
-      
     });
   });
 
@@ -736,8 +733,8 @@ describe("Staking", function () {
         await ethers.provider.send("evm_mine", []);
       }
 
-      const newStakingAmount1 = stakingAmount1.add(909)
-      const newStakingAmount2 = stakingAmount2.add(90)
+      const newStakingAmount1 = stakingAmount1.add(909);
+      const newStakingAmount2 = stakingAmount2.add(90);
 
       // finally rewards should be issued
       await staking.rebase();
@@ -748,13 +745,13 @@ describe("Staking", function () {
 
       // unstake with new amounts
       await rewardToken
-      .connect(staker1Signer as Signer)
-      .approve(staking.address, newStakingAmount1);
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, newStakingAmount1);
       await stakingStaker1.unstake(newStakingAmount1, false);
 
       await rewardToken
-      .connect(staker2Signer as Signer)
-      .approve(staking.address, newStakingAmount2);
+        .connect(staker2Signer as Signer)
+        .approve(staking.address, newStakingAmount2);
       await stakingStaker2.unstake(newStakingAmount2, false);
 
       rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
@@ -765,7 +762,38 @@ describe("Staking", function () {
       let cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
       );
-      expect(cooldownRewardTokenBalance).eq(newStakingAmount1.add(newStakingAmount2));
+      expect(cooldownRewardTokenBalance).eq(
+        newStakingAmount1.add(newStakingAmount2)
+      );
+    });
+  });
+
+  describe("vesting", function () {
+    it("fails when no staking or reward token is passed in", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const vestingFactory = await ethers.getContractFactory("Vesting");
+
+      await expect(vestingFactory.deploy(stakingToken.address, "0x0000000000000000000000000000000000000000")).to.be
+        .reverted;
+      await expect(vestingFactory.deploy("0x0000000000000000000000000000000000000000", rewardToken.address)).to.be
+        .reverted;
+
+      const vestingContract = await vestingFactory.deploy(
+        stakingToken.address,
+        rewardToken.address
+      );
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const staker1Vesting = await vestingContract.connect(
+        staker1Signer as Signer
+      );
+
+      await expect(staker1Vesting.retrieve(staker1, BigNumber.from("10000"))).to
+        .be.reverted;
     });
   });
 

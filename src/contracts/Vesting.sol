@@ -8,9 +8,8 @@ contract Vesting {
     address public immutable rewardToken;
 
     constructor(address _staking, address _rewardToken) {
-        require(_staking != address(0));
+        require(_staking != address(0) && _rewardToken != address(0));
         staking = _staking;
-        require(_rewardToken != address(0));
         rewardToken = _rewardToken;
     }
 
