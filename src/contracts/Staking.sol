@@ -47,7 +47,8 @@ contract Staking is Ownable {
     mapping(address => Claim) public coolDownInfo;
 
     uint256 public blocksLeftToRequestWithdrawal;
-    uint256 public vestingPeriod;
+    uint256 public warmUpPeriod;
+    uint256 public coolDownPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
     uint256 public lastTokeCycleIndex;
@@ -280,7 +281,7 @@ contract Staking is Ownable {
                 amount: info.amount + _amount,
                 gons: info.gons +
                     IRewardToken(rewardToken).gonsForBalance(_amount),
-                expiry: epoch.number + vestingPeriod,
+                expiry: epoch.number + warmUpPeriod,
                 lock: false
             });
 
@@ -443,7 +444,7 @@ contract Staking is Ownable {
                 amount: userCoolInfo.amount + _amount,
                 gons: userCoolInfo.gons +
                     IRewardToken(rewardToken).gonsForBalance(_amount),
-                expiry: epoch.number + vestingPeriod,
+                expiry: epoch.number + coolDownPeriod,
                 lock: false
             });
 
@@ -479,22 +480,35 @@ contract Staking is Ownable {
         @notice returns contract stakingToken holdings
         @return uint
      */
-    function contractBalance() public view returns (uint256) {
+    function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
         return IERC20(stakingToken).balanceOf(address(this)) + tokeBalance;
     }
 
     /**
-     * @notice set vesting period for new stakers
+     * @notice set warmup period for new stakers
      * @param _vestingPeriod uint
      */
-    function setVesting(uint256 _vestingPeriod) external onlyOwner {
-        vestingPeriod = _vestingPeriod;
+    function setWarmup(uint256 _vestingPeriod) external onlyOwner {
+        warmUpPeriod = _vestingPeriod;
+    }
+
+    /**
+     * @notice set cooldown period for stakers
+     * @param _vestingPeriod uint
+     */
+    function setCooldown(uint256 _vestingPeriod) external onlyOwner {
+        coolDownPeriod = _vestingPeriod;
     }
 
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
+        require(
+            IERC20(stakingToken).balanceOf(msg.sender) >= _amount,
+            "Not enough staking tokens"
+        );
+
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),

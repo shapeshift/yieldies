@@ -215,7 +215,7 @@ describe("Staking", function () {
       let currentBlock = await ethers.provider.getBlockNumber();
       let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
 
-      await staking.setVesting(1);
+      await staking.setWarmup(1);
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
       const stakingAmount = transferAmount.div(2);
