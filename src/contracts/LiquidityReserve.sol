@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
+import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -54,7 +55,7 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee >= 0 && fee <= 10000, "Must be within range of 0 and 1");
+        require(_fee >= 0 && _fee <= 10000, "Must be within range of 0 and 10000 bps");
         fee = _fee;
     }
 
@@ -146,9 +147,11 @@ contract LiquidityReserve is ERC20, Ownable {
             _amount <= IERC20(stakingToken).balanceOf(address(this)),
             "Not enough funds in contract to cover instant unstake"
         );
+        uint256 rewardBalance = IERC20(rewardToken).balanceOf(msg.sender);
+        require(rewardBalance >= _amount, "Not enough reward tokens in wallet");
+
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
-
         uint256 amountMinusFee = _amount - ((_amount * fee) / 10000);
 
         // transfer from msg.sender (staking contract) due to not knowing if the funds are in warmup or not

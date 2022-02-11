@@ -2,21 +2,20 @@ import { ethers, deployments, getNamedAccounts, network } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { Foxy, LiquidityReserve, Staking } from "../typechain-types";
+import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { abi as liquidityReserveAbi } from "../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
-import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "./constants";
+import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
+import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
   let liquidityReserve: LiquidityReserve;
   let stakingToken: Contract;
   let stakingContract: Staking;
-  let foxy: Contract;
+  let rewardToken: Contract;
 
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -37,7 +36,7 @@ describe("Liquidity Reserve", function () {
     accounts = await ethers.getSigners();
 
     const foxyDeployment = await deployments.get("Foxy");
-    foxy = new ethers.Contract(
+    rewardToken = new ethers.Contract(
       foxyDeployment.address,
       foxyDeployment.abi,
       accounts[0]
@@ -75,7 +74,7 @@ describe("Liquidity Reserve", function () {
     );
 
     await stakingContract.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
-    await foxy.initialize(stakingContract.address);
+    await rewardToken.initialize(stakingContract.address);
 
     await stakingToken.approve(liquidityReserve.address, INITIAL_LR_BALANCE); // approve initial liquidity amount
     await liquidityReserve.initialize(stakingContract.address); // initialize liquidity reserve contract
@@ -140,7 +139,7 @@ describe("Liquidity Reserve", function () {
 
       await stakingContractStaker1.claim(staker1);
 
-      let staker1RewardBalance = await foxy.balanceOf(staker1);
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
 
       const fee = await liquidityReserve.fee();
@@ -150,7 +149,7 @@ describe("Liquidity Reserve", function () {
         staking1Signer as Signer
       );
 
-      const rewardTokenStaker1 = foxy.connect(staking1Signer as Signer);
+      const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
 
       await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
@@ -158,7 +157,7 @@ describe("Liquidity Reserve", function () {
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
 
-      staker1RewardBalance = await foxy.balanceOf(staker1);
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -271,7 +270,7 @@ describe("Liquidity Reserve", function () {
 
       await stakingContractStaker1.claim(staker1);
 
-      let staker1RewardBalance = await foxy.balanceOf(staker1);
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(transferAmount);
 
       const fee = await liquidityReserve.fee();
@@ -282,7 +281,7 @@ describe("Liquidity Reserve", function () {
         staking1Signer as Signer
       );
 
-      const rewardTokenStaker1 = foxy.connect(staking1Signer as Signer);
+      const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(
         liquidityReserve.address,
         transferAmount
@@ -293,7 +292,7 @@ describe("Liquidity Reserve", function () {
       const feeAmount = transferAmount.mul(fee).div(10000);
       const amountMinusFee = transferAmount.sub(feeAmount);
 
-      staker1RewardBalance = await foxy.balanceOf(staker1);
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -310,6 +309,80 @@ describe("Liquidity Reserve", function () {
       await expect(liquidityReserveDao.withdraw(daoBalance)).to.be.revertedWith(
         "Not enough funds in contract to cover withdraw"
       );
+    });
+  });
+  describe("fail states", () => {
+    it("Fails when no staking/reward token or staking contract is passed in", async () => {
+      const { admin, staker1 } = await getNamedAccounts();
+
+      const liquidityFactory = await ethers.getContractFactory(
+        "LiquidityReserve"
+      );
+
+      // fail due to no staking/reward token
+      await expect(
+        liquidityFactory.deploy(
+          stakingToken.address,
+          "0x0000000000000000000000000000000000000000"
+        )
+      ).to.be.reverted;
+      await expect(
+        liquidityFactory.deploy(
+          "0x0000000000000000000000000000000000000000",
+          rewardToken.address
+        )
+      ).to.be.reverted;
+
+      const liquidityReserveContract = await liquidityFactory.deploy(
+        stakingToken.address,
+        rewardToken.address
+      );
+      // fail due to no stakingContract
+      await expect(
+        liquidityReserveContract.initialize(
+          "0x0000000000000000000000000000000000000000"
+        )
+      ).to.be.reverted;
+
+      const transferAmount = await stakingToken.balanceOf(admin);
+      await stakingToken.transfer(staker1, transferAmount);
+
+      // fail due to not enough liquidity
+      await expect(liquidityReserveContract.initialize(stakingContract.address))
+        .to.be.reverted;
+    });
+
+    it("Must have correct fee amount", async () => {
+      await expect(
+        stakingContract.setInstantUnstakeFee(BigNumber.from("10000000000"))
+      ).to.be.revertedWith("Must be within range of 0 and 10000 bps");
+    });
+
+    it("Withdraw has required balance", async () => {
+      await expect(
+        liquidityReserve.withdraw(BigNumber.from("10000000000"))
+      ).to.be.revertedWith("Not enough liquidity reserve tokens");
+    })
+
+    it("InstantUnstake has required balance", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // try to instantUnstake without any reward tokens
+      await expect(
+        liquidityReserve.instantUnstake(BigNumber.from("10000"), staker1)
+      ).to.be.revertedWith("Not enough reward tokens in wallet");
+
+      // try to instantUnstake when liquidityReserve is drained
+      const liquidityFactory = await ethers.getContractFactory(
+        "LiquidityReserve"
+      );
+      const liquidityReserveContract = await liquidityFactory.deploy(
+        stakingToken.address,
+        rewardToken.address
+      );
+      await expect(
+        liquidityReserveContract.instantUnstake(BigNumber.from("10000"), staker1)
+      ).to.be.revertedWith("Not enough funds in contract to cover instant unstake");
     });
   });
 });

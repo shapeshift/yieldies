@@ -47,7 +47,8 @@ contract Staking is Ownable {
     mapping(address => Claim) public coolDownInfo;
 
     uint256 public blocksLeftToRequestWithdrawal;
-    uint256 public vestingPeriod;
+    uint256 public warmUpPeriod;
+    uint256 public coolDownPeriod;
     uint256 public lastUpdatedTokemakCycle;
     uint256 public requestWithdrawalAmount;
     uint256 public lastTokeCycleIndex;
@@ -67,7 +68,7 @@ contract Staking is Ownable {
         require(
             _stakingToken != address(0) &&
                 _rewardToken != address(0) &&
-                _rewardToken != address(0) &&
+                _tokeToken != address(0) &&
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
@@ -117,6 +118,8 @@ contract Staking is Ownable {
         bytes32 _r,
         bytes32 _s
     ) external {
+        require(_amount > 0, "Must enter valid amount");
+
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
@@ -169,6 +172,13 @@ contract Staking is Ownable {
      */
     function toggleDepositLock() external {
         warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
+    }
+
+    /**
+        @notice prevent new withdraws to address (protection from malicious activity)
+     */
+    function toggleWithdrawLock() external {
+        coolDownInfo[msg.sender].lock = !coolDownInfo[msg.sender].lock;
     }
 
     /**
@@ -265,29 +275,27 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
-        if (!pauseStaking) {
-            rebase();
-            IERC20(stakingToken).safeTransferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
+        require(!pauseStaking, "Staking is paused");
+        rebase();
+        IERC20(stakingToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
 
-            Claim memory info = warmUpInfo[_recipient];
-            require(!info.lock, "Deposits for account are locked");
+        Claim memory info = warmUpInfo[_recipient];
+        require(!info.lock, "Deposits for account are locked");
 
-            warmUpInfo[_recipient] = Claim({
-                amount: info.amount + _amount,
-                gons: info.gons +
-                    IRewardToken(rewardToken).gonsForBalance(_amount),
-                expiry: epoch.number + vestingPeriod,
-                lock: false
-            });
+        warmUpInfo[_recipient] = Claim({
+            amount: info.amount + _amount,
+            gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + warmUpPeriod,
+            lock: false
+        });
 
-            _depositToTokemak(_amount);
+        _depositToTokemak(_amount);
 
-            IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
-        }
+        IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
     }
 
     /**
@@ -319,6 +327,8 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) external {
         Claim memory info = coolDownInfo[_recipient];
+        require(!info.lock, "Withdraws for account are locked");
+
         ITokePool tokePoolContract = ITokePool(tokePool);
         WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
@@ -355,16 +365,11 @@ contract Staking is Ownable {
         uint256 warmUpBalance = IRewardToken(rewardToken).balanceForGons(
             userWarmInfo.gons
         );
-
-        console.log("warmUpBalance", warmUpBalance);
-        console.log("walletBalance", walletBalance);
-        console.log("_amount", _amount);
         bool hasFullAmountInWarmup = warmUpBalance >= _amount && // user has full rewardToken amount in warmup contract
             _isClaimAvailable(userWarmInfo);
         bool hasFullAmountSplit = warmUpBalance > 0 && // user has full reward amount in both warmup contract and wallet
             warmUpBalance + walletBalance >= _amount;
-        console.log("hasFullAmountInWarmup", hasFullAmountInWarmup);
-        console.log("hasFullAmountSplit", hasFullAmountSplit);
+
         require(
             hasFullAmountInWarmup ||
                 hasFullAmountSplit ||
@@ -378,8 +383,6 @@ contract Staking is Ownable {
             uint256 remainingAmount = IRewardToken(rewardToken).balanceForGons(
                 remainingGonsAmount
             );
-
-            require(remainingAmount >= 0, "Not enough funds");
 
             IVesting(warmUpContract).retrieve(address(this), _amount); // get in amount
             if (remainingAmount == 0) {
@@ -401,8 +404,6 @@ contract Staking is Ownable {
                 _amount - warmUpBalance
             );
         } else {
-            uint256 walletBalance2 = IERC20(rewardToken).balanceOf(_recipient);
-            console.log("walletBalance2", walletBalance2);
             IERC20(rewardToken).safeTransferFrom(
                 _recipient,
                 address(this),
@@ -418,17 +419,13 @@ contract Staking is Ownable {
      */
 
     function instantUnstake(uint256 _amount, bool _trigger) external {
-        if (!pauseUnstaking) {
-            if (_trigger) {
-                rebase();
-            }
-            _getFromWarmupOrWallet(_amount, msg.sender);
-
-            ILiquidityReserve(liquidityReserve).instantUnstake(
-                _amount,
-                msg.sender
-            );
+        require(!pauseUnstaking, "Unstaking is paused");
+        if (_trigger) {
+            rebase();
         }
+        _getFromWarmupOrWallet(_amount, msg.sender);
+
+        ILiquidityReserve(liquidityReserve).instantUnstake(_amount, msg.sender);
     }
 
     /**
@@ -437,28 +434,27 @@ contract Staking is Ownable {
         @param _trigger bool
      */
     function unstake(uint256 _amount, bool _trigger) external {
-        if (!pauseUnstaking) {
-            if (_trigger) {
-                rebase();
-            }
-            _getFromWarmupOrWallet(_amount, msg.sender);
-
-            Claim memory userCoolInfo = coolDownInfo[msg.sender];
-            require(!userCoolInfo.lock, "Withdrawals for account are locked");
-
-            coolDownInfo[msg.sender] = Claim({
-                amount: userCoolInfo.amount + _amount,
-                gons: userCoolInfo.gons +
-                    IRewardToken(rewardToken).gonsForBalance(_amount),
-                expiry: epoch.number + vestingPeriod,
-                lock: false
-            });
-
-            requestWithdrawalAmount += _amount;
-            sendWithdrawalRequests();
-
-            IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
+        require(!pauseUnstaking, "Unstaking is paused");
+        if (_trigger) {
+            rebase();
         }
+        _getFromWarmupOrWallet(_amount, msg.sender);
+
+        Claim memory userCoolInfo = coolDownInfo[msg.sender];
+        require(!userCoolInfo.lock, "Withdraws for account are locked");
+
+        coolDownInfo[msg.sender] = Claim({
+            amount: userCoolInfo.amount + _amount,
+            gons: userCoolInfo.gons +
+                IRewardToken(rewardToken).gonsForBalance(_amount),
+            expiry: epoch.number + coolDownPeriod,
+            lock: false
+        });
+
+        requestWithdrawalAmount += _amount;
+        sendWithdrawalRequests();
+
+        IERC20(rewardToken).safeTransfer(coolDownContract, _amount);
     }
 
     /**
@@ -486,22 +482,35 @@ contract Staking is Ownable {
         @notice returns contract stakingToken holdings
         @return uint
      */
-    function contractBalance() public view returns (uint256) {
+    function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
         return IERC20(stakingToken).balanceOf(address(this)) + tokeBalance;
     }
 
     /**
-     * @notice set vesting period for new stakers
+     * @notice set warmup period for new stakers
      * @param _vestingPeriod uint
      */
-    function setVesting(uint256 _vestingPeriod) external onlyOwner {
-        vestingPeriod = _vestingPeriod;
+    function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
+        warmUpPeriod = _vestingPeriod;
+    }
+
+    /**
+     * @notice set cooldown period for stakers
+     * @param _vestingPeriod uint
+     */
+    function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
+        coolDownPeriod = _vestingPeriod;
     }
 
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
+        require(
+            IERC20(stakingToken).balanceOf(msg.sender) >= _amount,
+            "Not enough staking tokens"
+        );
+
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
