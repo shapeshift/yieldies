@@ -312,7 +312,7 @@ describe("Liquidity Reserve", function () {
     });
   });
   describe("fail states", () => {
-    it("fails when no staking/reward token or staking contract is passed in", async () => {
+    it("Fails when no staking/reward token or staking contract is passed in", async () => {
       const { admin, staker1 } = await getNamedAccounts();
 
       const liquidityFactory = await ethers.getContractFactory(
@@ -352,19 +352,19 @@ describe("Liquidity Reserve", function () {
         .to.be.reverted;
     });
 
-    it("must have correct fee amount", async () => {
+    it("Must have correct fee amount", async () => {
       await expect(
         stakingContract.setInstantUnstakeFee(BigNumber.from("10000000000"))
       ).to.be.revertedWith("Must be within range of 0 and 10000 bps");
     });
 
-    it("withdraw has required balance", async () => {
+    it("Withdraw has required balance", async () => {
       await expect(
         liquidityReserve.withdraw(BigNumber.from("10000000000"))
       ).to.be.revertedWith("Not enough liquidity reserve tokens");
     })
 
-    it("instantUnstake has required balance", async () => {
+    it("InstantUnstake has required balance", async () => {
       const { staker1 } = await getNamedAccounts();
 
       // try to instantUnstake without any reward tokens

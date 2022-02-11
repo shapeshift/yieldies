@@ -25,10 +25,12 @@ describe("Staking", function () {
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
-  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b";
+  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
+  const TOKE_REWARD = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5"; // TOKE reward contract address
+  const TOKE_REWARD_HASH = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6"; // TOKE reward hash contract address
+
   const LATEST_CLAIMABLE_HASH =
     "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
-  const CYCLE_HASH = "QmZfyx21SzdqpqQeQWNsBUDVJQ7cmTqELo5y5dCPQMQqgn";
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -139,6 +141,111 @@ describe("Staking", function () {
       const supply = await rewardToken.totalSupply();
       expect(stakingContractBalance).eq(supply);
     });
+    it("Fails when no staking/reward token or staking contract is passed in", async () => {
+      const { admin, staker1 } = await getNamedAccounts();
+
+      const stakingFactory = await ethers.getContractFactory("Staking");
+
+      // fail due to bad addresses
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          "0x0000000000000000000000000000000000000000",
+          TOKE_ADDRESS,
+          tokePool.address,
+          tokeManager.address,
+          TOKE_REWARD,
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          "0x0000000000000000000000000000000000000000",
+          rewardToken.address,
+          TOKE_ADDRESS,
+          tokePool.address,
+          tokeManager.address,
+          TOKE_REWARD,
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          rewardToken.address,
+          "0x0000000000000000000000000000000000000000",
+          tokePool.address,
+          tokeManager.address,
+          TOKE_REWARD,
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          rewardToken.address,
+          TOKE_ADDRESS,
+          "0x0000000000000000000000000000000000000000",
+          tokeManager.address,
+          TOKE_REWARD,
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          rewardToken.address,
+          TOKE_ADDRESS,
+          tokePool.address,
+          "0x0000000000000000000000000000000000000000",
+          TOKE_REWARD,
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          rewardToken.address,
+          TOKE_ADDRESS,
+          tokePool.address,
+          tokeManager.address,
+          "0x0000000000000000000000000000000000000000",
+          TOKE_REWARD_HASH,
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+      await expect(
+        stakingFactory.deploy(
+          stakingToken.address,
+          rewardToken.address,
+          TOKE_ADDRESS,
+          tokePool.address,
+          tokeManager.address,
+          TOKE_REWARD,
+          "0x0000000000000000000000000000000000000000",
+          1,
+          1,
+          1
+        )
+      ).to.be.reverted;
+    });
   });
 
   describe("stake", function () {
@@ -203,7 +310,7 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
     });
-    it("Users have to wait for warmup period to claim", async () => {
+    it("Users have to wait for warmup period to claim and cooldown period to withdraw", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
@@ -212,13 +319,11 @@ describe("Staking", function () {
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
       );
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      await staking.setWarmup(1);
+      await staking.setWarmUpPeriod(1);
+      await staking.setCoolDownPeriod(1);
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
-      const stakingAmount = transferAmount.div(2);
+      const stakingAmount = transferAmount;
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
@@ -239,6 +344,8 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
       for (let i = currentBlock; i <= nextRewardBlock; i++) {
         await ethers.provider.send("evm_mine", []);
       }
@@ -253,6 +360,38 @@ describe("Staking", function () {
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance).eq(0);
+
+      await stakingStaker1.unstake(stakingAmount, false);
+
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      // shouldn't have stakingToken balance
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      await stakingStaker1.claimWithdraw(staker1);
+
+      // epoch hasn't increased yet so claimWithdraw doesn't work yet
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      // need to rebase to increase epoch number
+      await stakingStaker1.rebase();
+
+      await stakingStaker1.claimWithdraw(staker1);
+
+      // has stakingBalance after withdrawal
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(stakingAmount);
     });
     it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -438,7 +577,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(0);
     });
-    it("requestedWithdrawals are 0 until sendWithdrawalRequests is called", async () => {
+    it("RequestedWithdrawals are 0 until sendWithdrawalRequests is called", async () => {
       const { staker1 } = await getNamedAccounts();
 
       // transfer STAKING_TOKEN to staker 1
@@ -476,7 +615,7 @@ describe("Staking", function () {
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
     });
-    it("can instant unstake", async () => {
+    it("Can instant unstake", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
@@ -513,7 +652,7 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
-    it("can instant unstake without claiming", async () => {
+    it("Can instant unstake without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
@@ -538,7 +677,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(transferAmount, false);
+      await stakingStaker1.instantUnstake(transferAmount, true);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -550,15 +689,141 @@ describe("Staking", function () {
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
     it("Admin functions work correctly", async () => {
-      const { admin } = await getNamedAccounts();
+      const { admin, staker1 } = await getNamedAccounts();
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
 
-      await stakingAdmin.overrideWithdrawals(true);
       await stakingAdmin.overrideStaking(true);
       await stakingAdmin.overrideUnstaking(true);
+      await stakingAdmin.setCoolDownPeriod(99999999999999);
 
-      // TODO: Test whether or not admin functions cover everything
+      await stakingAdmin.setBlocksLeftToRequestWithdrawal(10);
+      const blocksLeftToRequest = await staking.blocksLeftToRequestWithdrawal();
+      await expect(blocksLeftToRequest).eq(10);
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount;
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+
+      // fails due to staking being paused
+      await expect(
+        stakingStaker1.functions["stake(uint256)"](stakingAmount)
+      ).to.be.revertedWith("Staking is paused");
+      await stakingAdmin.overrideStaking(false);
+
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      // fails due to unstaking being paused
+      await expect(
+        stakingStaker1.unstake(stakingAmount, true)
+      ).to.be.revertedWith("Unstaking is paused");
+      await expect(
+        stakingStaker1.instantUnstake(stakingAmount, true)
+      ).to.be.revertedWith("Unstaking is paused");
+
+      await stakingAdmin.overrideUnstaking(false);
+      await stakingStaker1.unstake(stakingAmount, true);
+
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      await stakingStaker1.claimWithdraw(staker1);
+
+      // doesn't have staking balance due to cooldown period not expired
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      await stakingAdmin.overrideWithdrawals(true);
+
+      // can claim with withdraws overrode
+      await stakingStaker1.claimWithdraw(staker1);
+
+      // has stakingBalance after withdrawal
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(stakingAmount);
+    });
+    it("Claim locks work", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+
+      await stakingStaker1.toggleDepositLock();
+      await expect(
+        stakingStaker1.functions["stake(uint256)"](stakingAmount)
+      ).to.be.revertedWith("Deposits for account are locked");
+
+      await stakingStaker1.toggleDepositLock();
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      await stakingStaker1.toggleWithdrawLock();
+      await expect(
+        stakingStaker1.unstake(stakingAmount, false)
+      ).to.be.revertedWith("Withdraws for account are locked");
+      await stakingStaker1.toggleWithdrawLock();
+
+      // can't unstake from warmup contract if deposits are locks
+      await stakingStaker1.toggleDepositLock();
+      await expect(
+        stakingStaker1.unstake(stakingAmount, false)
+      ).to.be.revertedWith("Withdraws for account are locked");
+      await stakingStaker1.toggleDepositLock();
+
+      await stakingStaker1.unstake(stakingAmount, false);
+
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      await stakingStaker1.toggleWithdrawLock();
+      await expect(stakingStaker1.claimWithdraw(staker1)).to.be.revertedWith(
+        "Withdraws for account are locked"
+      );
+
+      await stakingStaker1.toggleWithdrawLock();
+      await stakingStaker1.claimWithdraw(staker1);
     });
   });
 
@@ -614,7 +879,13 @@ describe("Staking", function () {
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
       await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("1000");
-      await staking.addRewardsForStakers(awardAmount, true);
+
+      // can't send more than balance
+      await expect(
+        stakingStaker1.addRewardsForStakers(transferAmount.add(1), false)
+      ).to.be.revertedWith("Not enough staking tokens");
+
+      await staking.addRewardsForStakers(awardAmount, false);
 
       rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
       rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
@@ -769,9 +1040,8 @@ describe("Staking", function () {
   });
 
   describe("vesting", function () {
-    it("fails when no staking or reward token is passed in", async () => {
+    it("Fails when no staking or reward token is passed in", async () => {
       const { staker1 } = await getNamedAccounts();
-
       const vestingFactory = await ethers.getContractFactory("Vesting");
 
       await expect(
@@ -791,11 +1061,9 @@ describe("Staking", function () {
         stakingToken.address,
         rewardToken.address
       );
-
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
       );
-
       const staker1Vesting = await vestingContract.connect(
         staker1Signer as Signer
       );
@@ -806,7 +1074,34 @@ describe("Staking", function () {
   });
 
   describe("tokemak", function () {
-    it("Staking gives tokePool to the Staking contract", async () => {
+    it("Claiming from Tokemak", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const v = 28;
+      const r =
+        "0x0402de926473b79c91b67a49a931108c4c593442ce63193d9c35a9ef12c7d495";
+      const s =
+        "0x2c3d7cf17e33eb30408a4fb266a812008a35a9e8987e841eecb92504620f55bd";
+
+      // must have amount > 0
+      await expect(staking.claimFromTokemak(0, v, r, s)).to.be.revertedWith(
+        "Must enter valid amount"
+      );
+
+      // can't actually claim rewards, invalid signature returned from Tokemak
+      await expect(
+        staking.claimFromTokemak(BigNumber.from("1000"), v, r, s)
+      ).to.be.revertedWith("'ECDSA: invalid signature'");
+
+      // transferToke fails on 0 address
+      await expect(
+        staking.transferToke("0x0000000000000000000000000000000000000000")
+      ).to.be.reverted;
+
+      // tries to transfer toke, but to staker1 but none exists
+      await staking.transferToke(staker1);
+    });
+    it("Staking gives tStakingToken to the Staking contract", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");

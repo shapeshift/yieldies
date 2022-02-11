@@ -189,7 +189,7 @@ describe("Foxy", function () {
     });
   });
   describe("approve", () => {
-    it("sets the allowed value between sender and spender", async () => {
+    it("Sets the allowed value between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -198,7 +198,7 @@ describe("Foxy", function () {
       await foxy.connect(staker1Signer as Signer).approve(stakingContractMock, 10);
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(10);
     });
-    it("emits an Approval event", async () => {
+    it("Emits an Approval event", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -210,7 +210,7 @@ describe("Foxy", function () {
     });
   });
   describe("increaseAllowance", () => {
-    it("increases the allowance between sender and spender", async () => {
+    it("Increases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -221,7 +221,7 @@ describe("Foxy", function () {
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(14);
     });
-    it("emits an Approval event", async () => {
+    it("Emits an Approval event", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -234,7 +234,7 @@ describe("Foxy", function () {
     });
   });
   describe("decreaseAllowance", () => {
-    it("decreases the allowance between sender and spender", async () => {
+    it("Decreases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -245,7 +245,7 @@ describe("Foxy", function () {
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(6);
     });
-    it("will not make the value negative", async () => {
+    it("Will not make the value negative", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1
@@ -256,7 +256,7 @@ describe("Foxy", function () {
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(0);
     });
-    it("emits an Approval event", async () => {
+    it("Emits an Approval event", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const staker1Signer = accounts.find(
         (account) => account.address === staker1

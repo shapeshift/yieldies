@@ -68,7 +68,7 @@ contract Staking is Ownable {
         require(
             _stakingToken != address(0) &&
                 _rewardToken != address(0) &&
-                _rewardToken != address(0) &&
+                _tokeToken != address(0) &&
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
@@ -118,6 +118,8 @@ contract Staking is Ownable {
         bytes32 _r,
         bytes32 _s
     ) external {
+        require(_amount > 0, "Must enter valid amount");
+
         ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         ITokeRewardHash iTokeRewardHash = ITokeRewardHash(tokeRewardHash);
 
@@ -170,6 +172,13 @@ contract Staking is Ownable {
      */
     function toggleDepositLock() external {
         warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
+    }
+
+    /**
+        @notice prevent new withdraws to address (protection from malicious activity)
+     */
+    function toggleWithdrawLock() external {
+        coolDownInfo[msg.sender].lock = !coolDownInfo[msg.sender].lock;
     }
 
     /**
@@ -318,6 +327,8 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) external {
         Claim memory info = coolDownInfo[_recipient];
+        require(!info.lock, "Withdraws for account are locked");
+
         ITokePool tokePoolContract = ITokePool(tokePool);
         WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
@@ -372,8 +383,6 @@ contract Staking is Ownable {
             uint256 remainingAmount = IRewardToken(rewardToken).balanceForGons(
                 remainingGonsAmount
             );
-
-            require(remainingAmount >= 0, "Not enough funds");
 
             IVesting(warmUpContract).retrieve(address(this), _amount); // get in amount
             if (remainingAmount == 0) {
@@ -432,7 +441,7 @@ contract Staking is Ownable {
         _getFromWarmupOrWallet(_amount, msg.sender);
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
-        require(!userCoolInfo.lock, "Withdrawals for account are locked");
+        require(!userCoolInfo.lock, "Withdraws for account are locked");
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
@@ -482,7 +491,7 @@ contract Staking is Ownable {
      * @notice set warmup period for new stakers
      * @param _vestingPeriod uint
      */
-    function setWarmup(uint256 _vestingPeriod) external onlyOwner {
+    function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
         warmUpPeriod = _vestingPeriod;
     }
 
@@ -490,7 +499,7 @@ contract Staking is Ownable {
      * @notice set cooldown period for stakers
      * @param _vestingPeriod uint
      */
-    function setCooldown(uint256 _vestingPeriod) external onlyOwner {
+    function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
         coolDownPeriod = _vestingPeriod;
     }
 
