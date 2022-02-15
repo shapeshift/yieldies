@@ -497,6 +497,14 @@ contract Staking is Ownable {
     }
 
     /**
+     * @notice set epoch length
+     * @param length uint
+     */
+    function setEpochLength(uint256 length) external onlyOwner {
+        epoch.length = length;
+    }
+
+    /**
      * @notice set warmup period for new stakers
      * @param _vestingPeriod uint
      */

@@ -714,7 +714,7 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
-    it("Admin functions work correctly", async () => {
+    it.only("Admin functions work correctly", async () => {
       const { admin, staker1 } = await getNamedAccounts();
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
@@ -788,6 +788,17 @@ describe("Staking", function () {
       // has stakingBalance after withdrawal
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(stakingAmount);
+
+      let epoch = await staking.epoch();
+      // @ts-ignore
+      expect(epoch._length).eq(100);
+      console.log("epoch", epoch);
+
+      await stakingAdmin.setEpochLength(1000);
+
+      epoch = await staking.epoch();
+      // @ts-ignore
+      expect(epoch._length).eq(1000);
     });
     it("Claim locks work", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -1381,9 +1392,7 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(0);
 
-      let staker1RewardTokenBalance = await rewardToken.balanceOf(
-        staker1
-      );
+      let staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardTokenBalance).eq(stakingAmount);
 
       await rewardToken
