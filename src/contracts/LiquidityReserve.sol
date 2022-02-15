@@ -19,7 +19,7 @@ contract LiquidityReserve is ERC20, Ownable {
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
 
     constructor(address _stakingToken, address _rewardToken)
-        ERC20("Liquidity Reserve FOX", "lrFOX", 18)
+        ERC20("Liquidity Reserve FOX", "lrFOX")
     {
         require(_stakingToken != address(0) && _rewardToken != address(0));
         initializer = msg.sender;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../libraries/ERC20Permit.sol";
 import "../libraries/Ownable.sol";
 
@@ -49,7 +50,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     mapping(address => mapping(address => uint256)) private allowedValue;
 
-    constructor() ERC20("FOX Yield", "FOXy", 18) ERC20Permit() {
+    constructor() ERC20("FOX Yield", "FOXy") ERC20Permit("FOX Yield") {
         initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
