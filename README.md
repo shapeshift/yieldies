@@ -11,3 +11,5 @@ FOXy is a proposed staking rewards system that allows FOX token holders the abil
 1. `yarn`
 2. `yarn compile`
 3. `yarn test` will run the basic test examples.
+
+`yarn coverage` will run the tests with coverage.

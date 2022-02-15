@@ -124,7 +124,6 @@ describe("Staking", function () {
     );
 
     await rewardToken.initialize(stakingDeployment.address); // initialize reward contract
-
     await stakingToken.approve(
       liquidityReserve.address,
       BigNumber.from("1000000000000000")
@@ -274,22 +273,11 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      // balance should still be zero, until we claim the rewardToken.
-      staker1RewardBalance = await rewardToken.balanceOf(staker1);
-      expect(staker1RewardBalance).eq(0);
-
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
-        stakingWarmup.address
-      );
-      expect(warmupRewardTokenBalance).eq(stakingAmount);
-
-      // claim should move the rewardToken from warmup to the staker
-      await stakingStaker1.claim(staker1);
-
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
+      // shouldn't go to warmup contract
+      let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance).eq(0);
@@ -328,6 +316,10 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
+      // balance should still be zero, until we claim the rewardToken.
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(0);
+
       let warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
@@ -355,6 +347,9 @@ describe("Staking", function () {
 
       // claim succeeds now
       await stakingStaker1.claim(staker1);
+
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(stakingAmount);
 
       warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
@@ -395,6 +390,7 @@ describe("Staking", function () {
     });
     it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
       const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
 
       const transferAmount = BigNumber.from("10000");
       await stakingToken.transfer(staker1, transferAmount);
@@ -425,6 +421,7 @@ describe("Staking", function () {
     });
     it("Users can unstake using funds from both wallet and warmup", async () => {
       const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
 
       const transferAmount = BigNumber.from("10000");
       await stakingToken.transfer(staker1, transferAmount);
@@ -451,6 +448,15 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
 
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+
+      // need to rebase to increase epoch number
+      await stakingStaker1.rebase();
+
       await stakingStaker1.claim(staker1);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
@@ -473,8 +479,10 @@ describe("Staking", function () {
       staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardTokenBalance).eq(0);
     });
-    it("User can stake and unstake half amount without claiming when warmup period is 0", async () => {
+    it("User can stake and unstake half amount without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
+
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(0);
       // transfer STAKING_TOKEN to staker 1
@@ -493,6 +501,15 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+
+      // need to rebase to increase epoch number
+      await stakingStaker1.rebase();
 
       // warmUpInfo for staker1 should be stakingAmount
       let warmUpInfo = await staking.warmUpInfo(staker1);
@@ -525,8 +542,10 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount.div(2));
     });
-    it("User can stake and unstake full amount without claiming when warmup period is 0", async () => {
+    it("User can stake and unstake full amount without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
+
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(0);
       // transfer STAKING_TOKEN to staker 1
@@ -545,6 +564,13 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+      await stakingStaker1.rebase();
 
       // warmUpInfo for staker1 should be stakingAmount
       let warmUpInfo = await staking.warmUpInfo(staker1);
@@ -629,7 +655,6 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](transferAmount);
-      await stakingStaker1.claim(staker1);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -654,6 +679,7 @@ describe("Staking", function () {
     });
     it("Can instant unstake without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
 
       const transferAmount = BigNumber.from("10000");
       await stakingToken.transfer(staker1, transferAmount);
@@ -1282,9 +1308,12 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
 
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(stakingAmount1);
+
       await rewardToken
         .connect(staker1Signer as Signer)
-        .approve(staking.address, stakingAmount1);
+        .approve(staking.address, transferAmount);
 
       await stakingStaker1.unstake(stakingAmount1, false);
 
@@ -1352,10 +1381,10 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(0);
 
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
-        stakingWarmup.address
+      let staker1RewardTokenBalance = await rewardToken.balanceOf(
+        staker1
       );
-      expect(warmupRewardTokenBalance).eq(stakingAmount);
+      expect(staker1RewardTokenBalance).eq(stakingAmount);
 
       await rewardToken
         .connect(staker1Signer as Signer)

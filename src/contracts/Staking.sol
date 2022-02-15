@@ -289,14 +289,19 @@ contract Staking is Ownable {
 
         _depositToTokemak(_amount);
 
-        warmUpInfo[_recipient] = Claim({
-            amount: info.amount + _amount,
-            gons: info.gons + IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
-            expiry: epoch.number + warmUpPeriod,
-            lock: false
-        });
+        if (warmUpPeriod == 0) {
+            IERC20(REWARD_TOKEN).safeTransfer(_recipient, _amount);
+        } else {
+            warmUpInfo[_recipient] = Claim({
+                amount: info.amount + _amount,
+                gons: info.gons +
+                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
+                expiry: epoch.number + warmUpPeriod,
+                lock: false
+            });
 
-        IERC20(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
+            IERC20(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
+        }
     }
 
     /**
@@ -426,7 +431,10 @@ contract Staking is Ownable {
         }
         _getFromWarmupOrWallet(_amount, msg.sender);
 
-        ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(_amount, msg.sender);
+        ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
+            _amount,
+            msg.sender
+        );
     }
 
     /**
