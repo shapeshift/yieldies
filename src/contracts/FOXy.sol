@@ -120,7 +120,7 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
-        require(_previousCirculating > 0);
+        require(_previousCirculating > 0, "");
         
         uint256 rebasePercent = (_profit * 1e18) / _previousCirculating;
 

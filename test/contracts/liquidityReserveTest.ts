@@ -49,7 +49,7 @@ describe("Liquidity Reserve", function () {
       accounts[0]
     ) as Staking;
 
-    const liquidityReserveAddress = await stakingContract.liquidityReserve();
+    const liquidityReserveAddress = await stakingContract.LIQUIDITY_RESERVE();
     liquidityReserve = new ethers.Contract(
       liquidityReserveAddress,
       liquidityReserveAbi,

@@ -81,20 +81,20 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const liquidityReserveAddress = await staking.liquidityReserve();
+    const liquidityReserveAddress = await staking.LIQUIDITY_RESERVE();
     liquidityReserve = new ethers.Contract(
       liquidityReserveAddress,
       liquidityReserveAbi,
       accounts[0]
     ) as LiquidityReserve;
 
-    const warmUpAddress = await staking.warmUpContract();
+    const warmUpAddress = await staking.WARM_UP_CONTRACT();
     stakingWarmup = new ethers.Contract(
       warmUpAddress,
       vestingAbi,
       accounts[0]
     ) as Vesting; // is there a better way to avoid this cast?
-    const coolDownAddress = await staking.coolDownContract();
+    const coolDownAddress = await staking.COOL_DOWN_CONTRACT();
     stakingCooldown = new ethers.Contract(
       coolDownAddress,
       vestingAbi,
