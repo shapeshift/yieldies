@@ -287,14 +287,14 @@ contract Staking is Ownable {
         Claim memory info = warmUpInfo[_recipient];
         require(!info.lock, "Deposits for account are locked");
 
+        _depositToTokemak(_amount);
+
         warmUpInfo[_recipient] = Claim({
             amount: info.amount + _amount,
             gons: info.gons + IRewardToken(rewardToken).gonsForBalance(_amount),
             expiry: epoch.number + warmUpPeriod,
             lock: false
         });
-
-        _depositToTokemak(_amount);
 
         IERC20(rewardToken).safeTransfer(warmUpContract, _amount);
     }
