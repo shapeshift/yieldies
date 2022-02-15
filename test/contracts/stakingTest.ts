@@ -714,7 +714,7 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
-    it.only("Admin functions work correctly", async () => {
+    it("Admin functions work correctly", async () => {
       const { admin, staker1 } = await getNamedAccounts();
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
@@ -792,7 +792,6 @@ describe("Staking", function () {
       let epoch = await staking.epoch();
       // @ts-ignore
       expect(epoch._length).eq(100);
-      console.log("epoch", epoch);
 
       await stakingAdmin.setEpochLength(1000);
 

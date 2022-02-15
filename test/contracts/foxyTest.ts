@@ -22,7 +22,6 @@ describe("Foxy", function () {
     // contract allows for more localize testing
     const { stakingContractMock } = await getNamedAccounts();
     await foxy.initialize(stakingContractMock);
-    await foxy.setIndex(1000);
   });
 
   describe("initialize", function () {
@@ -51,10 +50,6 @@ describe("Foxy", function () {
 
       // fails due to initializer isn't calling initialize
       await expect(staker1Foxy.initialize(stakingContractMock)).to.be.reverted;
-    });
-    it("Fails to try and setIndex again", async () => {
-      // fails due to index already being set
-      await expect(foxy.setIndex(0)).to.be.reverted;
     });
   });
 
