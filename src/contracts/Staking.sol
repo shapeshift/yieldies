@@ -262,9 +262,10 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         if (_canBatchTransactions() || overrideCanWithdraw) {
             ITokeManager iTokeManager = ITokeManager(tokeManager);
+            _requestWithdrawalFromTokemak(requestWithdrawalAmount);
+
             uint256 currentCycleIndex = iTokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
-            _requestWithdrawalFromTokemak(requestWithdrawalAmount);
             requestWithdrawalAmount = 0;
         }
     }
