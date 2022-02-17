@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
-import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -31,7 +30,8 @@ contract LiquidityReserve is ERC20, Ownable {
         @notice initialize by setting stakingContract & setting initial liquidity
         @param _stakingContract address
      */
-    function initialize(address _stakingContract) public {
+    function initialize(address _stakingContract) external {
+        require(stakingContract == address(0));
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
@@ -55,7 +55,7 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee >= 0 && _fee <= 10000, "Must be within range of 0 and 10000 bps");
+        require(_fee <= 10000, "Must be within range of 0 and 10000 bps");
         fee = _fee;
     }
 
