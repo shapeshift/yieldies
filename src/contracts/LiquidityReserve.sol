@@ -16,6 +16,7 @@ contract LiquidityReserve is ERC20, Ownable {
     uint256 public fee;
     address public initializer;
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
+    uint256 public constant BASIS_POINTS = 10000;
 
     constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
         require(_stakingToken != address(0));
@@ -55,7 +56,7 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee <= 10000, "Must be within range of 0 and 10000 bps");
+        require(_fee <= BASIS_POINTS, "Must be within range of 0 and 10000 bps");
         fee = _fee;
     }
 
@@ -152,7 +153,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
-        uint256 amountMinusFee = _amount - ((_amount * fee) / 10000);
+        uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
         // transfer from msg.sender (staking contract) due to not knowing if the funds are in warmup or not
         IERC20(rewardToken).safeTransferFrom(
