@@ -123,8 +123,11 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
-        require(_previousCirculating > 0, "Can't rebase without circulating tokens");
-        
+        require(
+            _previousCirculating > 0,
+            "Can't rebase without circulating tokens"
+        );
+
         uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 
         rebases.push(

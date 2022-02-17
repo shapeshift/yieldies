@@ -73,7 +73,7 @@ contract Staking is Ownable {
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
                 _tokeRewardHash != address(0) &&
-                _liquidityReserve != address(0) 
+                _liquidityReserve != address(0)
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;

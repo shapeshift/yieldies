@@ -35,12 +35,7 @@ contract Ownable is IOwnable {
         _owner = address(0);
     }
 
-    function pushOwner(address newOwner_)
-        public
-        virtual
-        override
-        onlyOwner
-    {
+    function pushOwner(address newOwner_) public virtual override onlyOwner {
         require(
             newOwner_ != address(0),
             "Ownable: new owner is the zero address"
