@@ -34,8 +34,9 @@ contract Foxy is ERC20Permit, Ownable {
 
     uint256 public index;
 
+    uint256 private constant WAD = 1e18;
     uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5000000 * 10**18;
+    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5000000 * WAD;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
@@ -65,7 +66,7 @@ contract Foxy is ERC20Permit, Ownable {
         emit Transfer(address(0x0), stakingContract, _totalSupply);
 
         initializer = address(0);
-        setIndex(10**18);
+        setIndex(WAD);
         return true;
     }
 
@@ -124,7 +125,7 @@ contract Foxy is ERC20Permit, Ownable {
     ) internal {
         require(_previousCirculating > 0, "Can't rebase without circulating tokens");
         
-        uint256 rebasePercent = (_profit * 1e18) / _previousCirculating;
+        uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 
         rebases.push(
             Rebase({
