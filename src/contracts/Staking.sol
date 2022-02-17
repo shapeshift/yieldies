@@ -368,43 +368,46 @@ contract Staking is Ownable {
             userWarmInfo.gons
         );
 
-        require(_amount <= walletBalance + warmUpBalance, "Insufficient Balance");
-        
+        require(
+            _amount <= walletBalance + warmUpBalance,
+            "Insufficient Balance"
+        );
+
         uint256 amountLeft = _amount;
-        if(warmUpBalance > 0) {
-          require(!userWarmInfo.lock, "Withdraws for account are locked");
-          // remove from warmup first.
-          if(_amount >= warmUpBalance){
-            // use the entire warmup balance
-            unchecked {
-              amountLeft -= warmUpBalance;  
+        if (warmUpBalance > 0) {
+            require(!userWarmInfo.lock, "Withdraws for account are locked");
+            // remove from warmup first.
+            if (_amount >= warmUpBalance) {
+                // use the entire warmup balance
+                unchecked {
+                    amountLeft -= warmUpBalance;
+                }
+
+                IVesting(WARM_UP_CONTRACT).retrieve(
+                    address(this),
+                    warmUpBalance
+                );
+                delete warmUpInfo[_recipient];
+            } else {
+                // partially consume warmup balance
+                amountLeft = 0;
+                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
+                uint256 remainingGonsAmount = userWarmInfo.gons -
+                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
+                uint256 remainingAmount = IRewardToken(REWARD_TOKEN)
+                    .balanceForGons(remainingGonsAmount);
+
+                warmUpInfo[_recipient] = Claim({
+                    amount: remainingAmount,
+                    gons: remainingGonsAmount,
+                    expiry: userWarmInfo.expiry,
+                    lock: false
+                });
             }
-            
-            IVesting(WARM_UP_CONTRACT).retrieve(address(this), warmUpBalance);
-            delete warmUpInfo[_recipient];
-
-          } else {
-            // partially consume warmup balance
-            amountLeft = 0;
-            
-            IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
-            uint256 remainingGonsAmount = userWarmInfo.gons -
-                IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
-            uint256 remainingAmount = IRewardToken(REWARD_TOKEN).balanceForGons(
-                remainingGonsAmount
-            );
-
-            warmUpInfo[_recipient] = Claim({
-                amount: remainingAmount,
-                gons: remainingGonsAmount,
-                expiry: userWarmInfo.expiry,
-                lock: false
-            });
-          }
         }
 
-        if(amountLeft > 0) {
-          IERC20(REWARD_TOKEN).safeTransferFrom(
+        if (amountLeft != 0) {
+            IERC20(REWARD_TOKEN).safeTransferFrom(
                 _recipient,
                 address(this),
                 amountLeft
