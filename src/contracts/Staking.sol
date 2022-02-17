@@ -356,14 +356,15 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice gets rewardToke either from the warmup contract or user's wallet
+        @notice gets rewardToken either from the warmup contract or user's wallet
         @param _amount uint
+        @param _user address to pull funds from 
      */
-    function _getFromWarmupOrWallet(uint256 _amount, address _recipient)
+    function _retrieveBalanceFromUser(uint256 _amount, address _user)
         internal
     {
-        Claim memory userWarmInfo = warmUpInfo[_recipient];
-        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_recipient);
+        Claim memory userWarmInfo = warmUpInfo[_user];
+        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_user);
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
@@ -387,7 +388,7 @@ contract Staking is Ownable {
                     address(this),
                     warmUpBalance
                 );
-                delete warmUpInfo[_recipient];
+                delete warmUpInfo[_user];
             } else {
                 // partially consume warmup balance
                 amountLeft = 0;
@@ -397,7 +398,7 @@ contract Staking is Ownable {
                 uint256 remainingAmount = IRewardToken(REWARD_TOKEN)
                     .balanceForGons(remainingGonsAmount);
 
-                warmUpInfo[_recipient] = Claim({
+                warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
                     gons: remainingGonsAmount,
                     expiry: userWarmInfo.expiry,
@@ -407,8 +408,9 @@ contract Staking is Ownable {
         }
 
         if (amountLeft != 0) {
+            // transfer the rest from the users address
             IERC20(REWARD_TOKEN).safeTransferFrom(
-                _recipient,
+                _user,
                 address(this),
                 amountLeft
             );
@@ -426,7 +428,7 @@ contract Staking is Ownable {
         if (_trigger) {
             rebase();
         }
-        _getFromWarmupOrWallet(_amount, msg.sender);
+        _retrieveBalanceFromUser(_amount, msg.sender);
 
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
             _amount,
@@ -444,7 +446,7 @@ contract Staking is Ownable {
         if (_trigger) {
             rebase();
         }
-        _getFromWarmupOrWallet(_amount, msg.sender);
+        _retrieveBalanceFromUser(_amount, msg.sender);
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
         require(!userCoolInfo.lock, "Withdraws for account are locked");
