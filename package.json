@@ -14,7 +14,7 @@
     "lint:solidity": "npx solhint src/**/*.sol",
     "lint:fix": "npx solhint src/**/*.sol --fix && npx eslint '**/*.{js,ts}' --fix",
     "prettier": "npx prettier '**/*.{json,sol,md}' --write",
-    "clean": "rm -rf node_modules artifacts cache typechain-types",
+    "clean": "rm -rf node_modules artifacts cache typechain-types deployments",
     "test": "npx hardhat test",
     "local-node": "dotenv cross-var npx hardhat node --fork %MAINNET_URL%"
   },

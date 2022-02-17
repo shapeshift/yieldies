@@ -16,6 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const tokeRewardHash = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6";
 
   const foxy = await deployments.get("Foxy");
+  const liquidityReserve = await deployments.get("LiquidityReserve");
 
   const epochLength = 100;
   const firstEpochNumber = 1;
@@ -32,13 +33,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       tokeManager,
       tokeReward,
       tokeRewardHash,
+      liquidityReserve.address,
       epochLength,
       firstEpochNumber,
       firstEpochBlock,
     ],
-    log: true,
+    log: true
   });
 };
 export default func;
 func.tags = ["Staking"];
-func.dependencies = ["Foxy"];
+func.dependencies = ["Foxy", "LiquidityReserve"];

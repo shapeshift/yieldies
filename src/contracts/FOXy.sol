@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../libraries/ERC20Permit.sol";
 import "../libraries/Ownable.sol";
 
@@ -49,7 +50,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     mapping(address => mapping(address => uint256)) private allowedValue;
 
-    constructor() ERC20("FOX Yield", "FOXy", 18) ERC20Permit() {
+    constructor() ERC20("FOX Yield", "FOXy") ERC20Permit("FOX Yield") {
         initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
@@ -64,10 +65,11 @@ contract Foxy is ERC20Permit, Ownable {
         emit Transfer(address(0x0), stakingContract, _totalSupply);
 
         initializer = address(0);
+        setIndex(10**18);
         return true;
     }
 
-    function setIndex(uint256 _index) external onlyOwner returns (bool) {
+    function setIndex(uint256 _index) internal returns (bool) {
         require(index == 0);
         index = gonsForBalance(_index);
         return true;
@@ -120,7 +122,7 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
-        require(_previousCirculating > 0);
+        require(_previousCirculating > 0, "Can't rebase without circulating tokens");
         
         uint256 rebasePercent = (_profit * 1e18) / _previousCirculating;
 
