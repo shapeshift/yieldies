@@ -428,7 +428,7 @@ describe("Staking", function () {
       // unstake fails due to too incorrect amount
       await expect(
         stakingStaker1.unstake(stakingAmount.add(1), false)
-      ).to.be.revertedWith("Not enough FOXy to claim FOX'");
+      ).to.be.revertedWith("Insufficient Balance");
     });
     it("Users can unstake using funds from both wallet and warmup", async () => {
       const { staker1 } = await getNamedAccounts();
