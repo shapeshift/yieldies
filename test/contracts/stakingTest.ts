@@ -81,10 +81,10 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const liquidityReserveAddress = await staking.LIQUIDITY_RESERVE();
+    const liquidityReserveDeployment = await deployments.get("LiquidityReserve");
     liquidityReserve = new ethers.Contract(
-      liquidityReserveAddress,
-      liquidityReserveAbi,
+      liquidityReserveDeployment.address,
+      liquidityReserveDeployment.abi,
       accounts[0]
     ) as LiquidityReserve;
 
@@ -128,8 +128,8 @@ describe("Staking", function () {
       liquidityReserve.address,
       BigNumber.from("1000000000000000")
     ); // approve initial liquidity amount
-    await liquidityReserve.initialize(stakingDeployment.address); // initialize liquidity reserve contract
-    await staking.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
+    await liquidityReserve.initialize(stakingDeployment.address, rewardToken.address); // initialize liquidity reserve contract
+    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
   });
 
   describe("initialize", function () {
@@ -155,6 +155,7 @@ describe("Staking", function () {
           tokeManager.address,
           TOKE_REWARD,
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -169,6 +170,7 @@ describe("Staking", function () {
           tokeManager.address,
           TOKE_REWARD,
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -183,6 +185,7 @@ describe("Staking", function () {
           tokeManager.address,
           TOKE_REWARD,
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -197,6 +200,7 @@ describe("Staking", function () {
           tokeManager.address,
           TOKE_REWARD,
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -211,6 +215,7 @@ describe("Staking", function () {
           "0x0000000000000000000000000000000000000000",
           TOKE_REWARD,
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -225,6 +230,7 @@ describe("Staking", function () {
           tokeManager.address,
           "0x0000000000000000000000000000000000000000",
           TOKE_REWARD_HASH,
+          liquidityReserve.address,
           1,
           1,
           1
@@ -239,6 +245,7 @@ describe("Staking", function () {
           tokeManager.address,
           TOKE_REWARD,
           "0x0000000000000000000000000000000000000000",
+          liquidityReserve.address,
           1,
           1,
           1

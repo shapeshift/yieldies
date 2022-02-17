@@ -13,7 +13,6 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -61,6 +60,7 @@ contract Staking is Ownable {
         address _tokeManager,
         address _tokeReward,
         address _tokeRewardHash,
+        address _liquidityReserve,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
@@ -72,7 +72,8 @@ contract Staking is Ownable {
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
-                _tokeRewardHash != address(0)
+                _tokeRewardHash != address(0) &&
+                _liquidityReserve != address(0) 
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
@@ -81,18 +82,14 @@ contract Staking is Ownable {
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         TOKE_REWARD_HASH = _tokeRewardHash;
+        LIQUIDITY_RESERVE = _liquidityReserve;
+
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
         WARM_UP_CONTRACT = address(warmUp);
         blocksLeftToRequestWithdrawal = 500;
 
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
-
-        LiquidityReserve lrContract = new LiquidityReserve(
-            STAKING_TOKEN,
-            REWARD_TOKEN
-        );
-        LIQUIDITY_RESERVE = address(lrContract);
 
         IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20(REWARD_TOKEN).approve(LIQUIDITY_RESERVE, type(uint256).max);
@@ -543,13 +540,5 @@ contract Staking is Ownable {
         if (_isTriggerRebase) {
             rebase();
         }
-    }
-
-    /**
-     * @notice sets fee for instant unstaking
-     * @param _fee uint
-     */
-    function setInstantUnstakeFee(uint256 _fee) external onlyOwner {
-        ILiquidityReserve(LIQUIDITY_RESERVE).setFee(_fee);
     }
 }

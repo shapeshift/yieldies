@@ -4,7 +4,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
 
 describe("Liquidity Reserve", function () {
@@ -49,10 +48,12 @@ describe("Liquidity Reserve", function () {
       accounts[0]
     ) as Staking;
 
-    const liquidityReserveAddress = await stakingContract.LIQUIDITY_RESERVE();
+    const liquidityReserveDeployment = await deployments.get(
+      "LiquidityReserve"
+    );
     liquidityReserve = new ethers.Contract(
-      liquidityReserveAddress,
-      liquidityReserveAbi,
+      liquidityReserveDeployment.address,
+      liquidityReserveDeployment.abi,
       accounts[0]
     ) as LiquidityReserve;
 
@@ -73,11 +74,14 @@ describe("Liquidity Reserve", function () {
       transferAmount.toNumber()
     );
 
-    await stakingContract.setInstantUnstakeFee(INSTANT_UNSTAKE_FEE);
+    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
     await rewardToken.initialize(stakingContract.address);
 
     await stakingToken.approve(liquidityReserve.address, INITIAL_LR_BALANCE); // approve initial liquidity amount
-    await liquidityReserve.initialize(stakingContract.address); // initialize liquidity reserve contract
+    await liquidityReserve.initialize(
+      stakingContract.address,
+      foxyDeployment.address
+    ); // initialize liquidity reserve contract
   });
 
   describe("deposit & withdraw", function () {
@@ -321,25 +325,16 @@ describe("Liquidity Reserve", function () {
 
       // fail due to no staking/reward token
       await expect(
-        liquidityFactory.deploy(
-          stakingToken.address,
-          "0x0000000000000000000000000000000000000000"
-        )
-      ).to.be.reverted;
-      await expect(
-        liquidityFactory.deploy(
-          "0x0000000000000000000000000000000000000000",
-          rewardToken.address
-        )
+        liquidityFactory.deploy("0x0000000000000000000000000000000000000000")
       ).to.be.reverted;
 
       const liquidityReserveContract = await liquidityFactory.deploy(
-        stakingToken.address,
-        rewardToken.address
+        stakingToken.address
       );
       // fail due to no stakingContract
       await expect(
         liquidityReserveContract.initialize(
+          "0x0000000000000000000000000000000000000000",
           "0x0000000000000000000000000000000000000000"
         )
       ).to.be.reverted;
@@ -348,13 +343,17 @@ describe("Liquidity Reserve", function () {
       await stakingToken.transfer(staker1, transferAmount);
 
       // fail due to not enough liquidity
-      await expect(liquidityReserveContract.initialize(stakingContract.address))
-        .to.be.reverted;
+      await expect(
+        liquidityReserveContract.initialize(
+          stakingContract.address,
+          rewardToken.address
+        )
+      ).to.be.reverted;
     });
 
     it("Must have correct fee amount", async () => {
       await expect(
-        stakingContract.setInstantUnstakeFee(BigNumber.from("10000000000"))
+        liquidityReserve.setFee(BigNumber.from("10000000000"))
       ).to.be.revertedWith("Must be within range of 0 and 10000 bps");
     });
 
@@ -362,7 +361,7 @@ describe("Liquidity Reserve", function () {
       await expect(
         liquidityReserve.withdraw(BigNumber.from("10000000000"))
       ).to.be.revertedWith("Not enough liquidity reserve tokens");
-    })
+    });
 
     it("InstantUnstake has required balance", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -377,12 +376,16 @@ describe("Liquidity Reserve", function () {
         "LiquidityReserve"
       );
       const liquidityReserveContract = await liquidityFactory.deploy(
-        stakingToken.address,
-        rewardToken.address
+        stakingToken.address
       );
       await expect(
-        liquidityReserveContract.instantUnstake(BigNumber.from("10000"), staker1)
-      ).to.be.revertedWith("Not enough funds in contract to cover instant unstake");
+        liquidityReserveContract.instantUnstake(
+          BigNumber.from("10000"),
+          staker1
+        )
+      ).to.be.revertedWith(
+        "Not enough funds in contract to cover instant unstake"
+      );
     });
   });
 });

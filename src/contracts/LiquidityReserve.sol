@@ -17,27 +17,26 @@ contract LiquidityReserve is ERC20, Ownable {
     address public initializer;
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
 
-    constructor(address _stakingToken, address _rewardToken)
+    constructor(address _stakingToken)
         ERC20("Liquidity Reserve FOX", "lrFOX")
     {
-        require(_stakingToken != address(0) && _rewardToken != address(0));
+        require(_stakingToken != address(0));
         initializer = msg.sender;
         stakingToken = _stakingToken;
-        rewardToken = _rewardToken;
     }
 
     /**
         @notice initialize by setting stakingContract & setting initial liquidity
         @param _stakingContract address
      */
-    function initialize(address _stakingContract) external {
-        require(stakingContract == address(0));
+    function initialize(address _stakingContract, address _rewardToken) external onlyOwner{
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
-        require(_stakingContract != address(0));
+        require(_stakingContract != address(0) && _rewardToken != address(0));
         require(stakingTokenBalance >= MINIMUM_LIQUIDITY);
         stakingContract = _stakingContract;
+        rewardToken = _rewardToken;
 
         // permanently lock the first MINIMUM_LIQUIDITY of lrTokens & stakingTokens
         IERC20(stakingToken).transferFrom(
