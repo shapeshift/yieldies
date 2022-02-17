@@ -61,10 +61,10 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice deposit stakingToken and receive lrToken
+        @notice addLiquidity for the stakingToken and receive lrToken in exchange
         @param _amount uint
      */
-    function deposit(uint256 _amount) external {
+    function addLiquidity(uint256 _amount) external {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             address(this)
         );
@@ -117,10 +117,10 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice withdraw lrToken for stakingToken
+        @notice removeLiquidity by swapping your lrToken for stakingTokens
         @param _amount uint
      */
-    function withdraw(uint256 _amount) external {
+    function removeLiquidity(uint256 _amount) external {
         require(
             _amount <= balanceOf(msg.sender),
             "Not enough liquidity reserve tokens"
@@ -139,7 +139,7 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice allow instant untake of stakingToken with fee
+        @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
         @param _amount uint
         @param _recipient address
      */
