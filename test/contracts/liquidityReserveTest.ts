@@ -164,7 +164,7 @@ describe("Liquidity Reserve", function () {
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
-      let staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      const staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(amountMinusFee);
 
       // deposit with liquidityProvider
@@ -207,7 +207,9 @@ describe("Liquidity Reserve", function () {
       expect(liquidityReserveBalance).eq(24886877828054); // 24886877828054 is the new balance based on new liquidity
 
       // withdraw with liquidityProvider
-      await liquidityReserveLiquidityProvider.removeLiquidity(liquidityReserveBalance);
+      await liquidityReserveLiquidityProvider.removeLiquidity(
+        liquidityReserveBalance
+      );
 
       liquidityProviderStakingBalance = await stakingToken.balanceOf(
         liquidityProvider
@@ -299,7 +301,7 @@ describe("Liquidity Reserve", function () {
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
-      let staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      const staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(amountMinusFee);
 
       // withdraw all with DAO
@@ -307,14 +309,15 @@ describe("Liquidity Reserve", function () {
       lrStakingBalance = await stakingToken.balanceOf(liquidityReserve.address);
       expect(lrStakingBalance).eq(1800000000000000); // amount after instant unstake
 
-      let daoBalance = await liquidityReserveDao.balanceOf(daoTreasury);
+      const daoBalance = await liquidityReserveDao.balanceOf(daoTreasury);
       expect(daoBalance).eq(4000000000000000); // more than staking tokens in liquidity reserve
 
-      await expect(liquidityReserveDao.removeLiquidity(daoBalance)).to.be.revertedWith(
-        "Not enough funds in contract to cover withdraw"
-      );
+      await expect(
+        liquidityReserveDao.removeLiquidity(daoBalance)
+      ).to.be.revertedWith("Not enough funds in contract to cover withdraw");
     });
   });
+
   describe("fail states", () => {
     it("Fails when no staking/reward token or staking contract is passed in", async () => {
       const { admin, staker1 } = await getNamedAccounts();

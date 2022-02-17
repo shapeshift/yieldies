@@ -56,7 +56,10 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee <= BASIS_POINTS, "Must be within range of 0 and 10000 bps");
+        require(
+            _fee <= BASIS_POINTS,
+            "Must be within range of 0 and 10000 bps"
+        );
         fee = _fee;
     }
 
