@@ -6,7 +6,6 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../../artifacts/src/contracts/Vesting.sol/Vesting.json";
-import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve, Vesting, Staking } from "../../typechain-types";
 import { INSTANT_UNSTAKE_FEE } from "../constants";
@@ -147,8 +146,6 @@ describe("Staking", function () {
       expect(stakingContractBalance).eq(supply);
     });
     it("Fails when no staking/reward token or staking contract is passed in", async () => {
-      const { admin, staker1 } = await getNamedAccounts();
-
       const stakingFactory = await ethers.getContractFactory("Staking");
 
       // fail due to bad addresses
@@ -792,7 +789,7 @@ describe("Staking", function () {
       await stakingStaker1.claimWithdraw(staker1);
 
       // doesn't have staking balance due to cooldown period not expired
-      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      const stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
       let epoch = await staking.epoch();

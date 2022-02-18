@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
     },
     liquidityProvider2: {
       default: 6,
-    }
+    },
   },
   contractSizer: {
     alphaSort: true,

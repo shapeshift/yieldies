@@ -38,7 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       firstEpochNumber,
       firstEpochBlock,
     ],
-    log: true
+    log: true,
   });
 };
 export default func;
