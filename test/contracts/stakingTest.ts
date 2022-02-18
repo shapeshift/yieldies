@@ -81,7 +81,9 @@ describe("Staking", function () {
       accounts[0]
     ) as Staking; // is there a better way to avoid this cast?
 
-    const liquidityReserveDeployment = await deployments.get("LiquidityReserve");
+    const liquidityReserveDeployment = await deployments.get(
+      "LiquidityReserve"
+    );
     liquidityReserve = new ethers.Contract(
       liquidityReserveDeployment.address,
       liquidityReserveDeployment.abi,
@@ -128,7 +130,11 @@ describe("Staking", function () {
       liquidityReserve.address,
       BigNumber.from("1000000000000000")
     ); // approve initial liquidity amount
-    await liquidityReserve.initialize(stakingDeployment.address, rewardToken.address); // initialize liquidity reserve contract
+    await liquidityReserve.initialize(
+      stakingDeployment.address,
+      rewardToken.address
+    ); // initialize liquidity reserve contract
+
     await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
   });
 
@@ -283,7 +289,7 @@ describe("Staking", function () {
       expect(staker1RewardBalance).eq(stakingAmount);
 
       // shouldn't go to warmup contract
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+      const warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance).eq(0);
@@ -299,7 +305,7 @@ describe("Staking", function () {
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
-      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+      const cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
@@ -342,8 +348,8 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
       for (let i = currentBlock; i <= nextRewardBlock; i++) {
         await ethers.provider.send("evm_mine", []);
       }
@@ -411,7 +417,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+      const warmupRewardTokenBalance = await rewardToken.balanceOf(
         stakingWarmup.address
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
@@ -423,7 +429,7 @@ describe("Staking", function () {
       // unstake fails due to too incorrect amount
       await expect(
         stakingStaker1.unstake(stakingAmount.add(1), false)
-      ).to.be.revertedWith("Not enough FOXy to claim FOX'");
+      ).to.be.revertedWith("Insufficient Balance");
     });
     it("Users can unstake using funds from both wallet and warmup", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -454,8 +460,8 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
       for (let i = currentBlock; i <= nextRewardBlock; i++) {
         await ethers.provider.send("evm_mine", []);
       }
@@ -508,8 +514,8 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
       for (let i = currentBlock; i <= nextRewardBlock; i++) {
         await ethers.provider.send("evm_mine", []);
       }
@@ -534,7 +540,7 @@ describe("Staking", function () {
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
 
-      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+      const cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount.div(2));
@@ -571,8 +577,8 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
       for (let i = currentBlock; i <= nextRewardBlock; i++) {
         await ethers.provider.send("evm_mine", []);
       }
@@ -595,7 +601,7 @@ describe("Staking", function () {
         .approve(staking.address, stakingAmount);
       await stakingStaker1.unstake(stakingAmount, false);
 
-      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+      const cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
@@ -838,13 +844,6 @@ describe("Staking", function () {
         stakingStaker1.unstake(stakingAmount, false)
       ).to.be.revertedWith("Withdraws for account are locked");
       await stakingStaker1.toggleWithdrawLock();
-
-      // can't unstake from warmup contract if deposits are locks
-      await stakingStaker1.toggleDepositLock();
-      await expect(
-        stakingStaker1.unstake(stakingAmount, false)
-      ).to.be.revertedWith("Withdraws for account are locked");
-      await stakingStaker1.toggleDepositLock();
 
       await stakingStaker1.unstake(stakingAmount, false);
 
@@ -1149,7 +1148,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(0);
       expect(rewardTokenBalanceStaker2).eq(0);
 
-      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+      const cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
       );
       expect(cooldownRewardTokenBalance).eq(
@@ -1401,7 +1400,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
 
-      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      const staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount1);
 
       await rewardToken
@@ -1474,7 +1473,7 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(0);
 
-      let staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
+      const staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardTokenBalance).eq(stakingAmount);
 
       await rewardToken

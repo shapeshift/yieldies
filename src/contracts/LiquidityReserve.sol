@@ -16,10 +16,9 @@ contract LiquidityReserve is ERC20, Ownable {
     uint256 public fee;
     address public initializer;
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
+    uint256 public constant BASIS_POINTS = 10000;
 
-    constructor(address _stakingToken)
-        ERC20("Liquidity Reserve FOX", "lrFOX")
-    {
+    constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
         require(_stakingToken != address(0));
         initializer = msg.sender;
         stakingToken = _stakingToken;
@@ -29,7 +28,10 @@ contract LiquidityReserve is ERC20, Ownable {
         @notice initialize by setting stakingContract & setting initial liquidity
         @param _stakingContract address
      */
-    function initialize(address _stakingContract, address _rewardToken) external onlyOwner{
+    function initialize(address _stakingContract, address _rewardToken)
+        external
+        onlyOwner
+    {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
@@ -54,15 +56,18 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(_fee <= 10000, "Must be within range of 0 and 10000 bps");
+        require(
+            _fee <= BASIS_POINTS,
+            "Must be within range of 0 and 10000 bps"
+        );
         fee = _fee;
     }
 
     /**
-        @notice deposit stakingToken and receive lrToken
+        @notice addLiquidity for the stakingToken and receive lrToken in exchange
         @param _amount uint
      */
-    function deposit(uint256 _amount) external {
+    function addLiquidity(uint256 _amount) external {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             address(this)
         );
@@ -115,10 +120,10 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice withdraw lrToken for stakingToken
+        @notice removeLiquidity by swapping your lrToken for stakingTokens
         @param _amount uint
      */
-    function withdraw(uint256 _amount) external {
+    function removeLiquidity(uint256 _amount) external {
         require(
             _amount <= balanceOf(msg.sender),
             "Not enough liquidity reserve tokens"
@@ -137,7 +142,7 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice allow instant untake of stakingToken with fee
+        @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
         @param _amount uint
         @param _recipient address
      */
@@ -151,7 +156,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
-        uint256 amountMinusFee = _amount - ((_amount * fee) / 10000);
+        uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
         // transfer from msg.sender (staking contract) due to not knowing if the funds are in warmup or not
         IERC20(rewardToken).safeTransferFrom(

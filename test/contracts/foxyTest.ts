@@ -162,7 +162,9 @@ describe("Foxy", function () {
         (account) => account.address === staker1
       );
 
-      await foxy.connect(staker1Signer as Signer).approve(stakingContractMock, 10);
+      await foxy
+        .connect(staker1Signer as Signer)
+        .approve(stakingContractMock, 10);
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(10);
     });
     it("Emits an Approval event", async () => {
@@ -171,7 +173,11 @@ describe("Foxy", function () {
         (account) => account.address === staker1
       );
 
-      await expect(await foxy.connect(staker1Signer as Signer).approve(stakingContractMock, 10))
+      await expect(
+        await foxy
+          .connect(staker1Signer as Signer)
+          .approve(stakingContractMock, 10)
+      )
         .to.emit(foxy, "Approval")
         .withArgs(staker1, stakingContractMock, 10);
     });
@@ -184,7 +190,9 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await foxy.connect(staker1Signer).increaseAllowance(stakingContractMock, 4);
+      await foxy
+        .connect(staker1Signer)
+        .increaseAllowance(stakingContractMock, 4);
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(14);
     });
@@ -195,7 +203,11 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await expect(await foxy.connect(staker1Signer).increaseAllowance(stakingContractMock, 4))
+      await expect(
+        await foxy
+          .connect(staker1Signer)
+          .increaseAllowance(stakingContractMock, 4)
+      )
         .to.emit(foxy, "Approval")
         .withArgs(staker1, stakingContractMock, 14);
     });
@@ -208,7 +220,9 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 4);
+      await foxy
+        .connect(staker1Signer)
+        .decreaseAllowance(stakingContractMock, 4);
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(6);
     });
@@ -219,7 +233,9 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 11);
+      await foxy
+        .connect(staker1Signer)
+        .decreaseAllowance(stakingContractMock, 11);
 
       expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(0);
     });
@@ -230,7 +246,11 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await expect(await foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 4))
+      await expect(
+        await foxy
+          .connect(staker1Signer)
+          .decreaseAllowance(stakingContractMock, 4)
+      )
         .to.emit(foxy, "Approval")
         .withArgs(staker1, stakingContractMock, 6);
     });

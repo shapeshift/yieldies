@@ -73,7 +73,8 @@ contract Staking is Ownable {
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
                 _tokeRewardHash != address(0) &&
-                _liquidityReserve != address(0) 
+                _liquidityReserve != address(0)
+
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
@@ -356,61 +357,63 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice gets rewardToke either from the warmup contract or user's wallet
+        @notice gets rewardToken either from the warmup contract or user's wallet
         @param _amount uint
+        @param _user address to pull funds from 
      */
-    function _getFromWarmupOrWallet(uint256 _amount, address _recipient)
+    function _retrieveBalanceFromUser(uint256 _amount, address _user)
         internal
     {
-        Claim memory userWarmInfo = warmUpInfo[_recipient];
-        require(!userWarmInfo.lock, "Withdraws for account are locked");
-        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_recipient);
+        Claim memory userWarmInfo = warmUpInfo[_user];
+        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_user);
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
-        bool hasFullAmountInWarmup = warmUpBalance >= _amount && // user has full REWARD_TOKEN amount in warmup contract
-            _isClaimAvailable(userWarmInfo);
-        bool hasFullAmountSplit = warmUpBalance > 0 && // user has full reward amount in both warmup contract and wallet
-            warmUpBalance + walletBalance >= _amount;
 
         require(
-            hasFullAmountInWarmup ||
-                hasFullAmountSplit ||
-                walletBalance >= _amount,
-            "Not enough FOXy to claim FOX"
+            _amount <= walletBalance + warmUpBalance,
+            "Insufficient Balance"
         );
 
-        if (hasFullAmountInWarmup) {
-            uint256 remainingGonsAmount = userWarmInfo.gons -
-                IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
-            uint256 remainingAmount = IRewardToken(REWARD_TOKEN).balanceForGons(
-                remainingGonsAmount
-            );
+        uint256 amountLeft = _amount;
+        if (warmUpBalance > 0) {
+            require(!userWarmInfo.lock, "Withdraws for account are locked");
+            // remove from warmup first.
+            if (_amount >= warmUpBalance) {
+                // use the entire warmup balance
+                unchecked {
+                    amountLeft -= warmUpBalance;
+                }
 
-            IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount); // get in amount
-            if (remainingAmount == 0) {
-                delete warmUpInfo[_recipient];
+                IVesting(WARM_UP_CONTRACT).retrieve(
+                    address(this),
+                    warmUpBalance
+                );
+                delete warmUpInfo[_user];
             } else {
-                warmUpInfo[_recipient] = Claim({
+                // partially consume warmup balance
+                amountLeft = 0;
+                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
+                uint256 remainingGonsAmount = userWarmInfo.gons -
+                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
+                uint256 remainingAmount = IRewardToken(REWARD_TOKEN)
+                    .balanceForGons(remainingGonsAmount);
+
+                warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
                     gons: remainingGonsAmount,
                     expiry: userWarmInfo.expiry,
                     lock: false
                 });
             }
-        } else if (hasFullAmountSplit) {
-            IVesting(WARM_UP_CONTRACT).retrieve(address(this), warmUpBalance);
-            delete warmUpInfo[_recipient];
+        }
+
+        if (amountLeft != 0) {
+            // transfer the rest from the users address
             IERC20(REWARD_TOKEN).safeTransferFrom(
-                _recipient,
+                _user,
                 address(this),
-                _amount - warmUpBalance
-            );
-        } else {
-            IERC20(REWARD_TOKEN).safeTransferFrom(
-                _recipient,
-                address(this),
-                _amount
+                amountLeft
             );
         }
     }
@@ -426,7 +429,7 @@ contract Staking is Ownable {
         if (_trigger) {
             rebase();
         }
-        _getFromWarmupOrWallet(_amount, msg.sender);
+        _retrieveBalanceFromUser(_amount, msg.sender);
 
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
             _amount,
@@ -444,7 +447,7 @@ contract Staking is Ownable {
         if (_trigger) {
             rebase();
         }
-        _getFromWarmupOrWallet(_amount, msg.sender);
+        _retrieveBalanceFromUser(_amount, msg.sender);
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
         require(!userCoolInfo.lock, "Withdraws for account are locked");

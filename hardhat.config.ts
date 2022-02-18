@@ -40,10 +40,10 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    }
+    },
   },
   paths: {
-    deploy: 'deploy',
+    deploy: "deploy",
     sources: "./src",
   },
   namedAccounts: {
@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   mocha: {
-    timeout: 40000
-  }
+    timeout: 40000,
+  },
 };
 export default config;
