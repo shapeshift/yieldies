@@ -6,6 +6,7 @@ import "../libraries/ERC20Permit.sol";
 import "../libraries/Ownable.sol";
 
 contract Foxy is ERC20Permit, Ownable {
+    // check if sender is the stakingContract
     modifier onlyStakingContract() {
         require(msg.sender == stakingContract);
         _;
@@ -57,8 +58,15 @@ contract Foxy is ERC20Permit, Ownable {
         gonsPerFragment = TOTAL_GONS / _totalSupply;
     }
 
+    /**
+        @notice initialize gons and stakingContract
+        @param _stakingContract address
+        @return bool
+     */
     function initialize(address _stakingContract) external returns (bool) {
+        // check if initializer is msg.sender that was set in constructor
         require(msg.sender == initializer);
+        // make sure _stakingContract isn't 0x0
         require(_stakingContract != address(0));
         stakingContract = _stakingContract;
         gonBalances[stakingContract] = TOTAL_GONS;
@@ -70,7 +78,13 @@ contract Foxy is ERC20Permit, Ownable {
         return true;
     }
 
+    /**
+        @notice sets index to get the value of rebases from the beginning of the contract
+        @param _index uint
+        @return bool
+     */
     function setIndex(uint256 _index) internal returns (bool) {
+        // make sure index isn't set yet, so it's only set once
         require(index == 0);
         index = gonsForBalance(_index);
         return true;
@@ -123,6 +137,7 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
+        // don't divide by 0
         require(
             _previousCirculating > 0,
             "Can't rebase without circulating tokens"
@@ -146,27 +161,56 @@ contract Foxy is ERC20Permit, Ownable {
         emit LogRebase(_epoch, rebasePercent, getIndex());
     }
 
+    /**
+        @notice gets balanceOf rewardToken
+        @param _wallet address
+        @return uint
+     */
     function balanceOf(address _wallet) public view override returns (uint256) {
         return gonBalances[_wallet] / gonsPerFragment;
     }
 
+    /**
+        @notice calculate gons based on balance amount
+        @param _amount uint
+        @return uint
+     */
     function gonsForBalance(uint256 _amount) public view returns (uint256) {
         return _amount * gonsPerFragment;
     }
 
+    /**
+        @notice calculate balance based on gons amount
+        @param _gons uint
+        @return uint
+     */
     function balanceForGons(uint256 _gons) public view returns (uint256) {
         return _gons / gonsPerFragment;
     }
 
-    // Staking contract holds excess FOXy
+    /**
+        @notice get circulating supply of tokens
+        @return uint
+     */
     function circulatingSupply() public view returns (uint256) {
+        // Staking contract holds excess FOXy
         return _totalSupply - balanceOf(stakingContract);
     }
 
+    /**
+        @notice get current index
+        @return uint
+     */
     function getIndex() public view returns (uint256) {
         return balanceForGons(index);
     }
 
+    /**
+        @notice transfers to address with a certain amount
+        @param _to address
+        @param _value uint
+        @return bool
+     */
     function transfer(address _to, uint256 _value)
         public
         override
@@ -179,6 +223,12 @@ contract Foxy is ERC20Permit, Ownable {
         return true;
     }
 
+    /**
+        @notice gets allowance amount based on owner and spender
+        @param _owner address
+        @param _spender address
+        @return uint
+     */
     function allowance(address _owner, address _spender)
         public
         view
@@ -188,15 +238,21 @@ contract Foxy is ERC20Permit, Ownable {
         return allowedValue[_owner][_spender];
     }
 
+    /**
+        @notice transfer from address to address with amount
+        @param _from address
+        @param _to address
+        @param _value uint
+        @return bool
+     */
     function transferFrom(
         address _from,
         address _to,
         uint256 _value
     ) public override returns (bool) {
-        allowedValue[_from][msg.sender] =
-            allowedValue[_from][msg.sender] -
-            _value;
-        emit Approval(_from, msg.sender, allowedValue[_from][msg.sender]);
+        uint256 newValue = allowedValue[_from][msg.sender] - _value;
+        allowedValue[_from][msg.sender] = newValue;
+        emit Approval(_from, msg.sender, newValue);
 
         uint256 gonValue = gonsForBalance(_value);
         gonBalances[_from] = gonBalances[_from] - gonValue;
@@ -206,6 +262,12 @@ contract Foxy is ERC20Permit, Ownable {
         return true;
     }
 
+    /**
+        @notice approve spender for amount
+        @param _spender address
+        @param _value uint
+        @return bool
+     */
     function approve(address _spender, uint256 _value)
         public
         override
@@ -216,40 +278,41 @@ contract Foxy is ERC20Permit, Ownable {
         return true;
     }
 
-    // What gets called in a permit
-    function _approve(
-        address _owner,
-        address _spender,
-        uint256 _value
-    ) internal virtual override {
-        allowedValue[_owner][_spender] = _value;
-        emit Approval(_owner, _spender, _value);
-    }
-
+    /**
+        @notice increase allowance by amount
+        @param _spender address
+        @param _addedValue uint
+        @return bool
+     */
     function increaseAllowance(address _spender, uint256 _addedValue)
         public
         override
         returns (bool)
     {
-        allowedValue[msg.sender][_spender] =
-            allowedValue[msg.sender][_spender] +
-            _addedValue;
-        emit Approval(msg.sender, _spender, allowedValue[msg.sender][_spender]);
+        uint256 newValue = allowedValue[msg.sender][_spender] + _addedValue;
+        allowedValue[msg.sender][_spender] = newValue;
+        emit Approval(msg.sender, _spender, newValue);
         return true;
     }
 
+    /**
+        @notice decrease allowance by amount
+        @param _spender address
+        @param _subtractedValue uint
+        @return bool
+     */
     function decreaseAllowance(address _spender, uint256 _subtractedValue)
         public
         override
         returns (bool)
     {
         uint256 oldValue = allowedValue[msg.sender][_spender];
-        if (_subtractedValue >= oldValue) {
-            allowedValue[msg.sender][_spender] = 0;
-        } else {
-            allowedValue[msg.sender][_spender] = oldValue - _subtractedValue;
+        uint256 newValue = 0;
+        if (_subtractedValue < oldValue) {
+            newValue = oldValue - _subtractedValue;
         }
-        emit Approval(msg.sender, _spender, allowedValue[msg.sender][_spender]);
+        allowedValue[msg.sender][_spender] = newValue;
+        emit Approval(msg.sender, _spender, newValue);
         return true;
     }
 }

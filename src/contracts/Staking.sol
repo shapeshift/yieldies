@@ -116,6 +116,7 @@ contract Staking is Ownable {
         bytes32 _r,
         bytes32 _s
     ) external {
+        // cannot claim 0
         require(_amount > 0, "Must enter valid amount");
 
         ITokeReward tokeRewardContract = ITokeReward(TOKE_REWARD);
@@ -136,6 +137,7 @@ contract Staking is Ownable {
         @param _claimAddress address
         **/
     function transferToke(address _claimAddress) external onlyOwner {
+        // _claimAddress can't be 0x0
         require(_claimAddress != address(0));
         uint256 amount = IERC20(TOKE_TOKEN).balanceOf(address(this));
         IERC20(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
@@ -274,6 +276,7 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
+        // if override staking, then don't allow stake
         require(!pauseStaking, "Staking is paused");
         rebase();
         IERC20(STAKING_TOKEN).safeTransferFrom(
