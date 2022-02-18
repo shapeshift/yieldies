@@ -62,9 +62,12 @@ const config: HardhatUserConfig = {
     stakingContractMock: {
       default: 4,
     },
-    liquidityProvider: {
+    liquidityProvider1: {
       default: 5,
     },
+    liquidityProvider2: {
+      default: 6,
+    }
   },
   contractSizer: {
     alphaSort: true,

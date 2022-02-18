@@ -678,6 +678,9 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
+      // can't instantUnstake 0
+      await expect(stakingStaker1.instantUnstake(0, false)).to.be.reverted;
+
       await stakingStaker1.instantUnstake(transferAmount, false);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
@@ -801,6 +804,29 @@ describe("Staking", function () {
       epoch = await staking.epoch();
       // @ts-ignore
       expect(epoch._length).eq(1000);
+
+      // test unstakAllFromTokemak
+
+      let requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      expect(requestedWithdrawals.amount).eq(stakingAmount);
+
+      // stake a bunch of stuff
+      await stakingToken.transfer(staker1, stakingAmount);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      // unstake all tfox from tokemak
+      const tokeBalance = await tokePool.balanceOf(staking.address);
+      console.log("tokeBalance", tokeBalance);
+      await stakingAdmin.unstakeAllFromTokemak();
+
+      requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
+      );
+      expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
     it("Claim locks work", async () => {
       const { staker1 } = await getNamedAccounts();
