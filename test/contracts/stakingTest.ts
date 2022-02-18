@@ -731,8 +731,8 @@ describe("Staking", function () {
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
 
-      await stakingAdmin.overrideStaking(true);
-      await stakingAdmin.overrideUnstaking(true);
+      await stakingAdmin.shouldPauseStaking(true);
+      await stakingAdmin.shouldPauseUnstaking(true);
       await stakingAdmin.setCoolDownPeriod(99999999999999);
 
       await stakingAdmin.setBlocksLeftToRequestWithdrawal(10);
@@ -756,7 +756,7 @@ describe("Staking", function () {
       await expect(
         stakingStaker1.functions["stake(uint256)"](stakingAmount)
       ).to.be.revertedWith("Staking is paused");
-      await stakingAdmin.overrideStaking(false);
+      await stakingAdmin.shouldPauseStaking(false);
 
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
@@ -772,7 +772,7 @@ describe("Staking", function () {
         stakingStaker1.instantUnstake(stakingAmount, true)
       ).to.be.revertedWith("Unstaking is paused");
 
-      await stakingAdmin.overrideUnstaking(false);
+      await stakingAdmin.shouldPauseUnstaking(false);
       await stakingStaker1.unstake(stakingAmount, true);
 
       await mineBlocksToNextCycle();
@@ -791,15 +791,6 @@ describe("Staking", function () {
       // doesn't have staking balance due to cooldown period not expired
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
-
-      await stakingAdmin.overrideWithdrawals(true);
-
-      // can claim with withdraws overrode
-      await stakingStaker1.claimWithdraw(staker1);
-
-      // has stakingBalance after withdrawal
-      stakingTokenBalance = await stakingToken.balanceOf(staker1);
-      expect(stakingTokenBalance).eq(stakingAmount);
 
       let epoch = await staking.epoch();
       // @ts-ignore

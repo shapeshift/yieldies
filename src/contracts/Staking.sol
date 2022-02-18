@@ -143,18 +143,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice override whether or not withdraws from Tokemak are blocked
-        @param _shouldOverride bool
-        **/
-    function overrideWithdrawals(bool _shouldOverride) external onlyOwner {
-        overrideCanWithdraw = _shouldOverride;
-    }
-
-    /**
         @notice override whether or not deposits are blocked
         @param _shouldPause bool
         **/
-    function overrideStaking(bool _shouldPause) external onlyOwner {
+    function shouldPauseStaking(bool _shouldPause) public onlyOwner {
         pauseStaking = _shouldPause;
     }
 
@@ -162,7 +154,7 @@ contract Staking is Ownable {
         @notice override whether or not withdraws are blocked
         @param _shouldPause bool
         **/
-    function overrideUnstaking(bool _shouldPause) external onlyOwner {
+    function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         pauseUnstaking = _shouldPause;
     }
 
@@ -174,7 +166,7 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice override whether or not withdraws are blocked
+        @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
         @param _blocks uint
         **/
     function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
@@ -249,10 +241,23 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice owner function to retrieve all FOX to staking contract in case of
+     */
+    function unstakeAllFromTokemak() public onlyOwner {
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        uint256 tokePoolBalance = ITokePool(tokePoolContract).balanceOf(
+            address(this)
+        );
+
+        shouldPauseStaking(true);
+        _requestWithdrawalFromTokemak(tokePoolBalance);
+    }
+
+    /**
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (_canBatchTransactions() || overrideCanWithdraw) {
+        if (_canBatchTransactions()) {
             ITokeManager iTOKE_MANAGER = ITokeManager(TOKE_MANAGER);
             _requestWithdrawalFromTokemak(requestWithdrawalAmount);
 
@@ -333,7 +338,7 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         if (
-            (_isClaimAvailable(info) || overrideCanWithdraw) &&
+            (_isClaimAvailable(info)) &&
             withdrawalInfo.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
