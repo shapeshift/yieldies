@@ -66,6 +66,7 @@ contract Staking is Ownable {
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
+        // must have valid inital addresses
         require(
             _stakingToken != address(0) &&
                 _rewardToken != address(0) &&
@@ -74,7 +75,8 @@ contract Staking is Ownable {
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
                 _tokeRewardHash != address(0) &&
-                _liquidityReserve != address(0)
+                _liquidityReserve != address(0),
+            "Invalid address"
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
@@ -138,7 +140,7 @@ contract Staking is Ownable {
         **/
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
-        require(_claimAddress != address(0));
+        require(_claimAddress != address(0), "Invalid address");
         uint256 amount = IERC20(TOKE_TOKEN).balanceOf(address(this));
         IERC20(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
     }
@@ -349,10 +351,9 @@ contract Staking is Ownable {
             uint256 stakingBalance = IERC20(STAKING_TOKEN).balanceOf(
                 address(this)
             );
-            require(
-                stakingBalance >= info.amount,
-                "Not enough funds in staking contract"
-            );
+
+            // must have enough funds to withdraw
+            require(stakingBalance >= info.amount, "Not enough funds");
 
             delete coolDownInfo[_recipient];
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
@@ -378,6 +379,7 @@ contract Staking is Ownable {
             userWarmInfo.gons
         );
 
+        // must have enough funds between wallet and warmup
         require(
             _amount <= walletBalance + warmUpBalance,
             "Insufficient Balance"
@@ -385,7 +387,9 @@ contract Staking is Ownable {
 
         uint256 amountLeft = _amount;
         if (warmUpBalance > 0) {
+            // check if withdraws are locked for the account
             require(!userWarmInfo.lock, "Withdraws for account are locked");
+
             // remove from warmup first.
             if (_amount >= warmUpBalance) {
                 // use the entire warmup balance
@@ -453,6 +457,7 @@ contract Staking is Ownable {
         @param _trigger bool
      */
     function unstake(uint256 _amount, bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities asdf
         require(!pauseUnstaking, "Unstaking is paused");
         if (_trigger) {
             rebase();
@@ -460,6 +465,8 @@ contract Staking is Ownable {
         _retrieveBalanceFromUser(_amount, msg.sender);
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
+
+        // check if withdraws are locked for the account
         require(!userCoolInfo.lock, "Withdraws for account are locked");
 
         coolDownInfo[msg.sender] = Claim({
@@ -533,11 +540,6 @@ contract Staking is Ownable {
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
-        require(
-            IERC20(STAKING_TOKEN).balanceOf(msg.sender) >= _amount,
-            "Not enough staking tokens"
-        );
-
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),

@@ -21,7 +21,8 @@ contract LiquidityReserve is ERC20, Ownable {
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 
     constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
-        require(_stakingToken != address(0));
+        // verify address isn't 0x0
+        require(_stakingToken != address(0), "Invalid address");
         initializer = msg.sender;
         stakingToken = _stakingToken;
     }
@@ -37,8 +38,18 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
-        require(_stakingContract != address(0) && _rewardToken != address(0));
-        require(stakingTokenBalance >= MINIMUM_LIQUIDITY);
+
+        // verify addresses aren't 0x0
+        require(
+            _stakingContract != address(0) && _rewardToken != address(0),
+            "Invalid address"
+        );
+
+        // require address has minimum liquidity
+        require(
+            stakingTokenBalance >= MINIMUM_LIQUIDITY,
+            "Not enough staking tokens"
+        );
         stakingContract = _stakingContract;
         rewardToken = _rewardToken;
 
@@ -58,10 +69,8 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(
-            _fee <= BASIS_POINTS,
-            "Must be within range of 0 and 10000 bps"
-        );
+        // check range before setting fee
+        require(_fee <= BASIS_POINTS, "Out of range");
         fee = _fee;
 
         emit FeeChanged(_fee);
@@ -128,17 +137,17 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _amount uint
      */
     function removeLiquidity(uint256 _amount) external {
-        require(
-            _amount <= balanceOf(msg.sender),
-            "Not enough liquidity reserve tokens"
-        );
+        // check balance before removing liquidity
+        require(_amount <= balanceOf(msg.sender), "Not enough lr tokens");
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
         uint256 amountToWithdraw = _calculateReserveTokenValue(_amount);
+
+        // verify that we have enough stakingTokens
         require(
             IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
-            "Not enough funds in contract to cover withdraw"
+            "Not enough funds"
         );
 
         _burn(msg.sender, _amount);

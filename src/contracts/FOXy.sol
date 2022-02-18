@@ -8,7 +8,7 @@ import "../libraries/Ownable.sol";
 contract Foxy is ERC20Permit, Ownable {
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
-        require(msg.sender == stakingContract);
+        require(msg.sender == stakingContract, "Not staking contract");
         _;
     }
 
@@ -65,9 +65,9 @@ contract Foxy is ERC20Permit, Ownable {
      */
     function initialize(address _stakingContract) external returns (bool) {
         // check if initializer is msg.sender that was set in constructor
-        require(msg.sender == initializer);
+        require(msg.sender == initializer, "Must be called from initializer");
         // make sure _stakingContract isn't 0x0
-        require(_stakingContract != address(0));
+        require(_stakingContract != address(0), "Invalid address");
         stakingContract = _stakingContract;
         gonBalances[stakingContract] = TOTAL_GONS;
 
@@ -85,7 +85,7 @@ contract Foxy is ERC20Permit, Ownable {
      */
     function setIndex(uint256 _index) internal returns (bool) {
         // make sure index isn't set yet, so it's only set once
-        require(index == 0);
+        require(index == 0, "Index already set");
         index = gonsForBalance(_index);
         return true;
     }
@@ -138,10 +138,7 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _epoch
     ) internal {
         // don't divide by 0
-        require(
-            _previousCirculating > 0,
-            "Can't rebase without circulating tokens"
-        );
+        require(_previousCirculating > 0, "Can't rebase if not circulationg");
 
         uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 

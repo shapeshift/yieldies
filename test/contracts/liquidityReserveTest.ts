@@ -85,7 +85,7 @@ describe("Liquidity Reserve", function () {
   });
 
   describe("deposit & withdraw", function () {
-    it.only("Should calculate the correct value of lrFOX", async () => {
+    it("Should calculate the correct value of lrFOX", async () => {
       const { daoTreasury, staker1, liquidityProvider } =
         await getNamedAccounts();
 
@@ -314,7 +314,7 @@ describe("Liquidity Reserve", function () {
 
       await expect(
         liquidityReserveDao.removeLiquidity(daoBalance)
-      ).to.be.revertedWith("Not enough funds in contract to cover withdraw");
+      ).to.be.revertedWith("Not enough funds");
     });
   });
 
@@ -357,13 +357,13 @@ describe("Liquidity Reserve", function () {
     it("Must have correct fee amount", async () => {
       await expect(
         liquidityReserve.setFee(BigNumber.from("10000000000"))
-      ).to.be.revertedWith("Must be within range of 0 and 10000 bps");
+      ).to.be.revertedWith("Out of range");
     });
 
     it("Withdraw has required balance", async () => {
       await expect(
         liquidityReserve.removeLiquidity(BigNumber.from("10000000000"))
-      ).to.be.revertedWith("Not enough liquidity reserve tokens");
+      ).to.be.revertedWith("Not enough lr tokens");
     });
 
     it("InstantUnstake has required balance", async () => {
@@ -372,7 +372,7 @@ describe("Liquidity Reserve", function () {
       // try to instantUnstake without any reward tokens
       await expect(
         liquidityReserve.instantUnstake(BigNumber.from("10000"), staker1)
-      ).to.be.revertedWith("Not enough reward tokens in wallet");
+      ).to.be.reverted;
 
       // try to instantUnstake when liquidityReserve is drained
       const liquidityFactory = await ethers.getContractFactory(
@@ -386,9 +386,7 @@ describe("Liquidity Reserve", function () {
           BigNumber.from("10000"),
           staker1
         )
-      ).to.be.revertedWith(
-        "Not enough funds in contract to cover instant unstake"
-      );
+      ).to.be.reverted;
     });
   });
 });
