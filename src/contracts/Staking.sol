@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -330,6 +331,7 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) external {
         Claim memory info = coolDownInfo[_recipient];
+        // prevent locked withdrawals
         require(!info.lock, "Withdraws for account are locked");
 
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -343,8 +345,16 @@ contract Staking is Ownable {
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
 
-            delete coolDownInfo[_recipient];
+            // revert if not enough funds to cover transfer
+            uint256 stakingBalance = IERC20(STAKING_TOKEN).balanceOf(
+                address(this)
+            );
+            require(
+                stakingBalance >= info.amount,
+                "Not enough funds in staking contract"
+            );
 
+            delete coolDownInfo[_recipient];
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
             IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
@@ -418,11 +428,13 @@ contract Staking is Ownable {
 
     /**
         @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee
+        @notice this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
         @param _amount uint
         @param _trigger bool
      */
 
     function instantUnstake(uint256 _amount, bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities asdf
         require(!pauseUnstaking, "Unstaking is paused");
         if (_trigger) {
             rebase();
