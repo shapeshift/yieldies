@@ -134,6 +134,7 @@ describe("Staking", function () {
       stakingDeployment.address,
       rewardToken.address
     ); // initialize liquidity reserve contract
+
     await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
   });
 
@@ -843,13 +844,6 @@ describe("Staking", function () {
         stakingStaker1.unstake(stakingAmount, false)
       ).to.be.revertedWith("Withdraws for account are locked");
       await stakingStaker1.toggleWithdrawLock();
-
-      // can't unstake from warmup contract if deposits are locks
-      await stakingStaker1.toggleDepositLock();
-      await expect(
-        stakingStaker1.unstake(stakingAmount, false)
-      ).to.be.revertedWith("Withdraws for account are locked");
-      await stakingStaker1.toggleDepositLock();
 
       await stakingStaker1.unstake(stakingAmount, false);
 
