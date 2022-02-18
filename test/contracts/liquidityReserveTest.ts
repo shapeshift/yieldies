@@ -216,6 +216,137 @@ describe("Liquidity Reserve", function () {
       );
       expect(liquidityProviderStakingBalance).eq(24999999999999); // receive 2492499999999999999 stakingTokens back
     });
+    it("Should calculate the correct value of lrFOX with multiple stakers", async () => {
+      const { daoTreasury, staker1, liquidityProvider } =
+        await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("100000000000000");
+      const stakingAmount = transferAmount.div(4);
+
+      // deposit stakingToken with daoTreasury
+      await stakingToken.transfer(daoTreasury, transferAmount);
+
+      let daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+      expect(daoTreasuryStakingBalance).eq(transferAmount);
+
+      let liquidityReserveBalance = await liquidityReserve.balanceOf(
+        daoTreasury
+      );
+      expect(liquidityReserveBalance).eq(0);
+
+      const daoTreasurySigner = accounts.find(
+        (account) => account.address === daoTreasury
+      );
+      const liquidityReserveDao = liquidityReserve.connect(
+        daoTreasurySigner as Signer
+      );
+      const stakingTokenDao = stakingToken.connect(daoTreasurySigner as Signer);
+
+      await stakingTokenDao.approve(liquidityReserve.address, transferAmount);
+      await liquidityReserveDao.addLiquidity(transferAmount);
+
+      daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+      expect(daoTreasuryStakingBalance).eq(0);
+
+      liquidityReserveBalance = await liquidityReserve.balanceOf(daoTreasury);
+      expect(liquidityReserveBalance).eq(transferAmount);
+
+      // get stakingToken at staker1
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      const staking1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      // stake stakingToken to get rewardToken
+      const stakingContractStaker1 = stakingContract.connect(
+        staking1Signer as Signer
+      );
+      const stakingTokenStaker1 = stakingToken.connect(
+        staking1Signer as Signer
+      );
+
+      await stakingTokenStaker1.approve(
+        stakingContract.address,
+        transferAmount
+      );
+      await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await stakingContractStaker1.claim(staker1);
+
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(stakingAmount);
+
+      const fee = await liquidityReserve.fee();
+
+      // instant unstake with staker1
+      const liquidityReserveStaker1 = liquidityReserve.connect(
+        staking1Signer as Signer
+      );
+
+      const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
+      await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
+
+      await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
+
+      const feeAmount = stakingAmount.mul(fee).div(10000);
+      const amountMinusFee = stakingAmount.sub(feeAmount);
+
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(0);
+
+      const staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(amountMinusFee);
+
+      // deposit with liquidityProvider
+      await stakingToken.transfer(liquidityProvider, stakingAmount);
+
+      let liquidityProviderStakingBalance = await stakingToken.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityProviderStakingBalance).eq(stakingAmount);
+
+      liquidityReserveBalance = await liquidityReserve.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityReserveBalance).eq(0);
+
+      const liquidityProviderSigner = accounts.find(
+        (account) => account.address === liquidityProvider
+      );
+      const liquidityReserveLiquidityProvider = liquidityReserve.connect(
+        liquidityProviderSigner as Signer
+      );
+      const stakingTokenLiquidityProvider = stakingToken.connect(
+        liquidityProviderSigner as Signer
+      );
+
+      await stakingTokenLiquidityProvider.approve(
+        liquidityReserve.address,
+        stakingAmount
+      );
+      await liquidityReserveLiquidityProvider.addLiquidity(stakingAmount);
+
+      liquidityProviderStakingBalance = await stakingToken.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityProviderStakingBalance).eq(0);
+
+      liquidityReserveBalance = await liquidityReserve.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityReserveBalance).eq(24886877828054); // 24886877828054 is the new balance based on new liquidity
+
+      // withdraw with liquidityProvider
+      await liquidityReserveLiquidityProvider.removeLiquidity(
+        liquidityReserveBalance
+      );
+
+      liquidityProviderStakingBalance = await stakingToken.balanceOf(
+        liquidityProvider
+      );
+      expect(liquidityProviderStakingBalance).eq(24999999999999); // receive 2492499999999999999 stakingTokens back
+    });
     it("Should not allow user to withdraw more than contract contains", async () => {
       const { daoTreasury, staker1 } = await getNamedAccounts();
       let lrStakingBalance = await stakingToken.balanceOf(

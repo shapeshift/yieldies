@@ -166,6 +166,7 @@ contract Staking is Ownable {
      */
     function toggleWithdrawLock() external {
         coolDownInfo[msg.sender].lock = !coolDownInfo[msg.sender].lock;
+        warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
     }
 
     /**
@@ -440,6 +441,8 @@ contract Staking is Ownable {
     function instantUnstake(uint256 _amount, bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities asdf
         require(!pauseUnstaking, "Unstaking is paused");
+        require(_amount != 0, "Must have valid amount");
+
         if (_trigger) {
             rebase();
         }
