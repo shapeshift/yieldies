@@ -827,12 +827,6 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
 
-      await stakingStaker1.toggleDepositLock();
-      await expect(
-        stakingStaker1.functions["stake(uint256)"](stakingAmount)
-      ).to.be.revertedWith("Deposits for account are locked");
-
-      await stakingStaker1.toggleDepositLock();
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       await rewardToken

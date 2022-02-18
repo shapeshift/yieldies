@@ -74,7 +74,6 @@ contract Staking is Ownable {
                 _tokeReward != address(0) &&
                 _tokeRewardHash != address(0) &&
                 _liquidityReserve != address(0)
-
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
@@ -168,13 +167,6 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice prevent new deposits to address (protection from malicious activity)
-     */
-    function toggleDepositLock() external {
-        warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
-    }
-
-    /**
         @notice prevent new withdraws to address (protection from malicious activity)
      */
     function toggleWithdrawLock() external {
@@ -210,8 +202,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _withdrawFromTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.withdraw(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.withdraw(_amount);
     }
 
     /**
@@ -219,8 +211,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.requestWithdrawal(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.requestWithdrawal(_amount);
     }
 
     /**
@@ -228,8 +220,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _depositToTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.deposit(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.deposit(_amount);
     }
 
     /**
@@ -237,8 +229,8 @@ contract Staking is Ownable {
         @return uint
      */
     function _getTokemakBalance() internal view returns (uint256) {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        return TOKE_POOLContract.balanceOf(address(this));
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        return tokePoolContract.balanceOf(address(this));
     }
 
     /**
@@ -286,7 +278,6 @@ contract Staking is Ownable {
         );
 
         Claim memory info = warmUpInfo[_recipient];
-        require(!info.lock, "Deposits for account are locked");
 
         _depositToTokemak(_amount);
 
@@ -336,8 +327,8 @@ contract Staking is Ownable {
         Claim memory info = coolDownInfo[_recipient];
         require(!info.lock, "Withdraws for account are locked");
 
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        WithdrawalInfo memory withdrawalInfo = TOKE_POOLContract
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
@@ -347,11 +338,12 @@ contract Staking is Ownable {
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
 
+            delete coolDownInfo[_recipient];
+
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
             IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
 
-            delete coolDownInfo[_recipient];
             IVesting(COOL_DOWN_CONTRACT).retrieve(
                 _recipient,
                 totalAmountIncludingRewards
@@ -364,9 +356,7 @@ contract Staking is Ownable {
         @param _amount uint
         @param _user address to pull funds from 
      */
-    function _retrieveBalanceFromUser(uint256 _amount, address _user)
-        internal
-    {
+    function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
         uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_user);
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
