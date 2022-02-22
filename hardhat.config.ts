@@ -30,6 +30,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      deploy: ["deploy/mainnet"],
       forking: {
         url: process.env.MAINNET_URL || "",
         blockNumber: 14101169,
@@ -40,10 +41,11 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      deploy: ["deploy/testnet"],
     },
   },
   paths: {
-    deploy: "deploy/core",
+    deploy: "deploy/mainnet",
     sources: "./src",
   },
   namedAccounts: {

@@ -323,7 +323,7 @@ contract Staking is Ownable {
         @notice claims STAKING_TOKEN after cooldown period
         @param _recipient address
      */
-    function claimWithdraw(address _recipient) external {
+    function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
         // prevent locked withdrawals
         require(!info.lock, "Withdraws for account are locked");
@@ -463,10 +463,10 @@ contract Staking is Ownable {
         // check if withdraws are locked for the account
         require(!userCoolInfo.lock, "Withdraws for account are locked");
 
-        //if(expired)
-        // claim fox
-        // then
-        // create new claim
+        // if cooldown is expired claim to prevent griefing attack
+        if(_isClaimAvailable(userCoolInfo) && _canBatchTransactions()){
+            claimWithdraw(msg.sender);
+        }
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,

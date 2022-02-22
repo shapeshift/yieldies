@@ -817,7 +817,6 @@ describe("Staking", function () {
 
       // unstake all tfox from tokemak
       const tokeBalance = await tokePool.balanceOf(staking.address);
-      console.log("tokeBalance", tokeBalance);
       await stakingAdmin.unstakeAllFromTokemak();
 
       requestedWithdrawals = await tokePool.requestedWithdrawals(
