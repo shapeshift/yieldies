@@ -9,11 +9,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { admin } = await getNamedAccounts();
-  const initialSupply = BigNumber.from("1000000000")
-  await deploy('Fox', {
+  const initialSupply = BigNumber.from("1000000000");
+  await deploy("Fox", {
     from: admin,
     contract: ERC20PresetFixedSupply,
-    args: ['Fake-FOX', 'FOX', initialSupply, admin],
+    args: ["Fake-FOX", "FOX", initialSupply, admin],
     log: true,
   });
 };
