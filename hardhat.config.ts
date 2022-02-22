@@ -43,7 +43,7 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    deploy: "deploy",
+    deploy: "deploy/core",
     sources: "./src",
   },
   namedAccounts: {

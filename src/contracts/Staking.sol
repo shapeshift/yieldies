@@ -107,31 +107,22 @@ contract Staking is Ownable {
 
     /**
         @notice claim TOKE from Tokemak
-        @param _amount uint
+        @param _recipient Recipient
         @param _v uint
         @param _r bytes
         @param _s bytes
      */
     function claimFromTokemak(
-        uint256 _amount,
+        Recipient memory _recipient,
         uint8 _v,
         bytes32 _r,
         bytes32 _s
     ) external {
         // cannot claim 0
-        require(_amount > 0, "Must enter valid amount");
+        require(_recipient.amount > 0, "Must enter valid amount");
 
         ITokeReward tokeRewardContract = ITokeReward(TOKE_REWARD);
-        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(TOKE_REWARD_HASH);
-
-        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
-        Recipient memory recipient = Recipient({
-            chainId: 1,
-            cycle: latestCycleIndex,
-            wallet: address(this),
-            amount: _amount
-        });
-        tokeRewardContract.claim(recipient, _v, _r, _s);
+        tokeRewardContract.claim(_recipient, _v, _r, _s);
     }
 
     /**
@@ -471,6 +462,11 @@ contract Staking is Ownable {
 
         // check if withdraws are locked for the account
         require(!userCoolInfo.lock, "Withdraws for account are locked");
+
+        //if(expired)
+        // claim fox
+        // then
+        // create new claim
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,

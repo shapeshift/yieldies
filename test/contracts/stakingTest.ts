@@ -1208,15 +1208,25 @@ describe("Staking", function () {
         "0x0402de926473b79c91b67a49a931108c4c593442ce63193d9c35a9ef12c7d495";
       const s =
         "0x2c3d7cf17e33eb30408a4fb266a812008a35a9e8987e841eecb92504620f55bd";
-
+      let recipient = {
+        chainId: 1,
+        cycle: 167,
+        wallet: staking.address,
+        amount: 0
+    }
       // must have amount > 0
-      await expect(staking.claimFromTokemak(0, v, r, s)).to.be.revertedWith(
+      await expect(staking.claimFromTokemak(recipient, v, r, s)).to.be.revertedWith(
         "Must enter valid amount"
       );
-
+      recipient = {
+        chainId: 1,
+        cycle: 167,
+        wallet: staking.address,
+        amount: 1000
+    }
       // can't actually claim rewards, invalid signature returned from Tokemak
       await expect(
-        staking.claimFromTokemak(BigNumber.from("1000"), v, r, s)
+        staking.claimFromTokemak(recipient, v, r, s)
       ).to.be.revertedWith("'ECDSA: invalid signature'");
 
       // transferToke fails on 0 address

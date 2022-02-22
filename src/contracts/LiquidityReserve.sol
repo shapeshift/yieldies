@@ -154,6 +154,8 @@ contract LiquidityReserve is ERC20, Ownable {
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
+
+//TODO: clean up natspec 
     /**
         @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
         @param _amount uint
@@ -172,6 +174,10 @@ contract LiquidityReserve is ERC20, Ownable {
 
         IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
 
+
+// check if claim expired
+// wait until expired
+// make public function for unstake
         IStaking(stakingContract).unstake(_amount, false);
     }
 }

@@ -17,6 +17,11 @@ contract Vesting {
         REWARD_TOKEN = _rewardToken;
     }
 
+    /**
+        @notice retrieve _amount of rewardToken 
+        @param _amount uint256
+        @param _staker address
+     */
     function retrieve(address _staker, uint256 _amount) external {
         // must be called from staking contract
         require(
