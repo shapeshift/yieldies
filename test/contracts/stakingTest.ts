@@ -876,7 +876,7 @@ describe("Staking", function () {
   });
 
   describe("reward", function () {
-    it("Rewards can be added to contract and rebase rewards users", async () => {
+    it("Reward indexes are set correctly", async () => {
       const { staker1, staker2 } = await getNamedAccounts();
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("1000000000000000");
