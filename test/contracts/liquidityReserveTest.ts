@@ -177,14 +177,14 @@ describe("Liquidity Reserve", function () {
       const fee = await liquidityReserve.fee();
 
       // instant unstake with staker1
-      const liquidityReserveStaker1 = liquidityReserve.connect(
-        staking1Signer as Signer
-      );
-
       const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
-      await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
+      await rewardTokenStaker1.approve(
+        liquidityReserve.address,
+        transferAmount
+      );
+      await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
+      await stakingContractStaker1.instantUnstake(false);
 
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
@@ -295,14 +295,12 @@ describe("Liquidity Reserve", function () {
       const fee = await liquidityReserve.fee();
 
       // instant unstake with staker1
-      const liquidityReserveStaker1 = liquidityReserve.connect(
-        staking1Signer as Signer
-      );
 
       const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
+      await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await liquidityReserveStaker1.instantUnstake(stakingAmount, staker1);
+      await stakingContractStaker1.instantUnstake(false);
 
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
@@ -437,18 +435,14 @@ describe("Liquidity Reserve", function () {
       const fee = await liquidityReserve.fee();
       lrStakingBalance = await stakingToken.balanceOf(liquidityReserve.address);
 
-      // instant unstake with staker1
-      const liquidityReserveStaker1 = liquidityReserve.connect(
-        staking1Signer as Signer
-      );
-
       const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(
         liquidityReserve.address,
         transferAmount
       );
+      await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await liquidityReserveStaker1.instantUnstake(transferAmount, staker1);
+      await stakingContractStaker1.instantUnstake(false);
 
       const feeAmount = transferAmount.mul(fee).div(10000);
       const amountMinusFee = transferAmount.sub(feeAmount);
@@ -521,13 +515,9 @@ describe("Liquidity Reserve", function () {
       ).to.be.revertedWith("Not enough lr tokens");
     });
 
-    it("InstantUnstake has required balance", async () => {
-      const { staker1 } = await getNamedAccounts();
-
-      // try to instantUnstake without any reward tokens
-      await expect(
-        liquidityReserve.instantUnstake(BigNumber.from("10000"), staker1)
-      ).to.be.reverted;
+    it("instantUnstake has required balance", async () => {
+      const { staker1, daoTreasury, liquidityProvider1 } =
+        await getNamedAccounts();
 
       // try to instantUnstake when liquidityReserve is drained
       const liquidityFactory = await ethers.getContractFactory(
@@ -537,11 +527,40 @@ describe("Liquidity Reserve", function () {
         stakingToken.address
       );
       await expect(
-        liquidityReserveContract.instantUnstake(
-          BigNumber.from("10000"),
-          staker1
-        )
-      ).to.be.reverted;
+        liquidityReserveContract.instantUnstake(1000, staker1)
+      ).to.be.revertedWith("Not staking contract");
+
+      const stakingAmount = BigNumber.from("1000000000001000");
+
+      await stakingToken.transfer(daoTreasury, stakingAmount);
+      await stakingToken.transfer(liquidityProvider1, stakingAmount);
+
+      // get stakingToken at staker1
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      const staking1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      // stake stakingToken to get rewardToken
+      const stakingContractStaker1 = stakingContract.connect(
+        staking1Signer as Signer
+      );
+      const stakingTokenStaker1 = stakingToken.connect(
+        staking1Signer as Signer
+      );
+
+      await stakingTokenStaker1.approve(stakingContract.address, stakingAmount);
+      await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
+
+      // instant unstake with staker1
+      const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
+      await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
+      await rewardTokenStaker1.approve(stakingContract.address, stakingAmount);
+
+      await expect(
+        stakingContractStaker1.instantUnstake(false)
+      ).to.be.revertedWith("Not enough funds in reserve");
     });
   });
 });

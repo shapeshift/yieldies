@@ -661,6 +661,9 @@ describe("Staking", function () {
       );
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
+      // can't instantUnstake without reward tokens
+      await expect(stakingStaker1.instantUnstake(false)).to.be.reverted;
+
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](transferAmount);
@@ -675,10 +678,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      // can't instantUnstake 0
-      await expect(stakingStaker1.instantUnstake(0, false)).to.be.reverted;
-
-      await stakingStaker1.instantUnstake(transferAmount, false);
+      await stakingStaker1.instantUnstake(false);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -715,7 +715,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(transferAmount, true);
+      await stakingStaker1.instantUnstake(true);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -768,9 +768,9 @@ describe("Staking", function () {
       await expect(
         stakingStaker1.unstake(stakingAmount, true)
       ).to.be.revertedWith("Unstaking is paused");
-      await expect(
-        stakingStaker1.instantUnstake(stakingAmount, true)
-      ).to.be.revertedWith("Unstaking is paused");
+      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
+        "Unstaking is paused"
+      );
 
       await stakingAdmin.shouldPauseUnstaking(false);
       await stakingStaker1.unstake(stakingAmount, true);
@@ -1211,18 +1211,18 @@ describe("Staking", function () {
         chainId: 1,
         cycle: 167,
         wallet: staking.address,
-        amount: 0
-    }
+        amount: 0,
+      };
       // must have amount > 0
-      await expect(staking.claimFromTokemak(recipient, v, r, s)).to.be.revertedWith(
-        "Must enter valid amount"
-      );
+      await expect(
+        staking.claimFromTokemak(recipient, v, r, s)
+      ).to.be.revertedWith("Must enter valid amount");
       recipient = {
         chainId: 1,
         cycle: 167,
         wallet: staking.address,
-        amount: 1000
-    }
+        amount: 1000,
+      };
       // can't actually claim rewards, invalid signature returned from Tokemak
       await expect(
         staking.claimFromTokemak(recipient, v, r, s)

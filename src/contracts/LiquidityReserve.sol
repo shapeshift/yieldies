@@ -8,6 +8,12 @@ import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
+    // check if sender is the stakingContract
+    modifier onlyStakingContract() {
+        require(msg.sender == stakingContract, "Not staking contract");
+        _;
+    }
+
     using SafeERC20 for IERC20;
 
     event FeeChanged(uint256 indexed fee);
@@ -54,7 +60,7 @@ contract LiquidityReserve is ERC20, Ownable {
         rewardToken = _rewardToken;
 
         // permanently lock the first MINIMUM_LIQUIDITY of lrTokens & stakingTokens
-        IERC20(stakingToken).transferFrom(
+        IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             MINIMUM_LIQUIDITY
@@ -154,14 +160,22 @@ contract LiquidityReserve is ERC20, Ownable {
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
-
-//TODO: clean up natspec 
     /**
         @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
         @param _amount uint
         @param _recipient address
      */
-    function instantUnstake(uint256 _amount, address _recipient) external {
+    function instantUnstake(uint256 _amount, address _recipient)
+        external
+        onlyStakingContract
+    {
+        // make sure lr has enough funds
+        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+            address(this)
+        );
+
+        require(stakingTokenBalance >= _amount, "Not enough funds in reserve");
+
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
@@ -174,10 +188,6 @@ contract LiquidityReserve is ERC20, Ownable {
 
         IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
 
-
-// check if claim expired
-// wait until expired
-// make public function for unstake
         IStaking(stakingContract).unstake(_amount, false);
     }
 }

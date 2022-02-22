@@ -423,24 +423,45 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee
+        @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee.  Must use entire amount
         @notice this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
-        @param _amount uint
         @param _trigger bool
      */
 
-    function instantUnstake(uint256 _amount, bool _trigger) external {
-        // prevent unstaking if override due to vulnerabilities asdf
+    function instantUnstake(bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities
         require(!pauseUnstaking, "Unstaking is paused");
-        require(_amount != 0, "Must have valid amount");
-
         if (_trigger) {
             rebase();
         }
-        _retrieveBalanceFromUser(_amount, msg.sender);
+
+        Claim memory userWarmInfo = warmUpInfo[msg.sender];
+
+        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(msg.sender);
+        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+            userWarmInfo.gons
+        );
+        uint256 totalBalance = warmUpBalance + walletBalance;
+
+        require(totalBalance != 0, "Must have reward tokens");
+
+        // claim senders warmup balance
+        if (warmUpBalance > 0) {
+            IVesting(WARM_UP_CONTRACT).retrieve(address(this), warmUpBalance);
+            delete warmUpInfo[msg.sender];
+        }
+
+        // claim senders wallet balance
+        if (walletBalance > 0) {
+            IERC20(REWARD_TOKEN).safeTransferFrom(
+                msg.sender,
+                address(this),
+                walletBalance
+            );
+        }
 
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
-            _amount,
+            totalBalance,
             msg.sender
         );
     }
@@ -464,7 +485,7 @@ contract Staking is Ownable {
         require(!userCoolInfo.lock, "Withdraws for account are locked");
 
         // if cooldown is expired claim to prevent griefing attack
-        if(_isClaimAvailable(userCoolInfo) && _canBatchTransactions()){
+        if (_isClaimAvailable(userCoolInfo) && _canBatchTransactions()) {
             claimWithdraw(msg.sender);
         }
 
