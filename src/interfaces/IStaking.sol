@@ -5,7 +5,6 @@ struct Claim {
     uint256 amount;
     uint256 gons;
     uint256 expiry;
-    bool lock; // prevents malicious delays
 }
 
 interface IStaking {

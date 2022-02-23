@@ -824,55 +824,6 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
-    it("Claim locks work", async () => {
-      const { staker1 } = await getNamedAccounts();
-
-      // transfer STAKING_TOKEN to staker 1
-      const transferAmount = BigNumber.from("10000");
-      await stakingToken.transfer(staker1, transferAmount);
-
-      const staker1Signer = accounts.find(
-        (account) => account.address === staker1
-      );
-      const stakingStaker1 = staking.connect(staker1Signer as Signer);
-
-      const stakingAmount = transferAmount.div(2);
-      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
-      await stakingTokenStaker1.approve(staking.address, stakingAmount);
-
-      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-
-      await rewardToken
-        .connect(staker1Signer as Signer)
-        .approve(staking.address, stakingAmount);
-
-      await stakingStaker1.toggleWithdrawLock();
-      await expect(
-        stakingStaker1.unstake(stakingAmount, false)
-      ).to.be.revertedWith("Withdraws for account are locked");
-      await stakingStaker1.toggleWithdrawLock();
-
-      await stakingStaker1.unstake(stakingAmount, false);
-
-      await mineBlocksToNextCycle();
-      await stakingStaker1.sendWithdrawalRequests();
-
-      await network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
-      });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
-      const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
-
-      await stakingStaker1.toggleWithdrawLock();
-      await expect(stakingStaker1.claimWithdraw(staker1)).to.be.revertedWith(
-        "Withdraws for account are locked"
-      );
-
-      await stakingStaker1.toggleWithdrawLock();
-      await stakingStaker1.claimWithdraw(staker1);
-    });
   });
 
   describe("reward", function () {

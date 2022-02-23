@@ -138,7 +138,7 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _epoch
     ) internal {
         // don't divide by 0
-        require(_previousCirculating > 0, "Can't rebase if not circulationg");
+        require(_previousCirculating > 0, "Can't rebase if not circulating");
 
         uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 
@@ -159,7 +159,7 @@ contract Foxy is ERC20Permit, Ownable {
     }
 
     /**
-        @notice gets balanceOf rewardToken
+        @notice gets balanceOf FOXy
         @param _wallet address
         @return uint
      */
@@ -195,7 +195,8 @@ contract Foxy is ERC20Permit, Ownable {
     }
 
     /**
-        @notice get current index
+        @notice get current index to show what how much FOXy the user would have
+        @notice gained from the beginning
         @return uint
      */
     function getIndex() public view returns (uint256) {

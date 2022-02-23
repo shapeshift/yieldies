@@ -113,7 +113,7 @@ contract Staking is Ownable {
         @param _s bytes
      */
     function claimFromTokemak(
-        Recipient memory _recipient,
+        Recipient calldata _recipient,
         uint8 _v,
         bytes32 _r,
         bytes32 _s
@@ -150,14 +150,6 @@ contract Staking is Ownable {
         **/
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         pauseUnstaking = _shouldPause;
-    }
-
-    /**
-        @notice prevent new withdraws to address (protection from malicious activity)
-     */
-    function toggleWithdrawLock() external {
-        coolDownInfo[msg.sender].lock = !coolDownInfo[msg.sender].lock;
-        warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
     }
 
     /**
@@ -288,8 +280,7 @@ contract Staking is Ownable {
                 amount: info.amount + _amount,
                 gons: info.gons +
                     IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
-                expiry: epoch.number + warmUpPeriod,
-                lock: false
+                expiry: epoch.number + warmUpPeriod
             });
 
             IERC20(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
@@ -325,8 +316,6 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
-        // prevent locked withdrawals
-        require(!info.lock, "Withdraws for account are locked");
 
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
         WithdrawalInfo memory withdrawalInfo = tokePoolContract
@@ -379,8 +368,6 @@ contract Staking is Ownable {
 
         uint256 amountLeft = _amount;
         if (warmUpBalance > 0) {
-            // check if withdraws are locked for the account
-            require(!userWarmInfo.lock, "Withdraws for account are locked");
 
             // remove from warmup first.
             if (_amount >= warmUpBalance) {
@@ -406,8 +393,7 @@ contract Staking is Ownable {
                 warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
                     gons: remainingGonsAmount,
-                    expiry: userWarmInfo.expiry,
-                    lock: false
+                    expiry: userWarmInfo.expiry
                 });
             }
         }
@@ -481,9 +467,6 @@ contract Staking is Ownable {
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
 
-        // check if withdraws are locked for the account
-        require(!userCoolInfo.lock, "Withdraws for account are locked");
-
         // if cooldown is expired claim to prevent griefing attack
         if (_isClaimAvailable(userCoolInfo) && _canBatchTransactions()) {
             claimWithdraw(msg.sender);
@@ -493,8 +476,7 @@ contract Staking is Ownable {
             amount: userCoolInfo.amount + _amount,
             gons: userCoolInfo.gons +
                 IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
-            expiry: epoch.number + coolDownPeriod,
-            lock: false
+            expiry: epoch.number + coolDownPeriod
         });
 
         requestWithdrawalAmount += _amount;
