@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -65,6 +66,7 @@ contract Staking is Ownable {
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock
     ) {
+        // must have valid inital addresses
         require(
             _stakingToken != address(0) &&
                 _rewardToken != address(0) &&
@@ -73,8 +75,8 @@ contract Staking is Ownable {
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
                 _tokeRewardHash != address(0) &&
-                _liquidityReserve != address(0)
-
+                _liquidityReserve != address(0),
+            "Invalid address"
         );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
@@ -105,30 +107,22 @@ contract Staking is Ownable {
 
     /**
         @notice claim TOKE from Tokemak
-        @param _amount uint
+        @param _recipient Recipient
         @param _v uint
         @param _r bytes
         @param _s bytes
      */
     function claimFromTokemak(
-        uint256 _amount,
+        Recipient calldata _recipient,
         uint8 _v,
         bytes32 _r,
         bytes32 _s
     ) external {
-        require(_amount > 0, "Must enter valid amount");
+        // cannot claim 0
+        require(_recipient.amount > 0, "Must enter valid amount");
 
         ITokeReward tokeRewardContract = ITokeReward(TOKE_REWARD);
-        ITokeRewardHash iTokeRewardHash = ITokeRewardHash(TOKE_REWARD_HASH);
-
-        uint256 latestCycleIndex = iTokeRewardHash.latestCycleIndex();
-        Recipient memory recipient = Recipient({
-            chainId: 1,
-            cycle: latestCycleIndex,
-            wallet: address(this),
-            amount: _amount
-        });
-        tokeRewardContract.claim(recipient, _v, _r, _s);
+        tokeRewardContract.claim(_recipient, _v, _r, _s);
     }
 
     /**
@@ -136,24 +130,17 @@ contract Staking is Ownable {
         @param _claimAddress address
         **/
     function transferToke(address _claimAddress) external onlyOwner {
-        require(_claimAddress != address(0));
+        // _claimAddress can't be 0x0
+        require(_claimAddress != address(0), "Invalid address");
         uint256 amount = IERC20(TOKE_TOKEN).balanceOf(address(this));
         IERC20(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
-    }
-
-    /**
-        @notice override whether or not withdraws from Tokemak are blocked
-        @param _shouldOverride bool
-        **/
-    function overrideWithdrawals(bool _shouldOverride) external onlyOwner {
-        overrideCanWithdraw = _shouldOverride;
     }
 
     /**
         @notice override whether or not deposits are blocked
         @param _shouldPause bool
         **/
-    function overrideStaking(bool _shouldPause) external onlyOwner {
+    function shouldPauseStaking(bool _shouldPause) public onlyOwner {
         pauseStaking = _shouldPause;
     }
 
@@ -161,26 +148,12 @@ contract Staking is Ownable {
         @notice override whether or not withdraws are blocked
         @param _shouldPause bool
         **/
-    function overrideUnstaking(bool _shouldPause) external onlyOwner {
+    function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         pauseUnstaking = _shouldPause;
     }
 
     /**
-        @notice prevent new deposits to address (protection from malicious activity)
-     */
-    function toggleDepositLock() external {
-        warmUpInfo[msg.sender].lock = !warmUpInfo[msg.sender].lock;
-    }
-
-    /**
-        @notice prevent new withdraws to address (protection from malicious activity)
-     */
-    function toggleWithdrawLock() external {
-        coolDownInfo[msg.sender].lock = !coolDownInfo[msg.sender].lock;
-    }
-
-    /**
-        @notice override whether or not withdraws are blocked
+        @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
         @param _blocks uint
         **/
     function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
@@ -208,8 +181,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _withdrawFromTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.withdraw(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.withdraw(_amount);
     }
 
     /**
@@ -217,8 +190,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.requestWithdrawal(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.requestWithdrawal(_amount);
     }
 
     /**
@@ -226,8 +199,8 @@ contract Staking is Ownable {
         @param _amount uint
      */
     function _depositToTokemak(uint256 _amount) internal {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        TOKE_POOLContract.deposit(_amount);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        tokePoolContract.deposit(_amount);
     }
 
     /**
@@ -235,8 +208,8 @@ contract Staking is Ownable {
         @return uint
      */
     function _getTokemakBalance() internal view returns (uint256) {
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        return TOKE_POOLContract.balanceOf(address(this));
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        return tokePoolContract.balanceOf(address(this));
     }
 
     /**
@@ -255,10 +228,23 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice owner function to retrieve all FOX to staking contract in case of
+     */
+    function unstakeAllFromTokemak() public onlyOwner {
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        uint256 tokePoolBalance = ITokePool(tokePoolContract).balanceOf(
+            address(this)
+        );
+
+        shouldPauseStaking(true);
+        _requestWithdrawalFromTokemak(tokePoolBalance);
+    }
+
+    /**
         @notice sends batched requestedWithdrawals
      */
     function sendWithdrawalRequests() public {
-        if (_canBatchTransactions() || overrideCanWithdraw) {
+        if (_canBatchTransactions()) {
             ITokeManager iTOKE_MANAGER = ITokeManager(TOKE_MANAGER);
             _requestWithdrawalFromTokemak(requestWithdrawalAmount);
 
@@ -274,6 +260,7 @@ contract Staking is Ownable {
         @param _recipient address
      */
     function stake(uint256 _amount, address _recipient) public {
+        // if override staking, then don't allow stake
         require(!pauseStaking, "Staking is paused");
         rebase();
         IERC20(STAKING_TOKEN).safeTransferFrom(
@@ -283,7 +270,6 @@ contract Staking is Ownable {
         );
 
         Claim memory info = warmUpInfo[_recipient];
-        require(!info.lock, "Deposits for account are locked");
 
         _depositToTokemak(_amount);
 
@@ -294,8 +280,7 @@ contract Staking is Ownable {
                 amount: info.amount + _amount,
                 gons: info.gons +
                     IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
-                expiry: epoch.number + warmUpPeriod,
-                lock: false
+                expiry: epoch.number + warmUpPeriod
             });
 
             IERC20(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
@@ -329,26 +314,33 @@ contract Staking is Ownable {
         @notice claims STAKING_TOKEN after cooldown period
         @param _recipient address
      */
-    function claimWithdraw(address _recipient) external {
+    function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
-        require(!info.lock, "Withdraws for account are locked");
 
-        ITokePool TOKE_POOLContract = ITokePool(TOKE_POOL);
-        WithdrawalInfo memory withdrawalInfo = TOKE_POOLContract
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        WithdrawalInfo memory withdrawalInfo = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         if (
-            (_isClaimAvailable(info) || overrideCanWithdraw) &&
+            (_isClaimAvailable(info)) &&
             withdrawalInfo.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
 
+            // revert if not enough funds to cover transfer
+            uint256 stakingBalance = IERC20(STAKING_TOKEN).balanceOf(
+                address(this)
+            );
+
+            // must have enough funds to withdraw
+            require(stakingBalance >= info.amount, "Not enough funds");
+
+            delete coolDownInfo[_recipient];
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
             IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
 
-            delete coolDownInfo[_recipient];
             IVesting(COOL_DOWN_CONTRACT).retrieve(
                 _recipient,
                 totalAmountIncludingRewards
@@ -361,15 +353,14 @@ contract Staking is Ownable {
         @param _amount uint
         @param _user address to pull funds from 
      */
-    function _retrieveBalanceFromUser(uint256 _amount, address _user)
-        internal
-    {
+    function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
         uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_user);
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
 
+        // must have enough funds between wallet and warmup
         require(
             _amount <= walletBalance + warmUpBalance,
             "Insufficient Balance"
@@ -377,7 +368,7 @@ contract Staking is Ownable {
 
         uint256 amountLeft = _amount;
         if (warmUpBalance > 0) {
-            require(!userWarmInfo.lock, "Withdraws for account are locked");
+
             // remove from warmup first.
             if (_amount >= warmUpBalance) {
                 // use the entire warmup balance
@@ -402,8 +393,7 @@ contract Staking is Ownable {
                 warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
                     gons: remainingGonsAmount,
-                    expiry: userWarmInfo.expiry,
-                    lock: false
+                    expiry: userWarmInfo.expiry
                 });
             }
         }
@@ -419,20 +409,45 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee
-        @param _amount uint
+        @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee.  Must use entire amount
+        @notice this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
         @param _trigger bool
      */
 
-    function instantUnstake(uint256 _amount, bool _trigger) external {
+    function instantUnstake(bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities
         require(!pauseUnstaking, "Unstaking is paused");
         if (_trigger) {
             rebase();
         }
-        _retrieveBalanceFromUser(_amount, msg.sender);
+
+        Claim memory userWarmInfo = warmUpInfo[msg.sender];
+
+        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(msg.sender);
+        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+            userWarmInfo.gons
+        );
+        uint256 totalBalance = warmUpBalance + walletBalance;
+
+        require(totalBalance != 0, "Must have reward tokens");
+
+        // claim senders warmup balance
+        if (warmUpBalance > 0) {
+            IVesting(WARM_UP_CONTRACT).retrieve(address(this), warmUpBalance);
+            delete warmUpInfo[msg.sender];
+        }
+
+        // claim senders wallet balance
+        if (walletBalance > 0) {
+            IERC20(REWARD_TOKEN).safeTransferFrom(
+                msg.sender,
+                address(this),
+                walletBalance
+            );
+        }
 
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
-            _amount,
+            totalBalance,
             msg.sender
         );
     }
@@ -443,6 +458,7 @@ contract Staking is Ownable {
         @param _trigger bool
      */
     function unstake(uint256 _amount, bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities asdf
         require(!pauseUnstaking, "Unstaking is paused");
         if (_trigger) {
             rebase();
@@ -450,14 +466,17 @@ contract Staking is Ownable {
         _retrieveBalanceFromUser(_amount, msg.sender);
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
-        require(!userCoolInfo.lock, "Withdraws for account are locked");
+
+        // if cooldown is expired claim to prevent griefing attack
+        if (_isClaimAvailable(userCoolInfo) && _canBatchTransactions()) {
+            claimWithdraw(msg.sender);
+        }
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
             gons: userCoolInfo.gons +
                 IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
-            expiry: epoch.number + coolDownPeriod,
-            lock: false
+            expiry: epoch.number + coolDownPeriod
         });
 
         requestWithdrawalAmount += _amount;
@@ -523,11 +542,6 @@ contract Staking is Ownable {
     function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
         external
     {
-        require(
-            IERC20(STAKING_TOKEN).balanceOf(msg.sender) >= _amount,
-            "Not enough staking tokens"
-        );
-
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),

@@ -8,13 +8,26 @@ contract Vesting {
     address public immutable REWARD_TOKEN;
 
     constructor(address _stakingToken, address _rewardToken) {
-        require(_stakingToken != address(0) && _rewardToken != address(0));
+        // addresses can't be 0x0
+        require(
+            _stakingToken != address(0) && _rewardToken != address(0),
+            "Invalid address"
+        );
         STAKING_TOKEN = _stakingToken;
         REWARD_TOKEN = _rewardToken;
     }
 
+    /**
+        @notice retrieve _amount of rewardToken 
+        @param _amount uint256
+        @param _staker address
+     */
     function retrieve(address _staker, uint256 _amount) external {
-        require(msg.sender == STAKING_TOKEN);
+        // must be called from staking contract
+        require(
+            msg.sender == STAKING_TOKEN,
+            "Not called from staking contract"
+        );
         IERC20(REWARD_TOKEN).transfer(_staker, _amount);
     }
 }

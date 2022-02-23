@@ -30,6 +30,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      deploy: ["deploy/core", "deploy/main"],
       forking: {
         url: process.env.MAINNET_URL || "",
         blockNumber: 14101169,
@@ -40,10 +41,11 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      deploy: ["deploy/core", "deploy/test"],
     },
   },
   paths: {
-    deploy: "deploy",
+    deploy: "deploy/core",
     sources: "./src",
   },
   namedAccounts: {
@@ -62,8 +64,11 @@ const config: HardhatUserConfig = {
     stakingContractMock: {
       default: 4,
     },
-    liquidityProvider: {
+    liquidityProvider1: {
       default: 5,
+    },
+    liquidityProvider2: {
+      default: 6,
     },
   },
   contractSizer: {

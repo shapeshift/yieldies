@@ -10,16 +10,19 @@ import "../interfaces/IStaking.sol";
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
+    event FeeChanged(uint256 indexed fee);
+
     address public stakingToken;
     address public rewardToken;
     address public stakingContract;
     uint256 public fee;
     address public initializer;
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
-    uint256 public constant BASIS_POINTS = 10000;
+    uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 
     constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
-        require(_stakingToken != address(0));
+        // verify address isn't 0x0
+        require(_stakingToken != address(0), "Invalid address");
         initializer = msg.sender;
         stakingToken = _stakingToken;
     }
@@ -35,8 +38,18 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
-        require(_stakingContract != address(0) && _rewardToken != address(0));
-        require(stakingTokenBalance >= MINIMUM_LIQUIDITY);
+
+        // verify addresses aren't 0x0
+        require(
+            _stakingContract != address(0) && _rewardToken != address(0),
+            "Invalid address"
+        );
+
+        // require address has minimum liquidity
+        require(
+            stakingTokenBalance >= MINIMUM_LIQUIDITY,
+            "Not enough staking tokens"
+        );
         stakingContract = _stakingContract;
         rewardToken = _rewardToken;
 
@@ -56,11 +69,11 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
-        require(
-            _fee <= BASIS_POINTS,
-            "Must be within range of 0 and 10000 bps"
-        );
+        // check range before setting fee
+        require(_fee <= BASIS_POINTS, "Out of range");
         fee = _fee;
+
+        emit FeeChanged(_fee);
     }
 
     /**
@@ -124,41 +137,34 @@ contract LiquidityReserve is ERC20, Ownable {
         @param _amount uint
      */
     function removeLiquidity(uint256 _amount) external {
-        require(
-            _amount <= balanceOf(msg.sender),
-            "Not enough liquidity reserve tokens"
-        );
+        // check balance before removing liquidity
+        require(_amount <= balanceOf(msg.sender), "Not enough lr tokens");
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
         uint256 amountToWithdraw = _calculateReserveTokenValue(_amount);
+
+        // verify that we have enough stakingTokens
         require(
             IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
-            "Not enough funds in contract to cover withdraw"
+            "Not enough funds"
         );
 
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
+    //TODO: clean up natspec
     /**
         @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
         @param _amount uint
         @param _recipient address
      */
     function instantUnstake(uint256 _amount, address _recipient) external {
-        require(
-            _amount <= IERC20(stakingToken).balanceOf(address(this)),
-            "Not enough funds in contract to cover instant unstake"
-        );
-        uint256 rewardBalance = IERC20(rewardToken).balanceOf(msg.sender);
-        require(rewardBalance >= _amount, "Not enough reward tokens in wallet");
-
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
-        // transfer from msg.sender (staking contract) due to not knowing if the funds are in warmup or not
         IERC20(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -167,6 +173,9 @@ contract LiquidityReserve is ERC20, Ownable {
 
         IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
 
+        // check if claim expired
+        // wait until expired
+        // make public function for unstake
         IStaking(stakingContract).unstake(_amount, false);
     }
 }

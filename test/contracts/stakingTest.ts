@@ -6,7 +6,6 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../../artifacts/src/contracts/Vesting.sol/Vesting.json";
-import { abi as liquidityReserveAbi } from "../../artifacts/src/contracts/LiquidityReserve.sol/LiquidityReserve.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve, Vesting, Staking } from "../../typechain-types";
 import { INSTANT_UNSTAKE_FEE } from "../constants";
@@ -147,8 +146,6 @@ describe("Staking", function () {
       expect(stakingContractBalance).eq(supply);
     });
     it("Fails when no staking/reward token or staking contract is passed in", async () => {
-      const { admin, staker1 } = await getNamedAccounts();
-
       const stakingFactory = await ethers.getContractFactory("Staking");
 
       // fail due to bad addresses
@@ -664,6 +661,9 @@ describe("Staking", function () {
       );
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
+      // can't instantUnstake without reward tokens
+      await expect(stakingStaker1.instantUnstake(false)).to.be.reverted;
+
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](transferAmount);
@@ -678,7 +678,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(transferAmount, false);
+      await stakingStaker1.instantUnstake(false);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -715,7 +715,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(transferAmount, true);
+      await stakingStaker1.instantUnstake(true);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -731,8 +731,8 @@ describe("Staking", function () {
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
 
-      await stakingAdmin.overrideStaking(true);
-      await stakingAdmin.overrideUnstaking(true);
+      await stakingAdmin.shouldPauseStaking(true);
+      await stakingAdmin.shouldPauseUnstaking(true);
       await stakingAdmin.setCoolDownPeriod(99999999999999);
 
       await stakingAdmin.setBlocksLeftToRequestWithdrawal(10);
@@ -756,7 +756,7 @@ describe("Staking", function () {
       await expect(
         stakingStaker1.functions["stake(uint256)"](stakingAmount)
       ).to.be.revertedWith("Staking is paused");
-      await stakingAdmin.overrideStaking(false);
+      await stakingAdmin.shouldPauseStaking(false);
 
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
@@ -768,11 +768,11 @@ describe("Staking", function () {
       await expect(
         stakingStaker1.unstake(stakingAmount, true)
       ).to.be.revertedWith("Unstaking is paused");
-      await expect(
-        stakingStaker1.instantUnstake(stakingAmount, true)
-      ).to.be.revertedWith("Unstaking is paused");
+      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
+        "Unstaking is paused"
+      );
 
-      await stakingAdmin.overrideUnstaking(false);
+      await stakingAdmin.shouldPauseUnstaking(false);
       await stakingStaker1.unstake(stakingAmount, true);
 
       await mineBlocksToNextCycle();
@@ -789,17 +789,8 @@ describe("Staking", function () {
       await stakingStaker1.claimWithdraw(staker1);
 
       // doesn't have staking balance due to cooldown period not expired
-      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      const stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
-
-      await stakingAdmin.overrideWithdrawals(true);
-
-      // can claim with withdraws overrode
-      await stakingStaker1.claimWithdraw(staker1);
-
-      // has stakingBalance after withdrawal
-      stakingTokenBalance = await stakingToken.balanceOf(staker1);
-      expect(stakingTokenBalance).eq(stakingAmount);
 
       let epoch = await staking.epoch();
       // @ts-ignore
@@ -810,66 +801,33 @@ describe("Staking", function () {
       epoch = await staking.epoch();
       // @ts-ignore
       expect(epoch._length).eq(1000);
-    });
-    it("Claim locks work", async () => {
-      const { staker1 } = await getNamedAccounts();
 
-      // transfer STAKING_TOKEN to staker 1
-      const transferAmount = BigNumber.from("10000");
-      await stakingToken.transfer(staker1, transferAmount);
+      // test unstakAllFromTokemak
 
-      const staker1Signer = accounts.find(
-        (account) => account.address === staker1
+      let requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
       );
-      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+      expect(requestedWithdrawals.amount).eq(stakingAmount);
 
-      const stakingAmount = transferAmount.div(2);
-      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      // stake a bunch of stuff
+      await stakingToken.transfer(staker1, stakingAmount);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
 
-      await stakingStaker1.toggleDepositLock();
-      await expect(
-        stakingStaker1.functions["stake(uint256)"](stakingAmount)
-      ).to.be.revertedWith("Deposits for account are locked");
-
-      await stakingStaker1.toggleDepositLock();
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      await rewardToken
-        .connect(staker1Signer as Signer)
-        .approve(staking.address, stakingAmount);
+      // unstake all tfox from tokemak
+      const tokeBalance = await tokePool.balanceOf(staking.address);
+      await stakingAdmin.unstakeAllFromTokemak();
 
-      await stakingStaker1.toggleWithdrawLock();
-      await expect(
-        stakingStaker1.unstake(stakingAmount, false)
-      ).to.be.revertedWith("Withdraws for account are locked");
-      await stakingStaker1.toggleWithdrawLock();
-
-      await stakingStaker1.unstake(stakingAmount, false);
-
-      await mineBlocksToNextCycle();
-      await stakingStaker1.sendWithdrawalRequests();
-
-      await network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
-      });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
-      const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
-
-      await stakingStaker1.toggleWithdrawLock();
-      await expect(stakingStaker1.claimWithdraw(staker1)).to.be.revertedWith(
-        "Withdraws for account are locked"
+      requestedWithdrawals = await tokePool.requestedWithdrawals(
+        stakingStaker1.address
       );
-
-      await stakingStaker1.toggleWithdrawLock();
-      await stakingStaker1.claimWithdraw(staker1);
+      expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
   });
 
   describe("reward", function () {
-    it("Rewards can be added to contract and rebase rewards users", async () => {
+    it("Reward indexes are set correctly", async () => {
       const { staker1, staker2 } = await getNamedAccounts();
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("1000000000000000");
@@ -911,7 +869,7 @@ describe("Staking", function () {
       // can't send more than balance
       await expect(
         stakingStaker1.addRewardsForStakers(transferAmount.add(1), false)
-      ).to.be.revertedWith("Not enough staking tokens");
+      ).to.be.reverted;
 
       await staking.addRewardsForStakers(awardAmount, false);
 
@@ -1001,7 +959,7 @@ describe("Staking", function () {
       // can't send more than balance
       await expect(
         stakingStaker1.addRewardsForStakers(transferAmount.add(1), false)
-      ).to.be.revertedWith("Not enough staking tokens");
+      ).to.be.reverted;
 
       await staking.addRewardsForStakers(awardAmount, false);
 
@@ -1200,15 +1158,25 @@ describe("Staking", function () {
         "0x0402de926473b79c91b67a49a931108c4c593442ce63193d9c35a9ef12c7d495";
       const s =
         "0x2c3d7cf17e33eb30408a4fb266a812008a35a9e8987e841eecb92504620f55bd";
-
+      let recipient = {
+        chainId: 1,
+        cycle: 167,
+        wallet: staking.address,
+        amount: 0,
+      };
       // must have amount > 0
-      await expect(staking.claimFromTokemak(0, v, r, s)).to.be.revertedWith(
-        "Must enter valid amount"
-      );
-
+      await expect(
+        staking.claimFromTokemak(recipient, v, r, s)
+      ).to.be.revertedWith("Must enter valid amount");
+      recipient = {
+        chainId: 1,
+        cycle: 167,
+        wallet: staking.address,
+        amount: 1000,
+      };
       // can't actually claim rewards, invalid signature returned from Tokemak
       await expect(
-        staking.claimFromTokemak(BigNumber.from("1000"), v, r, s)
+        staking.claimFromTokemak(recipient, v, r, s)
       ).to.be.revertedWith("'ECDSA: invalid signature'");
 
       // transferToke fails on 0 address
