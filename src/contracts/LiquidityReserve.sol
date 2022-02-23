@@ -72,7 +72,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice sets Fee (in basis points eg. 100 bps = 1%) for instant unstaking
-        @param _fee uint
+        @param _fee uint - fee in basis points
      */
     function setFee(uint256 _fee) external onlyOwner {
         // check range before setting fee
@@ -84,7 +84,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice addLiquidity for the stakingToken and receive lrToken in exchange
-        @param _amount uint
+        @param _amount uint - amount of staking tokens to add
      */
     function addLiquidity(uint256 _amount) external {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
@@ -112,8 +112,8 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice calculate current lrToken withdraw value
-        @param _amount uint
-        @return uint
+        @param _amount uint - amount of tokens that will be withdrawn
+        @return uint - converted amount of staking tokens to withdraw from lr tokens
      */
     function _calculateReserveTokenValue(uint256 _amount)
         internal
@@ -140,7 +140,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice removeLiquidity by swapping your lrToken for stakingTokens
-        @param _amount uint
+        @param _amount uint - amount of tokens to remove from liquidity reserve
      */
     function removeLiquidity(uint256 _amount) external {
         // check balance before removing liquidity
@@ -162,8 +162,8 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
-        @param _amount uint
-        @param _recipient address
+        @param _amount uint - amount of tokens to instantly unstake
+        @param _recipient address - address to send staking tokens to
      */
     function instantUnstake(uint256 _amount, address _recipient)
         external
