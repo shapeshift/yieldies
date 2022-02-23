@@ -187,7 +187,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     /**
         @notice get circulating supply of tokens
-        @return uint
+        @return uint - circulation supply minus balance of staking contract
      */
     function circulatingSupply() public view returns (uint256) {
         // Staking contract holds excess FOXy
