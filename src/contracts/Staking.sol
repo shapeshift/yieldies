@@ -86,11 +86,13 @@ contract Staking is Ownable {
         TOKE_REWARD = _tokeReward;
         TOKE_REWARD_HASH = _tokeRewardHash;
         LIQUIDITY_RESERVE = _liquidityReserve;
-
-        Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
-        WARM_UP_CONTRACT = address(warmUp);
         blocksLeftToRequestWithdrawal = 500;
 
+        // create vesting contract to hold newly staked rewardTokens based on warmup period
+        Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
+        WARM_UP_CONTRACT = address(warmUp);
+
+        // create vesting contract to hold newly unstaked rewardTokens based on cooldown period
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
@@ -106,11 +108,12 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice claim TOKE from Tokemak
-        @param _recipient Recipient
-        @param _v uint
-        @param _r bytes
-        @param _s bytes
+        @notice claim TOKE rewards from Tokemak
+        @dev must get amount through toke reward contract using latest cycle from reward hash contract
+        @param _recipient Recipient struct that contains chainId, cycle, address, and amount 
+        @param _v uint - recovery id
+        @param _r bytes - output of ECDSA signature
+        @param _s bytes - output of ECDSA signature
      */
     function claimFromTokemak(
         Recipient calldata _recipient,
@@ -126,8 +129,9 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice transfer TOKE from contract to address
-        @param _claimAddress address
+        @notice transfer TOKE from staking contract to address
+        @dev used so DAO can get TOKE and manually trade to return FOX to the staking contract
+        @param _claimAddress address to send TOKE rewards
         **/
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
@@ -137,7 +141,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice override whether or not deposits are blocked
+        @notice override whether or not staking is paused
+        @dev used to pause staking in case some attack vector becomes present
         @param _shouldPause bool
         **/
     function shouldPauseStaking(bool _shouldPause) public onlyOwner {
@@ -145,7 +150,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice override whether or not withdraws are blocked
+        @notice override whether or not unstaking is paused
+        @dev used to pause unstaking in case some attack vector becomes present
         @param _shouldPause bool
         **/
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
@@ -154,7 +160,9 @@ contract Staking is Ownable {
 
     /**
         @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
-        @param _blocks uint
+        @dev requestWithdrawals is called once per cycle.
+        @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
+        @param _blocks uint - number of blocks before end of cycle
         **/
     function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
         external
@@ -164,9 +172,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice checks to see if claim is available
-        @param _info Claim
-        @return bool
+        @notice returns true if claim is available
+        @dev this shows whether or not our epoch's have passed
+        @param _info Claim - either warmup or cooldown claim
+        @return bool - true if available to claim
      */
     function _isClaimAvailable(Claim memory _info)
         internal
@@ -177,8 +186,9 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice withdraw from Tokemak
-        @param _amount uint
+        @notice withdraw stakingTokens from Tokemak
+        @dev needs a valid requestWithdrawal inside Tokemak with a completed cycle rollover to withdraw
+        @param _amount uint - amount of stakingTokens to withdraw
      */
     function _withdrawFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -187,7 +197,8 @@ contract Staking is Ownable {
 
     /**
         @notice creates a withdrawRequest with Tokemak
-        @param _amount uint
+        @dev requestedWithdraws take 1 tokemak cycle to be available for withdraw
+        @param _amount uint - amount to request withdraw
      */
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -195,8 +206,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice deposit STAKING_TOKEN to tStakingToken Tokemak reactor
-        @param _amount uint
+        @notice deposit stakingToken to tStakingToken Tokemak reactor
+        @param _amount uint - amount to deposit
      */
     function _depositToTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -204,8 +215,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice gets balance of STAKING_TOKEN that's locked into the TOKE STAKING_TOKEN pool
-        @return uint
+        @notice gets balance of stakingToken that's locked into the TOKE stakingToken pool
+        @return uint - amount of stakingToken in TOKE pool
      */
     function _getTokemakBalance() internal view returns (uint256) {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -213,7 +224,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice checks TOKE's cycleTime is withink duration to batch the transactions
+        @notice checks TOKE's cycleTime is within duration to batch the transactions
+        @dev this function returns true if we are within blocksLeftToRequestWithdrawal of the end of the TOKE cycle
         @return bool
      */
     function _canBatchTransactions() internal view returns (bool) {
@@ -228,7 +240,9 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice owner function to retrieve all FOX to staking contract in case of
+        @notice owner function to unstake all FOX to staking contract in case of attack on tokemak
+        @dev this bypasses the normal flow of sending a withdrawal request and allows the owner to requestWithdraw entire pool balance
+        @dev which users can then unstake and claim their withdrawal
      */
     function unstakeAllFromTokemak() public onlyOwner {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
@@ -241,9 +255,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice sends batched requestedWithdrawals
+        @notice sends batched requestedWithdrawals due to TOKE's requestWithdrawal overwriting the amount if you call it more than once per cycle
      */
     function sendWithdrawalRequests() public {
+        // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
             ITokeManager iTOKE_MANAGER = ITokeManager(TOKE_MANAGER);
             _requestWithdrawalFromTokemak(requestWithdrawalAmount);
@@ -255,7 +270,7 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice stake STAKING_TOKEN to enter warmup
+        @notice stake staking tokens to receive reward tokens
         @param _amount uint
         @param _recipient address
      */
@@ -273,9 +288,11 @@ contract Staking is Ownable {
 
         _depositToTokemak(_amount);
 
+        // skip adding to warmup contract if period is 0
         if (warmUpPeriod == 0) {
             IERC20(REWARD_TOKEN).safeTransfer(_recipient, _amount);
         } else {
+            // create a claim and send tokens to the warmup contract
             warmUpInfo[_recipient] = Claim({
                 amount: info.amount + _amount,
                 gons: info.gons +
@@ -288,7 +305,7 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice stake STAKING_TOKEN to enter warmup
+        @notice call stake with msg.sender
         @param _amount uint
      */
     function stake(uint256 _amount) external {
@@ -296,7 +313,8 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice retrieve REWARD_TOKEN from warmup
+        @notice retrieve reward tokens from warmup
+        @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
      */
     function claim(address _recipient) external {
@@ -311,8 +329,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice claims STAKING_TOKEN after cooldown period
-        @param _recipient address
+        @notice claims staking tokens after cooldown period
+        @dev if user has a cooldown claim that's past expiry then withdraw staking tokens from tokemak
+        @dev and send them to user
+        @param _recipient address - users unstaking address
      */
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
@@ -328,7 +348,7 @@ contract Staking is Ownable {
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
 
-            // revert if not enough funds to cover transfer
+            // revert if not enough funds to cover transfer inside staking contract
             uint256 stakingBalance = IERC20(STAKING_TOKEN).balanceOf(
                 address(this)
             );
@@ -337,6 +357,7 @@ contract Staking is Ownable {
             require(stakingBalance >= info.amount, "Not enough funds");
 
             delete coolDownInfo[_recipient];
+
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
             IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
@@ -349,7 +370,9 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice gets rewardToken either from the warmup contract or user's wallet
+        @notice gets reward tokens either from the warmup contract or user's wallet or both
+        @dev when transfering reward tokens the user could have their balance still in the warmup contract
+        @dev this function abstracts the logic to find the correct amount of tokens to use them
         @param _amount uint
         @param _user address to pull funds from 
      */
@@ -368,7 +391,6 @@ contract Staking is Ownable {
 
         uint256 amountLeft = _amount;
         if (warmUpBalance > 0) {
-
             // remove from warmup first.
             if (_amount >= warmUpBalance) {
                 // use the entire warmup balance
@@ -409,9 +431,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice redeem REWARD_TOKEN for STAKING_TOKEN instantly with fee.  Must use entire amount
-        @notice this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
-        @param _trigger bool
+        @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
+        @dev this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
+        @dev this function talks to the instantUnstake function in the liquidity reserve contract
+        @param _trigger bool - should trigger a rebase
      */
 
     function instantUnstake(bool _trigger) external {
@@ -446,6 +469,7 @@ contract Staking is Ownable {
             );
         }
 
+        // instant unstake from LR contract
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
             totalBalance,
             msg.sender
@@ -453,9 +477,11 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice redeem REWARD_TOKEN for STAKING_TOKEN
-        @param _amount uint
-        @param _trigger bool
+        @notice redeem reward tokens for staking tokens with a vesting period based on coolDownPeriod
+        @dev this function will retrieve the _amount of reward tokens from the user and transfer them to the cooldown contract.
+        @dev once the period has expired the user will be able to withdraw their staking tokens
+        @param _amount uint - amount of tokens to unstake
+        @param _trigger bool - should trigger a rebase
      */
     function unstake(uint256 _amount, bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities asdf
@@ -467,7 +493,7 @@ contract Staking is Ownable {
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
 
-        // if cooldown is expired claim to prevent griefing attack
+        // if user currently has a cooldown and it is expired claim to prevent griefing attack
         if (_isClaimAvailable(userCoolInfo) && _canBatchTransactions()) {
             claimWithdraw(msg.sender);
         }
@@ -486,7 +512,7 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice trigger rebase if epoch over
+        @notice trigger rebase if epoch has ended
      */
     function rebase() public {
         if (epoch.endBlock <= block.number) {
@@ -507,8 +533,10 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice returns contract STAKING_TOKEN holdings
-        @return uint
+        @notice returns contract staking tokens holdings 
+        @dev gets amount of staking tokens that are a part of this system to calculate rewards
+        @dev the staking tokens will be included in this contract plus inside tokemak
+        @return uint - amount of staking tokens
      */
     function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
@@ -516,8 +544,9 @@ contract Staking is Ownable {
     }
 
     /**
-     * @notice set epoch length
-     * @param length uint
+        @notice set epoch length
+        @dev epoch's determine how long until a rebase can occur
+        @param length uint
      */
     function setEpochLength(uint256 length) external onlyOwner {
         epoch.length = length;
@@ -539,22 +568,26 @@ contract Staking is Ownable {
         coolDownPeriod = _vestingPeriod;
     }
 
-    function addRewardsForStakers(uint256 _amount, bool _isTriggerRebase)
-        external
-    {
+    /**
+     * @notice adds staking tokens for rebase rewards
+     * @dev this is the function that gives rewards so the rebase function can distrubute profits to reward token holders
+     * @param _amount uint - amount of tokens to add to rewards
+     * @param _trigger bool - should trigger rebase
+     */
+    function addRewardsForStakers(uint256 _amount, bool _trigger) external {
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
 
-        // deposit all STAKING_TOKEN held in contract to Tokemak
+        // deposit all staking tokens held in contract to Tokemak
         uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
             address(this)
         );
         _depositToTokemak(stakingTokenBalance);
 
-        if (_isTriggerRebase) {
+        if (_trigger) {
             rebase();
         }
     }

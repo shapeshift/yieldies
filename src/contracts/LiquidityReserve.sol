@@ -65,7 +65,7 @@ contract LiquidityReserve is ERC20, Ownable {
     }
 
     /**
-        @notice sets Fee (in basis points eg. 100 bps = 1%) for instant unstaking
+        @notice sets fee (in basis points eg. 100 bps = 1%) for instant unstaking
         @param _fee uint
      */
     function setFee(uint256 _fee) external onlyOwner {
@@ -94,7 +94,8 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 totalLockedValue = stakingTokenBalance +
             rewardTokenBalance +
             coolDownAmount;
-        uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
+
+        uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue; // TODO: check if 0
 
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
