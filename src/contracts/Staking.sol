@@ -471,8 +471,13 @@ contract Staking is Ownable {
             userWarmInfo.gons
         );
         uint256 totalBalance = warmUpBalance + walletBalance;
+        uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
+            LIQUIDITY_RESERVE
+        );
 
+        // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
+        require(stakingTokenBalance >= totalBalance, "Not enough funds in reserve");
 
         // claim senders warmup balance
         if (warmUpBalance > 0) {

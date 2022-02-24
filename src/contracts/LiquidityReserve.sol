@@ -101,7 +101,7 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 totalLockedValue = stakingTokenBalance +
             rewardTokenBalance +
             coolDownAmount;
-            
+
         uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
 
         IERC20(stakingToken).safeTransferFrom(
@@ -171,14 +171,9 @@ contract LiquidityReserve is ERC20, Ownable {
         external
         onlyStakingContract
     {
-        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
-            address(this)
-        );
-        // verify that we have enough stakingTokens
-        require(stakingTokenBalance >= _amount, "Not enough funds in reserve");
-
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
+
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
         IERC20(rewardToken).safeTransferFrom(
@@ -188,7 +183,11 @@ contract LiquidityReserve is ERC20, Ownable {
         );
 
         IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
+        unstakeAllRewardTokens();
+    }
 
-        IStaking(stakingContract).unstake(_amount, false);
+    function unstakeAllRewardTokens() public {
+        uint256 amount = IERC20(rewardToken).balanceOf(address(this));
+        IStaking(stakingContract).unstake(amount, false);
     }
 }
