@@ -824,6 +824,65 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
+    it.only("unstakeAllFromTokemak allows users to unstake and claim rewards", async () => {
+      const { staker1, admin } = await getNamedAccounts();
+      let staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(0);
+      // transfer STAKING_TOKEN to staker 1
+      const stakingAmount = BigNumber.from("100000");
+
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(stakingAmount);
+
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(0);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+
+      await mineBlocksToNextCycle();
+
+      let stakingContractStakingBalance = await stakingToken.balanceOf(staking.address);
+      expect(stakingContractStakingBalance).eq(0)
+
+      // call unstakeAllFromTokemak
+      const adminSigner = accounts.find((account) => account.address === admin);
+      const stakingAdmin = staking.connect(adminSigner as Signer);
+      await stakingAdmin.unstakeAllFromTokemak();
+
+      // do rollover
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      // user can still unstake and claim without sendWithdrawalRequest
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(0);
+
+      // user should now be able to unstake + claim in one action
+      await stakingStaker1.unstake(stakingAmount, false);
+      await stakingStaker1.claimWithdraw(staker1);
+
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(stakingAmount);
+
+    });
   });
 
   describe("reward", function () {

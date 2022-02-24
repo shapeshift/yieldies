@@ -30,28 +30,26 @@ contract Staking is Ownable {
     address public immutable COOL_DOWN_CONTRACT;
 
     // owner overrides
-    bool public pauseStaking = false;
-    bool public pauseUnstaking = false;
-    bool public overrideCanWithdraw = false;
+    bool public pauseStaking = false; // pauses staking
+    bool public pauseUnstaking = false; // pauses unstaking
 
-    // TODO: tightly pack for gas optimization
+    // tightly pack for gas optimization
     struct Epoch {
-        uint256 length;
-        uint256 number;
-        uint256 endBlock;
-        uint256 distribute;
+        uint256 length; // length of epoch
+        uint256 number; // epoch number (starting 1)
+        uint256 endBlock; // block that current epoch ends on
+        uint256 distribute; // amount of rewards to distribute this epoch
     }
     Epoch public epoch;
 
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    uint256 public blocksLeftToRequestWithdrawal;
-    uint256 public warmUpPeriod;
-    uint256 public coolDownPeriod;
-    uint256 public lastUpdatedTokemakCycle;
-    uint256 public requestWithdrawalAmount;
-    uint256 public lastTokeCycleIndex;
+    uint256 public blocksLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
+    uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
+    uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
+    uint256 public requestWithdrawalAmount; // amount of tokens to request withdrawal once able to send
+    uint256 public lastTokeCycleIndex; // last tokemak cycle index which requested withdrawals
 
     constructor(
         address _stakingToken,
@@ -159,6 +157,31 @@ contract Staking is Ownable {
     }
 
     /**
+        @notice set epoch length
+        @dev epoch's determine how long until a rebase can occur
+        @param length uint
+     */
+    function setEpochLength(uint256 length) external onlyOwner {
+        epoch.length = length;
+    }
+
+    /**
+     * @notice set warmup period for new stakers
+     * @param _vestingPeriod uint
+     */
+    function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
+        warmUpPeriod = _vestingPeriod;
+    }
+
+    /**
+     * @notice set cooldown period for stakers
+     * @param _vestingPeriod uint
+     */
+    function setCoolDownPeriod(uint256 _vestingPeriod) public onlyOwner {
+        coolDownPeriod = _vestingPeriod;
+    }
+
+    /**
         @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
         @dev requestWithdrawals is called once per cycle.
         @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
@@ -240,17 +263,16 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice owner function to unstake all FOX to staking contract in case of attack on tokemak
+        @notice owner function to requestWithdraw all FOX from tokemak in case of an attack on tokemak
         @dev this bypasses the normal flow of sending a withdrawal request and allows the owner to requestWithdraw entire pool balance
-        @dev which users can then unstake and claim their withdrawal
      */
     function unstakeAllFromTokemak() public onlyOwner {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
         uint256 tokePoolBalance = ITokePool(tokePoolContract).balanceOf(
             address(this)
         );
-
         shouldPauseStaking(true);
+        setCoolDownPeriod(0);
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }
 
@@ -338,13 +360,13 @@ contract Staking is Ownable {
         Claim memory info = coolDownInfo[_recipient];
 
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        WithdrawalInfo memory withdrawalInfo = tokePoolContract
+        WithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         if (
             (_isClaimAvailable(info)) &&
-            withdrawalInfo.amount >= totalAmountIncludingRewards
+            requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
 
@@ -541,31 +563,6 @@ contract Staking is Ownable {
     function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
         return IERC20(STAKING_TOKEN).balanceOf(address(this)) + tokeBalance;
-    }
-
-    /**
-        @notice set epoch length
-        @dev epoch's determine how long until a rebase can occur
-        @param length uint
-     */
-    function setEpochLength(uint256 length) external onlyOwner {
-        epoch.length = length;
-    }
-
-    /**
-     * @notice set warmup period for new stakers
-     * @param _vestingPeriod uint
-     */
-    function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
-        warmUpPeriod = _vestingPeriod;
-    }
-
-    /**
-     * @notice set cooldown period for stakers
-     * @param _vestingPeriod uint
-     */
-    function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
-        coolDownPeriod = _vestingPeriod;
     }
 
     /**
