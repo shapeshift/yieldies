@@ -84,8 +84,6 @@ contract Foxy is ERC20Permit, Ownable {
         @return bool
      */
     function setIndex(uint256 _index) internal returns (bool) {
-        // make sure index isn't set yet, so it's only set once
-        require(index == 0, "Index already set");
         index = gonsForBalance(_index);
         return true;
     }
