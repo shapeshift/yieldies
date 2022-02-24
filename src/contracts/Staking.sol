@@ -271,7 +271,9 @@ contract Staking is Ownable {
         uint256 tokePoolBalance = ITokePool(tokePoolContract).balanceOf(
             address(this)
         );
+        // pause any future staking
         shouldPauseStaking(true);
+        // allow to unstake and claim immediately for any future unstaker
         setCoolDownPeriod(0);
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }

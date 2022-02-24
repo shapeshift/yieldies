@@ -824,7 +824,7 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
-    it.only("unstakeAllFromTokemak allows users to unstake and claim rewards", async () => {
+    it("unstakeAllFromTokemak allows users to unstake and claim rewards", async () => {
       const { staker1, admin } = await getNamedAccounts();
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(0);
@@ -881,7 +881,6 @@ describe("Staking", function () {
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount);
-
     });
   });
 
