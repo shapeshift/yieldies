@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
-struct WithdrawalInfo {
+struct RequestedWithdrawalInfo {
     uint256 minCycle;
     uint256 amount;
 }
@@ -16,5 +16,5 @@ interface ITokePool {
 
     function requestedWithdrawals(address owner)
         external
-        returns (WithdrawalInfo memory);
+        returns (RequestedWithdrawalInfo memory);
 }

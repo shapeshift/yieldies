@@ -249,13 +249,14 @@ contract Staking is Ownable {
     /**
         @notice checks TOKE's cycleTime is within duration to batch the transactions
         @dev this function returns true if we are within blocksLeftToRequestWithdrawal of the end of the TOKE cycle
-        @return bool
+        @dev as well as if the current cycle index is more than the last cycle index
+        @return bool - returns true if can batch transactions
      */
     function _canBatchTransactions() internal view returns (bool) {
-        ITokeManager iTOKE_MANAGER = ITokeManager(TOKE_MANAGER);
-        uint256 duration = iTOKE_MANAGER.getCycleDuration();
-        uint256 currentCycleStart = iTOKE_MANAGER.getCurrentCycle();
-        uint256 currentCycleIndex = iTOKE_MANAGER.getCurrentCycleIndex();
+        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        uint256 duration = tokeManager.getCycleDuration();
+        uint256 currentCycleStart = tokeManager.getCurrentCycle();
+        uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
         return
             block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
@@ -284,10 +285,10 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
-            ITokeManager iTOKE_MANAGER = ITokeManager(TOKE_MANAGER);
+            ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
             _requestWithdrawalFromTokemak(requestWithdrawalAmount);
 
-            uint256 currentCycleIndex = iTOKE_MANAGER.getCurrentCycleIndex();
+            uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
             requestWithdrawalAmount = 0;
         }
@@ -361,24 +362,19 @@ contract Staking is Ownable {
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
 
+        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        WithdrawalInfo memory requestedWithdrawals = tokePoolContract
+        RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
+        uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         if (
-            (_isClaimAvailable(info)) &&
+            _isClaimAvailable(info) &&
+            requestedWithdrawals.minCycle <= currentCycleIndex &&
             requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
-
-            // revert if not enough funds to cover transfer inside staking contract
-            uint256 stakingBalance = IERC20(STAKING_TOKEN).balanceOf(
-                address(this)
-            );
-
-            // must have enough funds to withdraw
-            require(stakingBalance >= info.amount, "Not enough funds");
 
             delete coolDownInfo[_recipient];
 
@@ -517,10 +513,8 @@ contract Staking is Ownable {
 
         Claim memory userCoolInfo = coolDownInfo[msg.sender];
 
-        // if user currently has a cooldown and it is expired claim to prevent griefing attack
-        if (_isClaimAvailable(userCoolInfo) && _canBatchTransactions()) {
-            claimWithdraw(msg.sender);
-        }
+        // try to claim withdraw if user has withdraws to claim function will check if withdraw is valid
+        claimWithdraw(msg.sender);
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
