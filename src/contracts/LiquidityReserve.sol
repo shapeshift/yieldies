@@ -186,6 +186,9 @@ contract LiquidityReserve is ERC20, Ownable {
         unstakeAllRewardTokens();
     }
 
+    /**
+        @notice find balance of reward tokens in contract and unstake them from staking contract
+     */
     function unstakeAllRewardTokens() public {
         uint256 amount = IERC20(rewardToken).balanceOf(address(this));
         IStaking(stakingContract).unstake(amount, false);
