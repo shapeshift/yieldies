@@ -4,8 +4,8 @@ pragma solidity 0.8.9;
 import "../interfaces/IOwnable.sol";
 
 contract Ownable is IOwnable {
-    address internal _owner;
-    address internal _newOwner;
+    address internal owner; // current owner
+    address internal newOwner; // next owner once pulled
 
     event OwnershipPushed(
         address indexed previousOwner,
@@ -17,36 +17,54 @@ contract Ownable is IOwnable {
     );
 
     constructor() {
-        _owner = msg.sender;
-        emit OwnershipPushed(address(0), _owner);
+        owner = msg.sender;
+        emit OwnershipPushed(address(0), owner);
     }
 
-    function owner() public view override returns (address) {
-        return _owner;
+    /**
+        @notice gets owner of contract
+        @return address - owner of contract
+     */
+    function getOwner() public view override returns (address) {
+        return owner;
     }
 
+    /**
+        @notice modifier to only let owner call function
+     */
     modifier onlyOwner() {
-        require(_owner == msg.sender, "Ownable: caller is not the owner");
+        require(owner == msg.sender, "Ownable: caller is not the owner");
         _;
     }
 
+    /**
+        @notice renounce ownership to 0 address
+     */
     function renounceOwner() public virtual override onlyOwner {
-        emit OwnershipPushed(_owner, address(0));
-        _owner = address(0);
+        emit OwnershipPushed(owner, address(0));
+        owner = address(0);
     }
 
-    function pushOwner(address newOwner_) public virtual override onlyOwner {
+    /**
+        @notice push a new owner to be the next owner of contract
+        @param _newOwner address - next owner address
+        @dev owner is not active until pullOwner() is called
+     */
+    function pushOwner(address _newOwner) public virtual override onlyOwner {
         require(
-            newOwner_ != address(0),
+            _newOwner != address(0),
             "Ownable: new owner is the zero address"
         );
-        emit OwnershipPushed(_owner, newOwner_);
-        _newOwner = newOwner_;
+        emit OwnershipPushed(owner, _newOwner);
+        newOwner = _newOwner;
     }
 
+    /**
+        @notice sets the current newOwner to the owner of the contract
+     */
     function pullOwner() public virtual override {
-        require(msg.sender == _newOwner, "Ownable: must be new owner to pull");
-        emit OwnershipPulled(_owner, _newOwner);
-        _owner = _newOwner;
+        require(msg.sender == newOwner, "Ownable: must be new owner to pull");
+        emit OwnershipPulled(owner, newOwner);
+        owner = newOwner;
     }
 }

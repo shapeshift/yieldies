@@ -130,7 +130,7 @@ contract Staking is Ownable {
         @notice transfer TOKE from staking contract to address
         @dev used so DAO can get TOKE and manually trade to return FOX to the staking contract
         @param _claimAddress address to send TOKE rewards
-        **/
+     */
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
         require(_claimAddress != address(0), "Invalid address");
@@ -142,7 +142,7 @@ contract Staking is Ownable {
         @notice override whether or not staking is paused
         @dev used to pause staking in case some attack vector becomes present
         @param _shouldPause bool
-        **/
+     */
     function shouldPauseStaking(bool _shouldPause) public onlyOwner {
         pauseStaking = _shouldPause;
     }
@@ -151,7 +151,7 @@ contract Staking is Ownable {
         @notice override whether or not unstaking is paused
         @dev used to pause unstaking in case some attack vector becomes present
         @param _shouldPause bool
-        **/
+     */
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         pauseUnstaking = _shouldPause;
     }
@@ -186,7 +186,7 @@ contract Staking is Ownable {
         @dev requestWithdrawals is called once per cycle.
         @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
         @param _blocks uint - number of blocks before end of cycle
-        **/
+     */
     function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
         external
         onlyOwner
@@ -456,7 +456,6 @@ contract Staking is Ownable {
         @dev this function talks to the instantUnstake function in the liquidity reserve contract
         @param _trigger bool - should trigger a rebase
      */
-
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
         require(!pauseUnstaking, "Unstaking is paused");
