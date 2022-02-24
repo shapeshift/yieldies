@@ -13,7 +13,6 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -33,7 +32,6 @@ contract Staking is Ownable {
     bool public pauseStaking = false; // pauses staking
     bool public pauseUnstaking = false; // pauses unstaking
 
-    // tightly pack for gas optimization
     struct Epoch {
         uint256 length; // length of epoch
         uint256 number; // epoch number (starting 1)

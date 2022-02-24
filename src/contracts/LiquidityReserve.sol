@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
-import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
