@@ -969,7 +969,7 @@ describe("Staking", function () {
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount);
 
-      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      const staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
       const staker1Signer = accounts.find(
@@ -987,7 +987,7 @@ describe("Staking", function () {
 
       await mineBlocksToNextCycle();
 
-      let stakingContractStakingBalance = await stakingToken.balanceOf(
+      const stakingContractStakingBalance = await stakingToken.balanceOf(
         staking.address
       );
       expect(stakingContractStakingBalance).eq(0);

@@ -476,7 +476,10 @@ contract Staking is Ownable {
 
         // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
-        require(stakingTokenBalance >= totalBalance, "Not enough funds in reserve");
+        require(
+            stakingTokenBalance >= totalBalance,
+            "Not enough funds in reserve"
+        );
 
         // claim senders warmup balance
         if (warmUpBalance > 0) {

@@ -28,8 +28,6 @@ describe("Ownable", function () {
     const { admin, staker1 } = await getNamedAccounts();
     const accounts = await ethers.getSigners();
 
-
-
     await expect(
       ownable.pushOwner("0x0000000000000000000000000000000000000000")
     ).to.be.revertedWith("Ownable: new owner is the zero address");
@@ -43,13 +41,12 @@ describe("Ownable", function () {
     const ownableStaker1 = ownable.connect(staker1Signer as Signer);
 
     await expect(ownableStaker1.pushOwner(staker1)).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      "Ownable: caller is not the owner"
+    );
 
     await expect(ownable.pullOwner()).to.be.revertedWith(
       "Ownable: must be new owner to pull"
     );
-
 
     await ownableStaker1.pullOwner();
     expect(await ownable.getOwner()).eq(staker1);
