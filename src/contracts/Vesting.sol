@@ -18,7 +18,7 @@ contract Vesting {
     }
 
     /**
-        @notice retrieve _amount of rewardToken 
+        @notice retrieve _amount of rewardToken that's held in vesting contract
         @param _amount uint256
         @param _staker address
      */
