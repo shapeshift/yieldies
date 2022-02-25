@@ -12,13 +12,19 @@ contract LiquidityReserve is ERC20, Ownable {
 
     event FeeChanged(uint256 indexed fee);
 
-    address public stakingToken;
-    address public rewardToken;
-    address public stakingContract;
-    uint256 public fee;
-    address public initializer;
+    address public stakingToken; // staking token address
+    address public rewardToken; // reward token address
+    address public stakingContract; // staking contract address
+    uint256 public fee; // fee for instant unstaking
+    address public initializer; // LiquidityReserve initializer
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
+
+    // check if sender is the stakingContract
+    modifier onlyStakingContract() {
+        require(msg.sender == stakingContract, "Not staking contract");
+        _;
+    }
 
     constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
         // verify address isn't 0x0
@@ -53,7 +59,7 @@ contract LiquidityReserve is ERC20, Ownable {
         stakingContract = _stakingContract;
         rewardToken = _rewardToken;
 
-        // permanently lock the first MINIMUM_LIQUIDITY of lrTokens & stakingTokens
+        // permanently lock the first MINIMUM_LIQUIDITY of lrTokens
         IERC20(stakingToken).transferFrom(
             msg.sender,
             address(this),
@@ -66,7 +72,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice sets Fee (in basis points eg. 100 bps = 1%) for instant unstaking
-        @param _fee uint
+        @param _fee uint - fee in basis points
      */
     function setFee(uint256 _fee) external onlyOwner {
         // check range before setting fee
@@ -78,7 +84,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice addLiquidity for the stakingToken and receive lrToken in exchange
-        @param _amount uint
+        @param _amount uint - amount of staking tokens to add
      */
     function addLiquidity(uint256 _amount) external {
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
@@ -94,6 +100,7 @@ contract LiquidityReserve is ERC20, Ownable {
         uint256 totalLockedValue = stakingTokenBalance +
             rewardTokenBalance +
             coolDownAmount;
+
         uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
 
         IERC20(stakingToken).safeTransferFrom(
@@ -106,8 +113,8 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice calculate current lrToken withdraw value
-        @param _amount uint
-        @return uint
+        @param _amount uint - amount of tokens that will be withdrawn
+        @return uint - converted amount of staking tokens to withdraw from lr tokens
      */
     function _calculateReserveTokenValue(uint256 _amount)
         internal
@@ -134,7 +141,7 @@ contract LiquidityReserve is ERC20, Ownable {
 
     /**
         @notice removeLiquidity by swapping your lrToken for stakingTokens
-        @param _amount uint
+        @param _amount uint - amount of tokens to remove from liquidity reserve
      */
     function removeLiquidity(uint256 _amount) external {
         // check balance before removing liquidity
@@ -154,15 +161,18 @@ contract LiquidityReserve is ERC20, Ownable {
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
 
-    //TODO: clean up natspec
     /**
         @notice allow instant unstake their stakingToken for a fee paid to the liquidity providers
-        @param _amount uint
-        @param _recipient address
+        @param _amount uint - amount of tokens to instantly unstake
+        @param _recipient address - address to send staking tokens to
      */
-    function instantUnstake(uint256 _amount, address _recipient) external {
+    function instantUnstake(uint256 _amount, address _recipient)
+        external
+        onlyStakingContract
+    {
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
+
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
         IERC20(rewardToken).safeTransferFrom(
@@ -172,10 +182,14 @@ contract LiquidityReserve is ERC20, Ownable {
         );
 
         IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
+        unstakeAllRewardTokens();
+    }
 
-        // check if claim expired
-        // wait until expired
-        // make public function for unstake
-        IStaking(stakingContract).unstake(_amount, false);
+    /**
+        @notice find balance of reward tokens in contract and unstake them from staking contract
+     */
+    function unstakeAllRewardTokens() public {
+        uint256 amount = IERC20(rewardToken).balanceOf(address(this));
+        IStaking(stakingContract).unstake(amount, false);
     }
 }

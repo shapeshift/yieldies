@@ -80,19 +80,18 @@ contract Foxy is ERC20Permit, Ownable {
 
     /**
         @notice sets index to get the value of rebases from the beginning of the contract
-        @param _index uint
+        @param _index uint - initial index
         @return bool
      */
     function setIndex(uint256 _index) internal returns (bool) {
-        // make sure index isn't set yet, so it's only set once
-        require(index == 0, "Index already set");
         index = gonsForBalance(_index);
         return true;
     }
 
     /**
         @notice increases FOXy supply to increase staking balances relative to profit_
-        @param _profit uint256
+        @param _profit uint256 - amount of rewards to distribute
+        @param _epoch uint256 - epoch number
         @return uint256
      */
     function rebase(uint256 _profit, uint256 _epoch)
@@ -187,7 +186,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     /**
         @notice get circulating supply of tokens
-        @return uint
+        @return uint - circulation supply minus balance of staking contract
      */
     function circulatingSupply() public view returns (uint256) {
         // Staking contract holds excess FOXy
@@ -195,19 +194,18 @@ contract Foxy is ERC20Permit, Ownable {
     }
 
     /**
-        @notice get current index to show what how much FOXy the user would have
-        @notice gained from the beginning
-        @return uint
+        @notice get current index to show what how much FOXy the user would have gained if staked from the beginning
+        @return uint - current index
      */
     function getIndex() public view returns (uint256) {
         return balanceForGons(index);
     }
 
     /**
-        @notice transfers to address with a certain amount
+        @notice transfers to _to address with an amount of _value
         @param _to address
         @param _value uint
-        @return bool
+        @return bool - transfer succeeded
      */
     function transfer(address _to, uint256 _value)
         public
