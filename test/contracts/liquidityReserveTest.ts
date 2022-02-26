@@ -592,7 +592,7 @@ describe("Liquidity Reserve", function () {
     });
   });
 
-  describe.only("addLiquidity", function() {
+  describe("addLiquidity", function() {
     it("Issue correct balances of LR Fox with multiple LPs", async () => {
       const { liquidityProvider1, liquidityProvider2, liquidityProvider3, staker1 } =
         await getNamedAccounts();
@@ -652,8 +652,6 @@ describe("Liquidity Reserve", function () {
         liquidityProvider3Signer as Signer
       ).addLiquidity(transferAmount.div(2));
 
-      // this is concerning because I would expect this to be much lower since their have been fees
-      // accrued but the lp3 shouldn't get them.  I assume they would receive much less LP than 1:1
       expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(3500);
 
       await liquidityReserve.connect(
@@ -667,8 +665,6 @@ describe("Liquidity Reserve", function () {
         liquidityProvider1Signer as Signer
       ).removeLiquidity(transferAmount);
  
-      console.log("670: ", await stakingToken.balanceOf(liquidityProvider1));
-      // console.log(await stakingToken.balanceOf(liquidityProvider2));
       expect(await stakingToken.balanceOf(liquidityProvider1)).eq(14285);
 
       expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
@@ -689,28 +685,27 @@ describe("Liquidity Reserve", function () {
       await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
 
-      console.log("693: staking token", await stakingToken.balanceOf(liquidityProvider2));
-      console.log("693: liquidityReserve token", await liquidityReserve.balanceOf(liquidityProvider2));
-      console.log("693: reward token", await rewardToken.balanceOf(liquidityProvider2));
+      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(0);
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(10000);
+      expect(await rewardToken.balanceOf(liquidityProvider2)).eq(0);
       
-      console.log("693: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
-      console.log("693: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(5715);
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
 
       await stakingContract.claimWithdraw(liquidityReserve.address);
 
-      console.log("699: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
-      console.log("699: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(15715);
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
       
-      await liquidityReserve.unstakeAllRewardTokens();
 
-      // console.log("705: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
-      // console.log("705: liquidityReserve: liquidityReserve token", await liquidityReserve.balanceOf(liquidityReserve.address));
-      // console.log("705: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+      // can't unstake with 0 staking tokens in liquidity reserve
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
+      await liquidityReserve.unstakeAllRewardTokens()
       
-      // await liquidityReserve.connect(
-      //   liquidityProvider2Signer as Signer
-      // ).removeLiquidity(transferAmount);
-      // expect(await stakingToken.balanceOf(liquidityProvider2)).eq(14285);
+      await liquidityReserve.connect(
+        liquidityProvider2Signer as Signer
+      ).removeLiquidity(transferAmount);
+      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(14286);
     });
   });
 });

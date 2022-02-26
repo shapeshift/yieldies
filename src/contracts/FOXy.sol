@@ -74,7 +74,7 @@ contract Foxy is ERC20Permit, Ownable {
         emit Transfer(address(0x0), stakingContract, _totalSupply);
 
         initializer = address(0);
-        setIndex(WAD);
+        _setIndex(WAD);
         return true;
     }
 
@@ -83,7 +83,7 @@ contract Foxy is ERC20Permit, Ownable {
         @param _index uint - initial index
         @return bool
      */
-    function setIndex(uint256 _index) internal returns (bool) {
+    function _setIndex(uint256 _index) internal returns (bool) {
         index = gonsForBalance(_index);
         return true;
     }

@@ -156,7 +156,7 @@ contract LiquidityReserve is ERC20, Ownable {
             IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
             "Not enough funds"
         );
-        console.log("burning ", _amount, amountToWithdraw);
+
         _burn(msg.sender, _amount);
         IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
     }
@@ -190,7 +190,6 @@ contract LiquidityReserve is ERC20, Ownable {
      */
     function unstakeAllRewardTokens() public {
         uint256 amount = IERC20(rewardToken).balanceOf(address(this));
-        console.log("unstakeAll: ", amount);
-        IStaking(stakingContract).unstake(amount, false);
+        if (amount > 0) IStaking(stakingContract).unstake(amount, false);
     }
 }
