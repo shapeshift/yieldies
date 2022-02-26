@@ -5,6 +5,8 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
+import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
+import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
@@ -12,9 +14,30 @@ describe("Liquidity Reserve", function () {
   let stakingToken: Contract;
   let stakingContract: Staking;
   let rewardToken: Contract;
+  let tokeManager: Contract;
+  let tokePool: Contract;
 
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
+  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
+  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
+  const LATEST_CLAIMABLE_HASH =
+  "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+   // mines blocks to the next TOKE cycle
+   async function mineBlocksToNextCycle() {
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const cycleDuration = await tokeManager.getCycleDuration();
+    const cycleStart = await tokeManager.getCurrentCycle();
+    let blocksTilNextCycle =
+      cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
+    while (blocksTilNextCycle > 0) {
+      blocksTilNextCycle--;
+      await network.provider.request({
+        method: "evm_mine",
+        params: [],
+      });
+    }
+  }
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -82,6 +105,13 @@ describe("Liquidity Reserve", function () {
       stakingContract.address,
       foxyDeployment.address
     ); // initialize liquidity reserve contract
+    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    const tokeManagerAddress = await tokePool.manager();
+    tokeManager = new ethers.Contract(
+      tokeManagerAddress,
+      tokeManagerAbi,
+      accounts[0]
+    );
   });
 
   describe("deposit & withdraw", function () {
@@ -636,15 +666,51 @@ describe("Liquidity Reserve", function () {
       await liquidityReserve.connect(
         liquidityProvider1Signer as Signer
       ).removeLiquidity(transferAmount);
-      // await liquidityReserve.connect(
-      //   liquidityProvider2Signer as Signer
-      // ).removeLiquidity(transferAmount);
-      console.log(await stakingToken.balanceOf(liquidityProvider1));
+ 
+      console.log("670: ", await stakingToken.balanceOf(liquidityProvider1));
       // console.log(await stakingToken.balanceOf(liquidityProvider2));
       expect(await stakingToken.balanceOf(liquidityProvider1)).eq(14285);
 
-      // notice we have no fees coming back to the liquidity providers. I assume that is because
-      // they are in the "cool down" or "warm up" phase, but we need a way to account for this. 
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
+      
+      // lp #2 cannot withdraw since FOX is in tokemak...
+      // advance and ensure we can withdraw.
+
+      await mineBlocksToNextCycle();
+      await stakingContract.sendWithdrawalRequests();
+      await mineBlocksToNextCycle();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await mineBlocksToNextCycle();
+
+      console.log("693: staking token", await stakingToken.balanceOf(liquidityProvider2));
+      console.log("693: liquidityReserve token", await liquidityReserve.balanceOf(liquidityProvider2));
+      console.log("693: reward token", await rewardToken.balanceOf(liquidityProvider2));
+      
+      console.log("693: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
+      console.log("693: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+
+      await stakingContract.claimWithdraw(liquidityReserve.address);
+
+      console.log("699: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
+      console.log("699: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+      
+      await liquidityReserve.unstakeAllRewardTokens();
+
+      // console.log("705: liquidityReserve: staking token", await stakingToken.balanceOf(liquidityReserve.address));
+      // console.log("705: liquidityReserve: liquidityReserve token", await liquidityReserve.balanceOf(liquidityReserve.address));
+      // console.log("705: liquidityReserve: reward token", await rewardToken.balanceOf(liquidityReserve.address));
+      
+      // await liquidityReserve.connect(
+      //   liquidityProvider2Signer as Signer
+      // ).removeLiquidity(transferAmount);
+      // expect(await stakingToken.balanceOf(liquidityProvider2)).eq(14285);
     });
   });
 });

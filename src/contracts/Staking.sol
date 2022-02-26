@@ -283,6 +283,7 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
+            console.log("Can Batch!");
             ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
             _requestWithdrawalFromTokemak(requestWithdrawalAmount);
 
