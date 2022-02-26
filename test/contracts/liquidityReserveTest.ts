@@ -610,7 +610,7 @@ describe("Liquidity Reserve", function () {
         (account) => account.address === staker1
       );
 
-      const transferAmount = BigNumber.from("10000");
+      const transferAmount = BigNumber.from("1000000000000000");
       await liquidityReserve.setFee(9000); // 90%
 
       await stakingToken.transfer(liquidityProvider1, transferAmount);
@@ -652,20 +652,21 @@ describe("Liquidity Reserve", function () {
         liquidityProvider3Signer as Signer
       ).addLiquidity(transferAmount.div(2));
 
-      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(3500);
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(384615384615384);
 
       await liquidityReserve.connect(
         liquidityProvider3Signer as Signer
-      ).removeLiquidity(3500);
+      ).removeLiquidity(384615384615384);
 
       expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(0);
-      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(10000);
+      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(999999999999999);
 
       await liquidityReserve.connect(
         liquidityProvider1Signer as Signer
       ).removeLiquidity(transferAmount);
  
-      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(14285);
+      const initalLperRewards = 1300000000000000
+      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(initalLperRewards);
 
       expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
       
@@ -674,7 +675,6 @@ describe("Liquidity Reserve", function () {
 
       await mineBlocksToNextCycle();
       await stakingContract.sendWithdrawalRequests();
-      await mineBlocksToNextCycle();
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -683,18 +683,17 @@ describe("Liquidity Reserve", function () {
       const tokeSigner = await ethers.getSigner(TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
-      await mineBlocksToNextCycle();
 
       expect(await stakingToken.balanceOf(liquidityProvider2)).eq(0);
-      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(10000);
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(1000000000000000);
       expect(await rewardToken.balanceOf(liquidityProvider2)).eq(0);
       
-      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(5715);
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(1600000000000001);
       expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
 
       await stakingContract.claimWithdraw(liquidityReserve.address);
 
-      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(15715);
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(2600000000000001);
       expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
       
 
@@ -705,7 +704,9 @@ describe("Liquidity Reserve", function () {
       await liquidityReserve.connect(
         liquidityProvider2Signer as Signer
       ).removeLiquidity(transferAmount);
-      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(14286);
+
+      // should be same as liquidityProvider1
+      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(initalLperRewards);
     });
   });
 });

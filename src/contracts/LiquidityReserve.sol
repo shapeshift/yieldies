@@ -18,7 +18,7 @@ contract LiquidityReserve is ERC20, Ownable {
     address public stakingContract; // staking contract address
     uint256 public fee; // fee for instant unstaking
     address public initializer; // LiquidityReserve initializer
-    uint256 public constant MINIMUM_LIQUIDITY = 10**3; // lock .001 stakingTokens for initial liquidity
+    uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 
     // check if sender is the stakingContract
