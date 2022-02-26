@@ -169,8 +169,6 @@ describe("Liquidity Reserve", function () {
       );
       await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
 
-      await stakingContractStaker1.claim(staker1);
-
       let staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
 
@@ -607,7 +605,7 @@ describe("Liquidity Reserve", function () {
       ).addLiquidity(transferAmount);
 
       expect(await liquidityReserve.balanceOf(liquidityProvider1)).eq(transferAmount);
-      //expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
 
       // create a staker who call instant unstake and pays a fee
       const stakingAmount = transferAmount;
@@ -626,28 +624,27 @@ describe("Liquidity Reserve", function () {
 
       // this is concerning because I would expect this to be much lower since their have been fees
       // accrued but the lp3 shouldn't get them.  I assume they would receive much less LP than 1:1
-      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(4999);
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(3500);
 
       await liquidityReserve.connect(
         liquidityProvider3Signer as Signer
-      ).removeLiquidity(4999);
+      ).removeLiquidity(3500);
 
       expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(0);
-      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(9999);
+      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(10000);
 
       await liquidityReserve.connect(
         liquidityProvider1Signer as Signer
       ).removeLiquidity(transferAmount);
-      await liquidityReserve.connect(
-        liquidityProvider2Signer as Signer
-      ).removeLiquidity(transferAmount);
+      // await liquidityReserve.connect(
+      //   liquidityProvider2Signer as Signer
+      // ).removeLiquidity(transferAmount);
       console.log(await stakingToken.balanceOf(liquidityProvider1));
-      console.log(await stakingToken.balanceOf(liquidityProvider2));
-      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(transferAmount);
+      // console.log(await stakingToken.balanceOf(liquidityProvider2));
+      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(14285);
 
       // notice we have no fees coming back to the liquidity providers. I assume that is because
       // they are in the "cool down" or "warm up" phase, but we need a way to account for this. 
     });
-   
   });
 });

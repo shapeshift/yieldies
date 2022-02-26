@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
+import "hardhat/console.sol";
 
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
@@ -17,7 +18,7 @@ contract LiquidityReserve is ERC20, Ownable {
     address public stakingContract; // staking contract address
     uint256 public fee; // fee for instant unstaking
     address public initializer; // LiquidityReserve initializer
-    uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
+    uint256 public constant MINIMUM_LIQUIDITY = 10**3; // lock .001 stakingTokens for initial liquidity
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 
     // check if sender is the stakingContract
@@ -102,6 +103,10 @@ contract LiquidityReserve is ERC20, Ownable {
             coolDownAmount;
 
         uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
+        console.log("_amount", _amount);
+        console.log("lrFoxSupply", lrFoxSupply);
+        console.log("totalLockedValue", totalLockedValue);
+        console.log("amountToMint", amountToMint);
 
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
