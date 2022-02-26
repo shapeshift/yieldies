@@ -624,6 +624,8 @@ describe("Liquidity Reserve", function () {
         liquidityProvider3Signer as Signer
       ).addLiquidity(transferAmount.div(2));
 
+      // this is concerning because I would expect this to be much lower since their have been fees
+      // accrued but the lp3 shouldn't get them.  I assume they would receive much less LP than 1:1
       expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(4999);
 
       await liquidityReserve.connect(
