@@ -10,7 +10,7 @@ import "../interfaces/IStaking.sol";
 contract LiquidityReserve is ERC20, Ownable {
     using SafeERC20 for IERC20;
 
-    event FeeChanged(uint256 indexed fee);
+    event FeeChanged(uint256 fee);
 
     address public stakingToken; // staking token address
     address public rewardToken; // reward token address
