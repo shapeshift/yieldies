@@ -563,4 +563,89 @@ describe("Liquidity Reserve", function () {
       ).to.be.revertedWith("Not enough funds in reserve");
     });
   });
+
+  describe.only("addLiquidity", function() {
+    it("Issue correct balances of LR Fox with multiple LPs", async () => {
+      const { liquidityProvider1, liquidityProvider2, liquidityProvider3, staker1 } =
+        await getNamedAccounts();
+
+      const liquidityProvider1Signer = accounts.find(
+        (account) => account.address === liquidityProvider1
+      );
+      const liquidityProvider2Signer = accounts.find(
+        (account) => account.address === liquidityProvider2
+      );
+      const liquidityProvider3Signer = accounts.find(
+        (account) => account.address === liquidityProvider3
+      );
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const transferAmount = BigNumber.from("10000");
+      await liquidityReserve.setFee(9000); // 90%
+
+      await stakingToken.transfer(liquidityProvider1, transferAmount);
+      await stakingToken.transfer(liquidityProvider2, transferAmount);
+      await stakingToken.transfer(liquidityProvider3, transferAmount);
+      await stakingToken.transfer(staker1, transferAmount);
+
+      // add needed approvals
+      await stakingToken.connect(liquidityProvider1Signer as Signer).approve(
+        liquidityReserve.address, transferAmount);
+      await stakingToken.connect(liquidityProvider2Signer as Signer).approve(
+        liquidityReserve.address, transferAmount);
+      await stakingToken.connect(liquidityProvider3Signer as Signer).approve(
+        liquidityReserve.address, transferAmount);
+
+      // add liquidity from LPer 1 and 2
+      await liquidityReserve.connect(
+        liquidityProvider1Signer as Signer
+      ).addLiquidity(transferAmount);
+      await liquidityReserve.connect(
+        liquidityProvider2Signer as Signer
+      ).addLiquidity(transferAmount);
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider1)).eq(transferAmount);
+      //expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(transferAmount);
+
+      // create a staker who call instant unstake and pays a fee
+      const stakingAmount = transferAmount;
+      await stakingToken.connect(staker1Signer as Signer).approve(stakingContract.address, stakingAmount);
+      await stakingContract.connect(staker1Signer as Signer).functions["stake(uint256)"](stakingAmount);
+      await rewardToken.connect(staker1Signer as Signer).approve(
+        stakingContract.address, transferAmount);
+      await stakingContract.connect(staker1Signer as Signer).instantUnstake(false);
+
+      expect(await stakingToken.balanceOf(staker1)).eq(stakingAmount.mul(1000).div(10000))
+      
+      // add LP from another users 
+      await liquidityReserve.connect(
+        liquidityProvider3Signer as Signer
+      ).addLiquidity(transferAmount.div(2));
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(4999);
+
+      await liquidityReserve.connect(
+        liquidityProvider3Signer as Signer
+      ).removeLiquidity(4999);
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(0);
+      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(9999);
+
+      await liquidityReserve.connect(
+        liquidityProvider1Signer as Signer
+      ).removeLiquidity(transferAmount);
+      await liquidityReserve.connect(
+        liquidityProvider2Signer as Signer
+      ).removeLiquidity(transferAmount);
+      console.log(await stakingToken.balanceOf(liquidityProvider1));
+      console.log(await stakingToken.balanceOf(liquidityProvider2));
+      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(transferAmount);
+
+      // notice we have no fees coming back to the liquidity providers. I assume that is because
+      // they are in the "cool down" or "warm up" phase, but we need a way to account for this. 
+    });
+   
+  });
 });
