@@ -5,6 +5,8 @@ import { BigNumber, Contract, Signer } from "ethers";
 import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
+import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
+import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
@@ -12,9 +14,30 @@ describe("Liquidity Reserve", function () {
   let stakingToken: Contract;
   let stakingContract: Staking;
   let rewardToken: Contract;
+  let tokeManager: Contract;
+  let tokePool: Contract;
 
   const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
+  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
+  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
+  const LATEST_CLAIMABLE_HASH =
+    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+  // mines blocks to the next TOKE cycle
+  async function mineBlocksToNextCycle() {
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const cycleDuration = await tokeManager.getCycleDuration();
+    const cycleStart = await tokeManager.getCurrentCycle();
+    let blocksTilNextCycle =
+      cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
+    while (blocksTilNextCycle > 0) {
+      blocksTilNextCycle--;
+      await network.provider.request({
+        method: "evm_mine",
+        params: [],
+      });
+    }
+  }
 
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
@@ -82,6 +105,13 @@ describe("Liquidity Reserve", function () {
       stakingContract.address,
       foxyDeployment.address
     ); // initialize liquidity reserve contract
+    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    const tokeManagerAddress = await tokePool.manager();
+    tokeManager = new ethers.Contract(
+      tokeManagerAddress,
+      tokeManagerAbi,
+      accounts[0]
+    );
   });
 
   describe("deposit & withdraw", function () {
@@ -168,8 +198,6 @@ describe("Liquidity Reserve", function () {
         transferAmount
       );
       await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
-
-      await stakingContractStaker1.claim(staker1);
 
       let staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
@@ -561,6 +589,159 @@ describe("Liquidity Reserve", function () {
       await expect(
         stakingContractStaker1.instantUnstake(false)
       ).to.be.revertedWith("Not enough funds in reserve");
+    });
+  });
+
+  describe("addLiquidity", function () {
+    it("Issue correct balances of LR Fox with multiple LPs", async () => {
+      const {
+        liquidityProvider1,
+        liquidityProvider2,
+        liquidityProvider3,
+        staker1,
+      } = await getNamedAccounts();
+
+      const liquidityProvider1Signer = accounts.find(
+        (account) => account.address === liquidityProvider1
+      );
+      const liquidityProvider2Signer = accounts.find(
+        (account) => account.address === liquidityProvider2
+      );
+      const liquidityProvider3Signer = accounts.find(
+        (account) => account.address === liquidityProvider3
+      );
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      const transferAmount = BigNumber.from("1000000000000000");
+      await liquidityReserve.setFee(9000); // 90%
+
+      await stakingToken.transfer(liquidityProvider1, transferAmount);
+      await stakingToken.transfer(liquidityProvider2, transferAmount);
+      await stakingToken.transfer(liquidityProvider3, transferAmount);
+      await stakingToken.transfer(staker1, transferAmount);
+
+      // add needed approvals
+      await stakingToken
+        .connect(liquidityProvider1Signer as Signer)
+        .approve(liquidityReserve.address, transferAmount);
+      await stakingToken
+        .connect(liquidityProvider2Signer as Signer)
+        .approve(liquidityReserve.address, transferAmount);
+      await stakingToken
+        .connect(liquidityProvider3Signer as Signer)
+        .approve(liquidityReserve.address, transferAmount);
+
+      // add liquidity from LPer 1 and 2
+      await liquidityReserve
+        .connect(liquidityProvider1Signer as Signer)
+        .addLiquidity(transferAmount);
+      await liquidityReserve
+        .connect(liquidityProvider2Signer as Signer)
+        .addLiquidity(transferAmount);
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider1)).eq(
+        transferAmount
+      );
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(
+        transferAmount
+      );
+
+      // create a staker who call instant unstake and pays a fee
+      const stakingAmount = transferAmount;
+      await stakingToken
+        .connect(staker1Signer as Signer)
+        .approve(stakingContract.address, stakingAmount);
+      await stakingContract
+        .connect(staker1Signer as Signer)
+        .functions["stake(uint256)"](stakingAmount);
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(stakingContract.address, transferAmount);
+      await stakingContract
+        .connect(staker1Signer as Signer)
+        .instantUnstake(false);
+
+      expect(await stakingToken.balanceOf(staker1)).eq(
+        stakingAmount.mul(1000).div(10000)
+      );
+
+      // add LP from another users
+      await liquidityReserve
+        .connect(liquidityProvider3Signer as Signer)
+        .addLiquidity(transferAmount.div(2));
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(
+        384615384615384
+      );
+
+      await liquidityReserve
+        .connect(liquidityProvider3Signer as Signer)
+        .removeLiquidity(384615384615384);
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider3)).eq(0);
+      expect(await stakingToken.balanceOf(liquidityProvider3)).eq(
+        999999999999999
+      );
+
+      await liquidityReserve
+        .connect(liquidityProvider1Signer as Signer)
+        .removeLiquidity(transferAmount);
+
+      const initalLperRewards = 1300000000000000;
+      expect(await stakingToken.balanceOf(liquidityProvider1)).eq(
+        initalLperRewards
+      );
+
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(
+        transferAmount
+      );
+
+      // lp #2 cannot withdraw since FOX is in tokemak...
+      // advance and ensure we can withdraw.
+
+      await mineBlocksToNextCycle();
+      await stakingContract.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(0);
+      expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(
+        1000000000000000
+      );
+      expect(await rewardToken.balanceOf(liquidityProvider2)).eq(0);
+
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(
+        1600000000000001
+      );
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
+
+      await stakingContract.claimWithdraw(liquidityReserve.address);
+
+      expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(
+        2600000000000001
+      );
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
+
+      // can't unstake with 0 staking tokens in liquidity reserve
+      expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
+      await liquidityReserve.unstakeAllRewardTokens();
+
+      await liquidityReserve
+        .connect(liquidityProvider2Signer as Signer)
+        .removeLiquidity(transferAmount);
+
+      // should be same as liquidityProvider1
+      expect(await stakingToken.balanceOf(liquidityProvider2)).eq(
+        initalLperRewards
+      );
     });
   });
 });

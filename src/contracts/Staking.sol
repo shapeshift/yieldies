@@ -381,7 +381,7 @@ contract Staking is Ownable {
             IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
 
             IVesting(COOL_DOWN_CONTRACT).retrieve(
-                _recipient,
+                address(this),
                 totalAmountIncludingRewards
             );
         }

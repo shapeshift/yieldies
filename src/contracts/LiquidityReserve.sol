@@ -102,7 +102,6 @@ contract LiquidityReserve is ERC20, Ownable {
             coolDownAmount;
 
         uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
-
         IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -190,6 +189,6 @@ contract LiquidityReserve is ERC20, Ownable {
      */
     function unstakeAllRewardTokens() public {
         uint256 amount = IERC20(rewardToken).balanceOf(address(this));
-        IStaking(stakingContract).unstake(amount, false);
+        if (amount > 0) IStaking(stakingContract).unstake(amount, false);
     }
 }
