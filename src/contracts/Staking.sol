@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -272,7 +273,7 @@ contract Staking is Ownable {
         );
         // pause any future staking
         shouldPauseStaking(true);
-      
+
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }
 
@@ -287,7 +288,6 @@ contract Staking is Ownable {
 
             uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
-            requestWithdrawalAmount = 0;
         }
     }
 
@@ -299,6 +299,9 @@ contract Staking is Ownable {
     function stake(uint256 _amount, address _recipient) public {
         // if override staking, then don't allow stake
         require(!pauseStaking, "Staking is paused");
+        // amount must be non zero
+        require(_amount > 0, "Must have valid amount");
+
         rebase();
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
@@ -306,7 +309,12 @@ contract Staking is Ownable {
             _amount
         );
 
-        Claim memory info = warmUpInfo[_recipient];
+        Claim storage info = warmUpInfo[_recipient];
+
+        // if claim is available then auto claim tokens
+        if (_isClaimAvailable(info)) {
+            claim(_recipient);
+        }
 
         _depositToTokemak(_amount);
 
@@ -339,10 +347,11 @@ contract Staking is Ownable {
         @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
      */
-    function claim(address _recipient) external {
+    function claim(address _recipient) public {
         Claim memory info = warmUpInfo[_recipient];
         if (_isClaimAvailable(info)) {
             delete warmUpInfo[_recipient];
+
             IVesting(WARM_UP_CONTRACT).retrieve(
                 _recipient,
                 IRewardToken(REWARD_TOKEN).balanceForGons(info.gons)
@@ -366,12 +375,15 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
+
         if (
             _isClaimAvailable(info) &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&
             requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
+            // subtract withdrawn from totalAmount to request
+            requestWithdrawalAmount -= totalAmountIncludingRewards;
 
             delete coolDownInfo[_recipient];
 
@@ -515,7 +527,7 @@ contract Staking is Ownable {
         }
         _retrieveBalanceFromUser(_amount, msg.sender);
 
-        Claim memory userCoolInfo = coolDownInfo[msg.sender];
+        Claim storage userCoolInfo = coolDownInfo[msg.sender];
 
         // try to claim withdraw if user has withdraws to claim function will check if withdraw is valid
         claimWithdraw(msg.sender);
