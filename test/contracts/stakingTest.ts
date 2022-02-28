@@ -615,6 +615,56 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(0);
     });
+    it("Warmup period changing doesn't break stuff", async () => {
+      const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
+
+      // transfer STAKING_TOKEN to staker 1
+      const stakingAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      await staking.setWarmUpPeriod(0);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      let rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(0);
+
+      // can't claim because users Claim expiry didn't actually change
+      stakingStaker1.claim(staker1);
+
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(0);
+
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+      await stakingStaker1.rebase();
+
+      // can claim now due to expiry passing
+      stakingStaker1.claim(staker1);
+
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(stakingAmount);
+    });
     it("RequestedWithdrawals are 0 until sendWithdrawalRequests is called", async () => {
       const { staker1 } = await getNamedAccounts();
 
@@ -729,7 +779,7 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
-    it.only("User can stake and unstake multiple times with and without claiming", async () => {
+    it("User can stake and unstake multiple times with and without claiming", async () => {
       const { staker1 } = await getNamedAccounts();
       await staking.setWarmUpPeriod(1);
       await staking.setCoolDownPeriod(2);
