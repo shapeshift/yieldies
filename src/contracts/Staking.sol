@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -272,7 +273,7 @@ contract Staking is Ownable {
         );
         // pause any future staking
         shouldPauseStaking(true);
-      
+
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }
 
@@ -287,7 +288,6 @@ contract Staking is Ownable {
 
             uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
-            requestWithdrawalAmount = 0;
         }
     }
 
@@ -372,6 +372,8 @@ contract Staking is Ownable {
             requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(totalAmountIncludingRewards);
+            // subtract withdrawn from totalAmount to request
+            requestWithdrawalAmount -= totalAmountIncludingRewards;
 
             delete coolDownInfo[_recipient];
 

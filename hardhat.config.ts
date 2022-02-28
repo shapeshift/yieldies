@@ -61,17 +61,20 @@ const config: HardhatUserConfig = {
     staker2: {
       default: 3,
     },
-    stakingContractMock: {
+    staker3: {
       default: 4,
     },
-    liquidityProvider1: {
+    stakingContractMock: {
       default: 5,
     },
-    liquidityProvider2: {
+    liquidityProvider1: {
       default: 6,
     },
-    liquidityProvider3: {
+    liquidityProvider2: {
       default: 7,
+    },
+    liquidityProvider3: {
+      default: 8,
     },
   },
   contractSizer: {
