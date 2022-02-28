@@ -272,8 +272,7 @@ contract Staking is Ownable {
         );
         // pause any future staking
         shouldPauseStaking(true);
-        // allow to unstake and claim immediately for any future unstaker
-        setCoolDownPeriod(0);
+      
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }
 
