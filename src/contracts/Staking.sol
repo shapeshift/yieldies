@@ -309,7 +309,7 @@ contract Staking is Ownable {
             _amount
         );
 
-        Claim memory info = warmUpInfo[_recipient];
+        Claim storage info = warmUpInfo[_recipient];
 
         // if claim is available then auto claim tokens
         if (_isClaimAvailable(info)) {
@@ -351,6 +351,7 @@ contract Staking is Ownable {
         Claim memory info = warmUpInfo[_recipient];
         if (_isClaimAvailable(info)) {
             delete warmUpInfo[_recipient];
+
             IVesting(WARM_UP_CONTRACT).retrieve(
                 _recipient,
                 IRewardToken(REWARD_TOKEN).balanceForGons(info.gons)
@@ -374,6 +375,7 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
+
         if (
             _isClaimAvailable(info) &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&

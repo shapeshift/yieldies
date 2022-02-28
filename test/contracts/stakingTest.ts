@@ -729,6 +729,190 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
     });
+    it.only("User can stake and unstake multiple times with and without claiming", async () => {
+      const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
+      await staking.setCoolDownPeriod(2);
+
+      let staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(0);
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000000");
+      const stakingAmount = transferAmount.div(4);
+
+      await stakingToken.transfer(staker1, transferAmount);
+
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      let currentBlock = await ethers.provider.getBlockNumber();
+      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+      await stakingStaker1.rebase();
+
+      // warmUpInfo for staker1 should be stakingAmount
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
+
+      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      await stakingStaker1.claim(staker1);
+
+      let rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(stakingAmount);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(0);
+
+      // stake again after claiming
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      currentBlock = await ethers.provider.getBlockNumber();
+      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      for (let i = currentBlock; i <= nextRewardBlock; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+      await stakingStaker1.rebase();
+
+      // should auto claim the current warmup rewards when staking again
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      // warmup reward token balance stays same due to previous staking amount being claimed
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      // staker1 reward balance doubles due to being claimed
+      rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(stakingAmount.mul(2));
+
+      // warmupInfo should match stakingAmount since previous balance was claimed
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
+
+      // should be able to stake again with rewards in warmup during same epoch
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+
+      // warmup reward token balance should double
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount.mul(2));
+
+      // staker1 reward balance should stay the same
+      rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(stakingAmount.mul(2));
+
+      // warmupInfo should should double
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount.mul(2));
+
+      // able to unstake with warmup & wallet balance
+      await mineBlocksToNextCycle();
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+      await stakingStaker1.unstake(stakingAmount, false);
+
+      let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance).eq(stakingAmount);
+
+      // warmUpInfo & rewardToken balance had 2x stakingAmount, should now have 1x staking amount
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(stakingAmount);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(stakingAmount);
+
+      // able to unstake with warmup & cooldown & wallet balance
+      await stakingStaker1.unstake(stakingAmount.mul(2), false);
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      // cooldown should be 3x stakingAmount
+      cooldownRewardTokenBalance = await rewardToken.balanceOf(
+        stakingCooldown.address
+      );
+      expect(cooldownRewardTokenBalance).eq(stakingAmount.mul(3));
+
+      // warmUpInfo & rewardToken balance should be empty now
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      expect(warmUpInfo.amount).eq(0);
+
+      warmupRewardTokenBalance = await rewardToken.balanceOf(
+        stakingWarmup.address
+      );
+      expect(warmupRewardTokenBalance).eq(0);
+
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await mineBlocksToNextCycle();
+      await stakingStaker1.rebase();
+
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(0);
+
+      // can't claim yet due to cooldown period being 2
+      await stakingStaker1.claimWithdraw(staker1);
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(stakingAmount.mul(0));
+
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await mineBlocksToNextCycle();
+      await stakingStaker1.rebase();
+
+      // can claim now
+      await stakingStaker1.claimWithdraw(staker1);
+
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(stakingAmount.mul(3));
+
+      // should still have some reward tokens left
+      rewardTokenBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardTokenBalance).eq(stakingAmount);
+    });
     it("Can't instant unstake if not enough liquidity reserve", async () => {
       const { staker1 } = await getNamedAccounts();
       await staking.setWarmUpPeriod(1);
