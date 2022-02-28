@@ -527,7 +527,7 @@ contract Staking is Ownable {
         }
         _retrieveBalanceFromUser(_amount, msg.sender);
 
-        Claim memory userCoolInfo = coolDownInfo[msg.sender];
+        Claim storage userCoolInfo = coolDownInfo[msg.sender];
 
         // try to claim withdraw if user has withdraws to claim function will check if withdraw is valid
         claimWithdraw(msg.sender);
