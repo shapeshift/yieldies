@@ -299,6 +299,9 @@ contract Staking is Ownable {
     function stake(uint256 _amount, address _recipient) public {
         // if override staking, then don't allow stake
         require(!pauseStaking, "Staking is paused");
+        // amount must be non zero
+        require(_amount > 0, "Must have valid amount");
+
         rebase();
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
@@ -307,6 +310,11 @@ contract Staking is Ownable {
         );
 
         Claim memory info = warmUpInfo[_recipient];
+
+        // if claim is available then auto claim tokens
+        if (_isClaimAvailable(info)) {
+            claim(_recipient);
+        }
 
         _depositToTokemak(_amount);
 
@@ -339,7 +347,7 @@ contract Staking is Ownable {
         @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
      */
-    function claim(address _recipient) external {
+    function claim(address _recipient) public {
         Claim memory info = warmUpInfo[_recipient];
         if (_isClaimAvailable(info)) {
             delete warmUpInfo[_recipient];

@@ -280,6 +280,9 @@ describe("Staking", function () {
       const stakingAmount = transferAmount.div(2);
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
+      await expect(
+        stakingStaker1.functions["stake(uint256)"](0)
+      ).to.be.revertedWith("Must have valid amount");
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
@@ -725,6 +728,38 @@ describe("Staking", function () {
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
+    });
+    it("Can't instant unstake if not enough liquidity reserve", async () => {
+      const { staker1 } = await getNamedAccounts();
+      await staking.setWarmUpPeriod(1);
+
+      const balance = await stakingToken.balanceOf(liquidityReserve.address);
+      const transferAmount = balance.add(1);
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      await stakingStaker1.instantUnstake(true);
+
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
     });
     it("Admin functions work correctly", async () => {
       const { admin, staker1 } = await getNamedAccounts();
@@ -1482,14 +1517,12 @@ describe("Staking", function () {
       await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
 
-      await stakingStaker2.claimWithdraw(staker2)
+      await stakingStaker2.claimWithdraw(staker2);
 
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
-      expect(requestedWithdrawals.amount).eq(
-        stakingAmount1
-      );
+      expect(requestedWithdrawals.amount).eq(stakingAmount1);
 
       await rewardToken
         .connect(staker3Signer as Signer)
