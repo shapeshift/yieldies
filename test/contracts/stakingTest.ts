@@ -890,10 +890,16 @@ describe("Staking", function () {
       // able to unstake with warmup & wallet balance
       await mineBlocksToNextCycle();
 
+      let coolDownInfo = await staking.coolDownInfo(staker1);
+      expect(coolDownInfo.amount).eq(0);
+
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, transferAmount);
       await stakingStaker1.unstake(stakingAmount, false);
+
+      coolDownInfo = await staking.coolDownInfo(staker1);
+      expect(coolDownInfo.amount).eq(stakingAmount);
 
       let cooldownRewardTokenBalance = await rewardToken.balanceOf(
         stakingCooldown.address
@@ -911,6 +917,9 @@ describe("Staking", function () {
 
       // able to unstake with warmup & cooldown & wallet balance
       await stakingStaker1.unstake(stakingAmount.mul(2), false);
+
+      coolDownInfo = await staking.coolDownInfo(staker1);
+      expect(coolDownInfo.amount).eq(stakingAmount.mul(3));
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -947,7 +956,9 @@ describe("Staking", function () {
       // can't claim yet due to cooldown period being 2
       await stakingStaker1.claimWithdraw(staker1);
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
-      expect(staker1StakingBalance).eq(stakingAmount.mul(0));
+      expect(staker1StakingBalance).eq(0);
+      coolDownInfo = await staking.coolDownInfo(staker1);
+      expect(coolDownInfo.amount).eq(stakingAmount.mul(3));
 
       await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
@@ -958,6 +969,9 @@ describe("Staking", function () {
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount.mul(3));
+
+      coolDownInfo = await staking.coolDownInfo(staker1);
+      expect(coolDownInfo.amount).eq(0);
 
       // should still have some reward tokens left
       rewardTokenBalance = await rewardToken.balanceOf(staker1);
@@ -984,10 +998,10 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, transferAmount);
 
-      let rewardBalance = await rewardToken.balanceOf(staker1);
+      const rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
 
-      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      const stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
       await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
