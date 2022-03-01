@@ -135,7 +135,7 @@ describe("Integration", function () {
     await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
   });
 
-  it.only("Should do everything", async () => {
+  it("Should do everything", async () => {
     const {
       staker1,
       staker2,
@@ -334,7 +334,6 @@ describe("Integration", function () {
     const warmUpStaker3Reward = await rewardToken.balanceForGons(
       warmUpInfo.gons
     );
-    console.log("reward", warmUpStaker3Reward);
 
     await stakingStaker3.unstake(warmUpStaker3Reward, true);
 
@@ -381,6 +380,33 @@ describe("Integration", function () {
       78002322880370
     );
 
+    await liquidityReserve
+      .connect(liquidityProvider1Signer as Signer)
+      .removeLiquidity(liquidityAmount1);
+    let lpStakingBalance = await stakingToken.balanceOf(liquidityProvider1);
+    expect(lpStakingBalance).eq(100981512);
+
+    await liquidityReserve
+      .connect(liquidityProvider2Signer as Signer)
+      .removeLiquidity(liquidityAmount2);
+    lpStakingBalance = await stakingToken.balanceOf(liquidityProvider2);
+    expect(lpStakingBalance).eq(897613444916262);
+
+    await stakingToken
+      .connect(liquidityProvider2Signer as Signer)
+      .approve(staking.address, ethers.constants.MaxUint256);
+
+    const stakingLiquidityProvider2 = staking.connect(
+      liquidityProvider2Signer as Signer
+    );
+    await stakingLiquidityProvider2.functions["stake(uint256)"](
+      897613444916262
+    );
+
+    warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
+    let warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    expect(warmUpLP2Reward).eq(897613444916262);
+
     await stakingStaker2.claimWithdraw(staker2);
     stakingBalance = await stakingToken.balanceOf(staker2);
     expect(stakingBalance).eq(69523809523809);
@@ -407,5 +433,45 @@ describe("Integration", function () {
     expect(await rewardToken.balanceForGons(coolDownInfo.gons)).eq(
       104003097173827
     );
+
+    await staking.addRewardsForStakers(awardAmount, true);
+
+    currentBlock = await ethers.provider.getBlockNumber();
+    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+
+    for (let i = currentBlock; i <= nextRewardBlock; i++) {
+      await ethers.provider.send("evm_mine", []);
+    }
+
+    await staking.rebase();
+
+    currentBlock = await ethers.provider.getBlockNumber();
+    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+
+    for (let i = currentBlock; i <= nextRewardBlock; i++) {
+      await ethers.provider.send("evm_mine", []);
+    }
+
+    await staking.rebase();
+
+    await mineBlocksToNextCycle();
+    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+    warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
+    warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    expect(warmUpLP2Reward).eq(927312129851539);
+
+    await liquidityReserve
+      .connect(liquidityProvider3Signer as Signer)
+      .addLiquidity(liquidityAmount3);
+
+    await stakingLiquidityProvider2.instantUnstake(true);
+
+    warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
+    warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    expect(warmUpLP2Reward).eq(0);
+
+    const stakingBalanceLP2 = await stakingToken.balanceOf(staker1);
+    expect(stakingBalanceLP2).eq(74158730158730);
   });
 });

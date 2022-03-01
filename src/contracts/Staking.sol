@@ -13,7 +13,6 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
