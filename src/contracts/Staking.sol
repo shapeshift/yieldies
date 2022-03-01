@@ -375,15 +375,15 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-
+  
         if (
             _isClaimAvailable(info) &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&
             requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
-            _withdrawFromTokemak(totalAmountIncludingRewards);
-            // subtract withdrawn from totalAmount to request
-            requestWithdrawalAmount -= totalAmountIncludingRewards;
+            _withdrawFromTokemak(info.amount);
+            // subtract withdrawn from amount to request from token
+            requestWithdrawalAmount -= info.amount;
 
             delete coolDownInfo[_recipient];
 
