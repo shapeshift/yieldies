@@ -25,8 +25,6 @@ describe("Integration", function () {
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
   const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
-  const TOKE_REWARD = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5"; // TOKE reward contract address
-  const TOKE_REWARD_HASH = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6"; // TOKE reward hash contract address
 
   const LATEST_CLAIMABLE_HASH =
     "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
@@ -289,10 +287,10 @@ describe("Integration", function () {
 
     await stakingStaker1.instantUnstake(true);
 
-    let rewardBalanceStaker1 = await rewardToken.balanceOf(staker1);
+    const rewardBalanceStaker1 = await rewardToken.balanceOf(staker1);
     expect(rewardBalanceStaker1).eq(0);
 
-    let stakingBalanceStaker1 = await stakingToken.balanceOf(staker1);
+    const stakingBalanceStaker1 = await stakingToken.balanceOf(staker1);
     expect(stakingBalanceStaker1).eq(74158730158730);
 
     await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
@@ -319,7 +317,7 @@ describe("Integration", function () {
 
     await stakingStaker2.claim(staker2);
 
-    let rewardBalanceStaker2 = await rewardToken.balanceOf(staker2);
+    const rewardBalanceStaker2 = await rewardToken.balanceOf(staker2);
     await stakingStaker2.unstake(rewardBalanceStaker2, true);
 
     let coolDownInfo = await staking.coolDownInfo(staker2);
@@ -391,7 +389,7 @@ describe("Integration", function () {
     expect(rewardBalance).eq(0);
     coolDownInfo = await staking.coolDownInfo(staker2);
     expect(coolDownInfo.amount).eq(0);
-    
+
     await stakingStaker3.claimWithdraw(staker3);
     stakingBalance = await stakingToken.balanceOf(staker3);
     expect(stakingBalance).eq(20000000000000);
@@ -406,6 +404,8 @@ describe("Integration", function () {
     expect(cooldownRewardTokenBalance).eq(104003097173829);
 
     coolDownInfo = await staking.coolDownInfo(liquidityReserve.address);
-    expect(await rewardToken.balanceForGons(coolDownInfo.gons)).eq(104003097173827);
+    expect(await rewardToken.balanceForGons(coolDownInfo.gons)).eq(
+      104003097173827
+    );
   });
 });

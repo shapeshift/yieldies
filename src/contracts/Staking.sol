@@ -375,7 +375,7 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-  
+
         if (
             _isClaimAvailable(info) &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&
