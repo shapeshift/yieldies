@@ -382,7 +382,7 @@ contract Staking is Ownable {
             requestedWithdrawals.amount >= totalAmountIncludingRewards
         ) {
             _withdrawFromTokemak(info.amount);
-            // subtract withdrawn from amount to request from token
+            // subtract withdrawn from amount to request from tokemak
             requestWithdrawalAmount -= info.amount;
 
             delete coolDownInfo[_recipient];
