@@ -13,7 +13,6 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -196,15 +195,37 @@ contract Staking is Ownable {
     /**
         @notice returns true if claim is available
         @dev this shows whether or not our epoch's have passed
-        @param _info Claim - either warmup or cooldown claim
+        @param _recipient address - warmup address to check if claim is available
         @return bool - true if available to claim
      */
-    function _isClaimAvailable(Claim memory _info)
-        internal
-        view
+    function _isClaimAvailable(address _recipient) public view returns (bool) {
+        Claim memory info = warmUpInfo[_recipient];
+        return epoch.number >= info.expiry && info.expiry != 0;
+    }
+
+    /**
+        @notice returns true if claimWithdraw is available
+        @dev this shows whether or not our epoch's have passed as well as if the cycle has increased
+        @param _recipient address - address that's checking for available claimWithdraw
+        @return bool - true if available to claimWithdraw
+     */
+    function _isClaimWithdrawAvailable(address _recipient)
+        public
         returns (bool)
     {
-        return epoch.number >= _info.expiry && _info.expiry != 0;
+        Claim memory info = coolDownInfo[_recipient];
+        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
+            .requestedWithdrawals(address(this));
+        uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
+
+        return
+            epoch.number >= info.expiry &&
+            info.expiry != 0 &&
+            info.amount != 0 &&
+            requestedWithdrawals.minCycle <= currentCycleIndex &&
+            requestedWithdrawals.amount >= info.amount;
     }
 
     /**
@@ -251,12 +272,13 @@ contract Staking is Ownable {
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
-    function _canBatchTransactions() internal view returns (bool) {
+    function _canBatchTransactions() public view returns (bool) {
         ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
         uint256 duration = tokeManager.getCycleDuration();
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
+
         return
             block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
             currentCycleIndex > lastTokeCycleIndex;
@@ -312,7 +334,7 @@ contract Staking is Ownable {
         Claim storage info = warmUpInfo[_recipient];
 
         // if claim is available then auto claim tokens
-        if (_isClaimAvailable(info)) {
+        if (_isClaimAvailable(_recipient)) {
             claim(_recipient);
         }
 
@@ -349,7 +371,7 @@ contract Staking is Ownable {
      */
     function claim(address _recipient) public {
         Claim memory info = warmUpInfo[_recipient];
-        if (_isClaimAvailable(info)) {
+        if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
             IVesting(WARM_UP_CONTRACT).retrieve(
@@ -367,23 +389,13 @@ contract Staking is Ownable {
      */
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
-
-        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
-            .requestedWithdrawals(address(this));
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
-        uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
 
-        if (
-            _isClaimAvailable(info) &&
-            requestedWithdrawals.minCycle <= currentCycleIndex &&
-            requestedWithdrawals.amount >= totalAmountIncludingRewards
-        ) {
-            _withdrawFromTokemak(totalAmountIncludingRewards);
-            // subtract withdrawn from totalAmount to request
-            requestWithdrawalAmount -= totalAmountIncludingRewards;
+        if (_isClaimWithdrawAvailable(_recipient)) {
+            _withdrawFromTokemak(info.amount);
+            // subtract withdrawn from amount to request from tokemak
+            requestWithdrawalAmount -= info.amount;
 
             delete coolDownInfo[_recipient];
 
