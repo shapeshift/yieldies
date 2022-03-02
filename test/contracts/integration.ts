@@ -135,7 +135,7 @@ describe("Integration", function () {
     await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
   });
 
-  it.only("Should do everything", async () => {
+  it("Should do everything", async () => {
     const {
       staker1,
       staker2,
