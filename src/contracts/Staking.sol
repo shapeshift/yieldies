@@ -198,7 +198,7 @@ contract Staking is Ownable {
         @param _recipient address - warmup address to check if claim is available
         @return bool - true if available to claim
      */
-    function _isClaimAvailable(address _recipient) public view returns (bool) {
+    function _isClaimAvailable(address _recipient) internal view returns (bool) {
         Claim memory info = warmUpInfo[_recipient];
         return epoch.number >= info.expiry && info.expiry != 0;
     }
@@ -210,7 +210,7 @@ contract Staking is Ownable {
         @return bool - true if available to claimWithdraw
      */
     function _isClaimWithdrawAvailable(address _recipient)
-        public
+        internal
         returns (bool)
     {
         Claim memory info = coolDownInfo[_recipient];
