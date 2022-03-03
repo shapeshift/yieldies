@@ -63,6 +63,7 @@ describe("Integration", function () {
     await deployments.fixture();
     accounts = await ethers.getSigners();
     stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
+    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
 
     const rewardTokenDeployment = await deployments.get("Foxy");
     rewardToken = new ethers.Contract(
@@ -70,13 +71,13 @@ describe("Integration", function () {
       rewardTokenDeployment.abi,
       accounts[0]
     ) as Foxy;
-    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    
     const stakingDeployment = await deployments.get("Staking");
     staking = new ethers.Contract(
       stakingDeployment.address,
       stakingDeployment.abi,
       accounts[0]
-    ) as Staking; // is there a better way to avoid this cast?
+    ) as Staking;
 
     const liquidityReserveDeployment = await deployments.get(
       "LiquidityReserve"
@@ -92,13 +93,14 @@ describe("Integration", function () {
       warmUpAddress,
       vestingAbi,
       accounts[0]
-    ) as Vesting; // is there a better way to avoid this cast?
+    ) as Vesting;
+
     const coolDownAddress = await staking.COOL_DOWN_CONTRACT();
     stakingCooldown = new ethers.Contract(
       coolDownAddress,
       vestingAbi,
       accounts[0]
-    ) as Vesting; // is there a better way to avoid this cast?
+    ) as Vesting;
 
     const tokeManagerAddress = await tokePool.manager();
     tokeManager = new ethers.Contract(
