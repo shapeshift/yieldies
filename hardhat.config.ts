@@ -31,6 +31,9 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       deploy: ["deploy/core", "deploy/main"],
+      accounts: {
+        mnemonic: process.env.MNEMONIC
+      },
       forking: {
         url: process.env.MAINNET_URL || "",
         blockNumber: 14101169,
@@ -39,13 +42,21 @@ const config: HardhatUserConfig = {
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
+      deploy: ["deploy/core", "deploy/test"],
+      accounts: {
+        mnemonic: process.env.MNEMONIC
+      },
+    },
+    mainnet: {
+      url: process.env.MAINNET_URL || "",
+      deploy: ["deploy/core", "deploy/main"],
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      deploy: ["deploy/core", "deploy/test"],
+     
     },
   },
   paths: {
-    deploy: "deploy/core",
+    deploy: ["deploy/core", "deploy/main"],
     sources: "./src",
   },
   namedAccounts: {

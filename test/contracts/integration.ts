@@ -300,7 +300,7 @@ describe("Integration", function () {
     warmupRewardTokenBalance = await rewardToken.balanceOf(
       stakingWarmup.address
     );
-    expect(warmupRewardTokenBalance).eq(89523809523809); //stakingAmount3 + stakingAmount2 + rewards
+    expect(warmupRewardTokenBalance).eq(89523809523809); // stakingAmount3 + stakingAmount2 + rewards
 
     // claim and unstake with staker2
     await stakingStaker2.claim(staker2);
@@ -474,6 +474,6 @@ describe("Integration", function () {
     warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
     expect(warmUpLP2Reward).eq(0);
     const stakingBalanceLP2 = await stakingToken.balanceOf(liquidityProvider2);
-    expect(stakingBalanceLP2).eq(753646311488562); // 20% of 942057889360702
+    expect(stakingBalanceLP2).eq(753646311488562); // 80% of 942057889360702
   });
 });
