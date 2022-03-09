@@ -7,7 +7,7 @@ const hre = require("hardhat");
 const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
 const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
 
-async function main() {
+async function initialize() {
   const { deployments, ethers, network } = hre;
 
   let accounts = await ethers.getSigners();
@@ -54,13 +54,14 @@ async function main() {
   );
 
   await liquidityReserve.initialize(staking.address, foxy.address);
+  await liquidityReserve.setFee(2000);
 
-  await liquidityReserve.setFee(2000)
+  await stakingTokenWhale.transfer(accounts[0].address, "1000000000000000000"); // transfer more to account[0]
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main()
+initialize()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
