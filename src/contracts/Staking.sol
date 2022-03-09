@@ -224,15 +224,12 @@ contract Staking is Ownable {
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-        uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
-            address(this)
-        );
         return
             epoch.number >= info.expiry &&
             info.expiry != 0 &&
             info.amount != 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&
-            requestedWithdrawals.amount + stakingTokenBalance >= info.amount;
+            requestedWithdrawals.amount + withdrawalAmount >= info.amount;
     }
 
     /**
