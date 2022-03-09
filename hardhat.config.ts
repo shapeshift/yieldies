@@ -31,6 +31,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       deploy: ["deploy/core", "deploy/main"],
+      chainId: 1,
       accounts: {
         mnemonic: process.env.MNEMONIC
       },
