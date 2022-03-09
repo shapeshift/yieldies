@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
       deploy: ["deploy/core", "deploy/main"],
       chainId: 1,
       accounts: {
-        mnemonic: process.env.MNEMONIC
+        mnemonic: process.env.MNEMONIC,
       },
       forking: {
         url: process.env.MAINNET_URL || "",
@@ -45,7 +45,7 @@ const config: HardhatUserConfig = {
       url: process.env.GOERLI_URL || "",
       deploy: ["deploy/core", "deploy/test"],
       accounts: {
-        mnemonic: process.env.MNEMONIC
+        mnemonic: process.env.MNEMONIC,
       },
     },
     mainnet: {
@@ -53,7 +53,6 @@ const config: HardhatUserConfig = {
       deploy: ["deploy/core", "deploy/main"],
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-     
     },
   },
   paths: {

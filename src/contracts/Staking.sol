@@ -46,7 +46,8 @@ contract Staking is Ownable {
     uint256 public blocksLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
     uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
     uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
-    uint256 public requestWithdrawalAmount; // amount of tokens to request withdrawal once able to send
+    uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
+    uint256 public withdrawalAmount; // amount of stakings tokens available for withdrawal
     uint256 public lastTokeCycleIndex; // last tokemak cycle index which requested withdrawals
 
     constructor(
@@ -198,7 +199,11 @@ contract Staking is Ownable {
         @param _recipient address - warmup address to check if claim is available
         @return bool - true if available to claim
      */
-    function _isClaimAvailable(address _recipient) internal view returns (bool) {
+    function _isClaimAvailable(address _recipient)
+        internal
+        view
+        returns (bool)
+    {
         Claim memory info = warmUpInfo[_recipient];
         return epoch.number >= info.expiry && info.expiry != 0;
     }
@@ -219,23 +224,32 @@ contract Staking is Ownable {
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-
         return
             epoch.number >= info.expiry &&
             info.expiry != 0 &&
             info.amount != 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex &&
-            requestedWithdrawals.amount >= info.amount;
+            requestedWithdrawals.amount + withdrawalAmount >= info.amount;
     }
 
     /**
         @notice withdraw stakingTokens from Tokemak
         @dev needs a valid requestWithdrawal inside Tokemak with a completed cycle rollover to withdraw
-        @param _amount uint - amount of stakingTokens to withdraw
      */
-    function _withdrawFromTokemak(uint256 _amount) internal {
+    function _withdrawFromTokemak() internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        tokePoolContract.withdraw(_amount);
+        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
+            .requestedWithdrawals(address(this));
+        uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
+        if (
+            requestedWithdrawals.amount > 0 &&
+            requestedWithdrawals.minCycle <= currentCycleIndex
+        ) {
+            tokePoolContract.withdraw(requestedWithdrawals.amount);
+            requestWithdrawalAmount -= requestedWithdrawals.amount;
+            withdrawalAmount += requestedWithdrawals.amount;
+        }
     }
 
     /**
@@ -278,10 +292,10 @@ contract Staking is Ownable {
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
-
         return
             block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
-            currentCycleIndex > lastTokeCycleIndex;
+            currentCycleIndex > lastTokeCycleIndex &&
+            requestWithdrawalAmount > 0;
     }
 
     /**
@@ -295,7 +309,7 @@ contract Staking is Ownable {
         );
         // pause any future staking
         shouldPauseStaking(true);
-
+        requestWithdrawalAmount = tokePoolBalance;
         _requestWithdrawalFromTokemak(tokePoolBalance);
     }
 
@@ -305,8 +319,14 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
+            // if has withdrawal amount to be claimed then claim
+            _withdrawFromTokemak();
+
+            // if more requestWithdrawalAmount exists after _withdrawFromTokemak then request the new amount
             ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
-            _requestWithdrawalFromTokemak(requestWithdrawalAmount);
+            if (requestWithdrawalAmount > 0) {
+                _requestWithdrawalFromTokemak(requestWithdrawalAmount);
+            }
 
             uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
             lastTokeCycleIndex = currentCycleIndex;
@@ -391,11 +411,9 @@ contract Staking is Ownable {
         Claim memory info = coolDownInfo[_recipient];
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
-
         if (_isClaimWithdrawAvailable(_recipient)) {
-            _withdrawFromTokemak(info.amount);
-            // subtract withdrawn from amount to request from tokemak
-            requestWithdrawalAmount -= info.amount;
+            // if has withdrawalAmount to be claimed, then claim
+            _withdrawFromTokemak();
 
             delete coolDownInfo[_recipient];
 
@@ -407,6 +425,7 @@ contract Staking is Ownable {
                 address(this),
                 totalAmountIncludingRewards
             );
+            withdrawalAmount -= info.amount;
         }
     }
 
@@ -602,11 +621,12 @@ contract Staking is Ownable {
             _amount
         );
 
-        // deposit all staking tokens held in contract to Tokemak
+        // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
         uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
             address(this)
         );
-        _depositToTokemak(stakingTokenBalance);
+        uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
+        _depositToTokemak(amountToDeposit);
 
         if (_trigger) {
             rebase();
