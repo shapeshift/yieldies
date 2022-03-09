@@ -1658,7 +1658,7 @@ describe("Staking", function () {
 
       await stakingStaker1.sendWithdrawalRequests();
 
-      let stakingTokenBalance = await stakingToken.balanceOf(staking.address)
+      let stakingTokenBalance = await stakingToken.balanceOf(staking.address);
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
@@ -1671,11 +1671,13 @@ describe("Staking", function () {
 
       await stakingStaker2.claimWithdraw(staker2);
 
-      stakingTokenBalance = await stakingToken.balanceOf(staking.address)
+      stakingTokenBalance = await stakingToken.balanceOf(staking.address);
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
-      expect(requestedWithdrawals.amount.add(stakingTokenBalance)).eq(stakingAmount1);
+      expect(requestedWithdrawals.amount.add(stakingTokenBalance)).eq(
+        stakingAmount1
+      );
 
       await rewardToken
         .connect(staker3Signer as Signer)
@@ -1687,7 +1689,7 @@ describe("Staking", function () {
       await stakingStaker3.sendWithdrawalRequests();
 
       // finally, it goes through
-      stakingTokenBalance = await stakingToken.balanceOf(staking.address)
+      stakingTokenBalance = await stakingToken.balanceOf(staking.address);
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
@@ -1775,7 +1777,9 @@ describe("Staking", function () {
       // sendWithdrawalRequests work now
       await stakingStaker1.sendWithdrawalRequests();
 
-      let stakingContractTokenBalance = await stakingToken.balanceOf(staking.address)
+      let stakingContractTokenBalance = await stakingToken.balanceOf(
+        staking.address
+      );
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
@@ -1792,7 +1796,9 @@ describe("Staking", function () {
       await stakingStaker3.sendWithdrawalRequests();
 
       // requestedWithdrawals not updated due to cycle index not being updated
-      stakingContractTokenBalance = await stakingToken.balanceOf(staking.address)
+      stakingContractTokenBalance = await stakingToken.balanceOf(
+        staking.address
+      );
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
@@ -1805,7 +1811,9 @@ describe("Staking", function () {
       await stakingStaker3.sendWithdrawalRequests();
 
       // finally, it goes through
-      stakingContractTokenBalance = await stakingToken.balanceOf(staking.address)
+      stakingContractTokenBalance = await stakingToken.balanceOf(
+        staking.address
+      );
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         staking.address
       );
@@ -1875,13 +1883,17 @@ describe("Staking", function () {
       expect(lastCycle.toNumber()).lessThan(nextCycle.toNumber());
 
       // next requestedWithdrawals should be
-      let stakingContractTokenBalance = await stakingToken.balanceOf(staking.address)
+      const stakingContractTokenBalance = await stakingToken.balanceOf(
+        staking.address
+      );
       const requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
 
       const totalStakingAmount = stakingAmount2.add(stakingAmount1);
-      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(totalStakingAmount);
+      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(
+        totalStakingAmount
+      );
 
       // both should be able to claim
       await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
@@ -2163,7 +2175,7 @@ describe("Staking", function () {
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
-      const stakingTokenBalance = await stakingToken.balanceOf(staking.address)
+      const stakingTokenBalance = await stakingToken.balanceOf(staking.address);
 
       expect(requestedWithdrawals.amount.add(stakingTokenBalance)).eq(
         stakingAmount2.add(stakingAmount1)
@@ -2370,11 +2382,15 @@ describe("Staking", function () {
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
 
-      const stakingContractTokenBalance = await stakingToken.balanceOf(staking.address)
+      const stakingContractTokenBalance = await stakingToken.balanceOf(
+        staking.address
+      );
       let requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
-      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(stakingAmount1);
+      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(
+        stakingAmount1
+      );
 
       await staking.unstakeAllFromTokemak();
 
@@ -2382,7 +2398,9 @@ describe("Staking", function () {
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
-      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(totalStaking);
+      expect(requestedWithdrawals.amount.add(stakingContractTokenBalance)).eq(
+        totalStaking
+      );
 
       // can't stake
       await expect(

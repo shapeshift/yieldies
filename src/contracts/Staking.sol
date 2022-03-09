@@ -232,8 +232,8 @@ contract Staking is Ownable {
             info.expiry != 0 &&
             info.amount != 0 &&
             ((requestedWithdrawals.minCycle <= currentCycleIndex &&
-                requestedWithdrawals.amount + stakingTokenBalance >= info.amount) ||
-                stakingTokenBalance >= info.amount);
+                requestedWithdrawals.amount + stakingTokenBalance >=
+                info.amount) || stakingTokenBalance >= info.amount);
     }
 
     /**
@@ -623,7 +623,7 @@ contract Staking is Ownable {
             _amount
         );
 
-        // deposit all staking tokens held in contract to Tokemak
+        // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdrawal
         uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
             address(this)
         );

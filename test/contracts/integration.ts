@@ -71,7 +71,7 @@ describe("Integration", function () {
       rewardTokenDeployment.abi,
       accounts[0]
     ) as Foxy;
-    
+
     const stakingDeployment = await deployments.get("Staking");
     staking = new ethers.Contract(
       stakingDeployment.address,
@@ -322,7 +322,7 @@ describe("Integration", function () {
 
     // unstake with staker3
     await stakingStaker3.unstake(warmUpStaker3Reward, true);
-    
+
     // add another set of rewards with belong to no one due to all FOXy being locked in cooldown
     await staking.addRewardsForStakers(awardAmount, true);
     cooldownRewardTokenBalance = await rewardToken.balanceOf(
