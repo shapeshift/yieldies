@@ -251,6 +251,7 @@ contract Staking is Ownable {
         ) {
             tokePoolContract.withdraw(requestedWithdrawals.amount);
             requestWithdrawalAmount -= requestedWithdrawals.amount;
+            withdrawalAmount += requestedWithdrawals.amount;
         }
     }
 
@@ -427,6 +428,7 @@ contract Staking is Ownable {
                 address(this),
                 totalAmountIncludingRewards
             );
+            withdrawalAmount -= info.amount;
         }
     }
 
@@ -622,7 +624,7 @@ contract Staking is Ownable {
             _amount
         );
 
-        // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdrawal
+        // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
         uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
             address(this)
         );
