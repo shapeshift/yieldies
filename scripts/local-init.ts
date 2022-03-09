@@ -3,14 +3,12 @@
 // will automatically be called by the cli
 
 const hre = require("hardhat");
-const ethers = hre.ethers;
 
 const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
 const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB";
 
 async function main() {
   const { deployments, ethers, network } = hre;
-  await hre.run("compile");
 
   let accounts = await ethers.getSigners();
   let stakingDeployments = await deployments.get("Staking");
@@ -55,8 +53,9 @@ async function main() {
     ethers.constants.MaxUint256
   );
 
-  // approve LR stakingToken
   await liquidityReserve.initialize(staking.address, foxy.address);
+
+  await liquidityReserve.setFee(2000)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
