@@ -228,8 +228,9 @@ contract Staking is Ownable {
             epoch.number >= info.expiry &&
             info.expiry != 0 &&
             info.amount != 0 &&
-            requestedWithdrawals.minCycle <= currentCycleIndex &&
-            requestedWithdrawals.amount + withdrawalAmount >= info.amount;
+            ((requestedWithdrawals.minCycle <= currentCycleIndex &&
+                requestedWithdrawals.amount + withdrawalAmount >=
+                info.amount) || withdrawalAmount >= info.amount);
     }
 
     /**
