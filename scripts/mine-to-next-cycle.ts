@@ -37,6 +37,9 @@ async function mineBlocks() {
   const tokeSigner = await ethers.getSigner(TOKE_OWNER);
   const tokeManagerOwner = tokeManager.connect(tokeSigner);
 
+  await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+
   // mine to next cycle
   let currentBlock = await ethers.provider.getBlockNumber();
   let cycleDuration = await tokeManager.getCycleDuration();
@@ -51,29 +54,11 @@ async function mineBlocks() {
     });
   }
 
-  await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
-
-  // mine to next cycle
-  currentBlock = await ethers.provider.getBlockNumber();
-  cycleDuration = await tokeManager.getCycleDuration();
-  cycleStart = await tokeManager.getCurrentCycle();
-  blocksTilNextCycle =
-    cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
-  while (blocksTilNextCycle > 0) {
-    blocksTilNextCycle--;
-    await network.provider.request({
-      method: "evm_mine",
-      params: [],
-    });
-  }
-
   // send withdrawal request
   await staking.sendWithdrawalRequests();
   await staking.rebase();
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 mineBlocks()
   .then(() => process.exit(0))
   .catch((error) => {
