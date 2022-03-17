@@ -668,10 +668,7 @@ describe("Staking", function () {
     });
     it("RequestedWithdrawals are 0 until sendWithdrawalRequests is called", async () => {
       const { staker1 } = await getNamedAccounts();
-      let requestedWithdrawals = await tokePool.requestedWithdrawals(staker1);
 
-      // has no requestedWithdrawals
-      expect(requestedWithdrawals.amount).eq(0);
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("10000");
       await stakingToken.transfer(staker1, transferAmount);
@@ -691,7 +688,7 @@ describe("Staking", function () {
         .approve(staking.address, stakingAmount);
       await stakingStaker1.unstake(stakingAmount, false);
 
-      requestedWithdrawals = await tokePool.requestedWithdrawals(
+      let requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
 
