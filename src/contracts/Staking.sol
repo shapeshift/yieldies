@@ -13,7 +13,6 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -322,7 +321,6 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
-            console.log("SEND");
             // if has withdrawal amount to be claimed then claim
             _withdrawFromTokemak();
 
@@ -416,7 +414,6 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         if (_isClaimWithdrawAvailable(_recipient)) {
-            console.log("claimWithdraw");
             // if has withdrawalAmount to be claimed, then claim
             _withdrawFromTokemak();
 
