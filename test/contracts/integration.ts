@@ -54,7 +54,7 @@ describe("Integration", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14101169,
+            blockNumber: Number(process.env.BLOCK_NUMBER),
           },
         },
       ],

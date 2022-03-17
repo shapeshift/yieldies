@@ -13,6 +13,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     using SafeERC20 for IERC20;
@@ -43,7 +44,7 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    uint256 public blocksLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
+    uint256 public timeLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
     uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
     uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
     uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
@@ -83,7 +84,7 @@ contract Staking is Ownable {
         TOKE_REWARD = _tokeReward;
         TOKE_REWARD_HASH = _tokeRewardHash;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        blocksLeftToRequestWithdrawal = 500;
+        timeLeftToRequestWithdrawal = 500;
 
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
@@ -186,11 +187,11 @@ contract Staking is Ownable {
         @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
         @param _blocks uint - number of blocks before end of cycle
      */
-    function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
+    function setTimeLeftToRequestWithdrawal(uint256 _blocks)
         external
         onlyOwner
     {
-        blocksLeftToRequestWithdrawal = _blocks;
+        timeLeftToRequestWithdrawal = _blocks;
     }
 
     /**
@@ -283,7 +284,7 @@ contract Staking is Ownable {
 
     /**
         @notice checks TOKE's cycleTime is within duration to batch the transactions
-        @dev this function returns true if we are within blocksLeftToRequestWithdrawal of the end of the TOKE cycle
+        @dev this function returns true if we are within timeLeftToRequestWithdrawal of the end of the TOKE cycle
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
@@ -293,8 +294,9 @@ contract Staking is Ownable {
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
+
         return
-            block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
+            block.timestamp + timeLeftToRequestWithdrawal >= nextCycleStart &&
             currentCycleIndex > lastTokeCycleIndex &&
             requestWithdrawalAmount > 0;
     }
@@ -320,6 +322,7 @@ contract Staking is Ownable {
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
         if (_canBatchTransactions()) {
+            console.log("SEND");
             // if has withdrawal amount to be claimed then claim
             _withdrawFromTokemak();
 
@@ -413,6 +416,7 @@ contract Staking is Ownable {
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
         if (_isClaimWithdrawAvailable(_recipient)) {
+            console.log("claimWithdraw");
             // if has withdrawalAmount to be claimed, then claim
             _withdrawFromTokemak();
 
@@ -572,6 +576,7 @@ contract Staking is Ownable {
         });
 
         requestWithdrawalAmount += _amount;
+
         sendWithdrawalRequests();
 
         IERC20(REWARD_TOKEN).safeTransfer(COOL_DOWN_CONTRACT, _amount);
