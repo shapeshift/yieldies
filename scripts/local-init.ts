@@ -78,6 +78,7 @@ async function initialize() {
   let cycleStart = await tokeManager.getCurrentCycle();
   let blocksTilNextCycle =
     cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
+
   while (blocksTilNextCycle > 0) {
     blocksTilNextCycle--;
     await network.provider.request({

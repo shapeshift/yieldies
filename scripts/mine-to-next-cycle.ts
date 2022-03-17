@@ -39,7 +39,6 @@ async function mineBlocks() {
 
   await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
 
-
   // mine to next cycle
   let currentBlock = await ethers.provider.getBlockNumber();
   let cycleDuration = await tokeManager.getCycleDuration();
