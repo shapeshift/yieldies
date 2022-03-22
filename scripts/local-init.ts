@@ -5,11 +5,11 @@
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function initialize() {
   const { deployments, ethers, network } = hre;
-  let accounts = await ethers.getSigners();
+  const accounts = await ethers.getSigners();
 
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
   const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d";
@@ -18,29 +18,29 @@ async function initialize() {
   const tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
   const tokeManagerAddress = await tokePool.manager();
 
-  let stakingDeployments = await deployments.get("Staking");
-  let staking = new ethers.Contract(
+  const stakingDeployments = await deployments.get("Staking");
+  const staking = new ethers.Contract(
     stakingDeployments.address,
     stakingDeployments.abi,
     accounts[0]
   );
 
-  let foxyDeployments = await deployments.get("Foxy");
-  let foxy = new ethers.Contract(
+  const foxyDeployments = await deployments.get("Foxy");
+  const foxy = new ethers.Contract(
     foxyDeployments.address,
     foxyDeployments.abi,
     accounts[0]
   );
   await foxy.initialize(staking.address);
 
-  let liquidityReserveDeployments = await deployments.get("LiquidityReserve");
-  let liquidityReserve = new ethers.Contract(
+  const liquidityReserveDeployments = await deployments.get("LiquidityReserve");
+  const liquidityReserve = new ethers.Contract(
     liquidityReserveDeployments.address,
     liquidityReserveDeployments.abi,
     accounts[0]
   );
 
-  let stakingToken = new ethers.Contract(
+  const stakingToken = new ethers.Contract(
     STAKING_TOKEN,
     foxyDeployments.abi,
     accounts[0]
@@ -51,8 +51,8 @@ async function initialize() {
     params: [STAKING_TOKEN_WHALE],
   });
 
-  let whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
-  let stakingTokenWhale = stakingToken.connect(whaleSigner);
+  const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
+  const stakingTokenWhale = stakingToken.connect(whaleSigner);
   await stakingTokenWhale.transfer(accounts[0].address, "1000000000000000000");
 
   await stakingToken.approve(
@@ -73,9 +73,9 @@ async function initialize() {
   );
 
   // mine to next cycle
-  let currentBlock = await ethers.provider.getBlockNumber();
-  let cycleDuration = await tokeManager.getCycleDuration();
-  let cycleStart = await tokeManager.getCurrentCycle();
+  const currentBlock = await ethers.provider.getBlockNumber();
+  const cycleDuration = await tokeManager.getCycleDuration();
+  const cycleStart = await tokeManager.getCurrentCycle();
   let blocksTilNextCycle =
     cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
 
@@ -92,5 +92,5 @@ initialize()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
-    process.exit(1);
+    throw new Error(error);
   });

@@ -18,6 +18,7 @@ module.exports = {
   rules: {
     "node/no-unpublished-import": 0,
     "node/no-missing-import": 0,
+    "no-process-exit": 0,
     "node/no-unsupported-features/es-syntax": [
       "error",
       { ignores: ["modules"] },
