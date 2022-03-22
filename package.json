@@ -16,7 +16,9 @@
     "prettier": "npx prettier '**/*.{json,sol,md}' --write",
     "clean": "rm -rf node_modules artifacts cache typechain-types deployments",
     "test": "npx hardhat test",
-    "local-node": "dotenv cross-var npx hardhat node --fork %MAINNET_URL%"
+    "local-node": "dotenv cross-var npx hardhat node --fork %MAINNET_URL%",
+    "local-init": "npx hardhat run --network localhost scripts/local-init.ts",
+    "local-mine": "npx hardhat run --network localhost scripts/mine-to-next-cycle.ts"
   },
   "repository": {
     "type": "git",
