@@ -43,7 +43,7 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    uint256 public timeLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
+    uint256 public timeLeftToRequestWithdrawal; // time (in seconds) before TOKE cycle ends to request withdrawal
     uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
     uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
     uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
@@ -181,16 +181,16 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
+        @notice sets the time before Tokemak cycle ends to requestWithdrawals
         @dev requestWithdrawals is called once per cycle.
-        @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
-        @param _blocks uint - number of blocks before end of cycle
+        @dev this allows us to change how much time before the end of the cycle we send the withdraw requests
+        @param _timestamp uint - time before end of cycle
      */
-    function setTimeLeftToRequestWithdrawal(uint256 _blocks)
+    function setTimeLeftToRequestWithdrawal(uint256 _timestamp)
         external
         onlyOwner
     {
-        timeLeftToRequestWithdrawal = _blocks;
+        timeLeftToRequestWithdrawal = _timestamp;
     }
 
     /**
