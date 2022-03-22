@@ -43,7 +43,7 @@ contract Staking is Ownable {
     mapping(address => Claim) public warmUpInfo;
     mapping(address => Claim) public coolDownInfo;
 
-    uint256 public blocksLeftToRequestWithdrawal; // amount of blocks before TOKE cycle ends to request withdrawal
+    uint256 public timeLeftToRequestWithdrawal; // time (in seconds) before TOKE cycle ends to request withdrawal
     uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
     uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
     uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
@@ -83,7 +83,7 @@ contract Staking is Ownable {
         TOKE_REWARD = _tokeReward;
         TOKE_REWARD_HASH = _tokeRewardHash;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        blocksLeftToRequestWithdrawal = 500;
+        timeLeftToRequestWithdrawal = 500;
 
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
@@ -181,16 +181,16 @@ contract Staking is Ownable {
     }
 
     /**
-        @notice sets the amount of blocks before Tokemak cycle ends to requestWithdrawals
+        @notice sets the time before Tokemak cycle ends to requestWithdrawals
         @dev requestWithdrawals is called once per cycle.
-        @dev this allows us to change how many blocks before the end of the cycle we send the withdraw requests
-        @param _blocks uint - number of blocks before end of cycle
+        @dev this allows us to change how much time before the end of the cycle we send the withdraw requests
+        @param _timestamp uint - time before end of cycle
      */
-    function setBlocksLeftToRequestWithdrawal(uint256 _blocks)
+    function setTimeLeftToRequestWithdrawal(uint256 _timestamp)
         external
         onlyOwner
     {
-        blocksLeftToRequestWithdrawal = _blocks;
+        timeLeftToRequestWithdrawal = _timestamp;
     }
 
     /**
@@ -283,7 +283,7 @@ contract Staking is Ownable {
 
     /**
         @notice checks TOKE's cycleTime is within duration to batch the transactions
-        @dev this function returns true if we are within blocksLeftToRequestWithdrawal of the end of the TOKE cycle
+        @dev this function returns true if we are within timeLeftToRequestWithdrawal of the end of the TOKE cycle
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
@@ -293,8 +293,9 @@ contract Staking is Ownable {
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
+
         return
-            block.number + blocksLeftToRequestWithdrawal >= nextCycleStart &&
+            block.timestamp + timeLeftToRequestWithdrawal >= nextCycleStart &&
             currentCycleIndex > lastTokeCycleIndex &&
             requestWithdrawalAmount > 0;
     }
@@ -572,6 +573,7 @@ contract Staking is Ownable {
         });
 
         requestWithdrawalAmount += _amount;
+
         sendWithdrawalRequests();
 
         IERC20(REWARD_TOKEN).safeTransfer(COOL_DOWN_CONTRACT, _amount);

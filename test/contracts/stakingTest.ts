@@ -34,16 +34,15 @@ describe("Staking", function () {
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
     const currentBlock = await ethers.provider.getBlockNumber();
+    let currentTime = (await ethers.provider.getBlock(currentBlock)).timestamp;
     const cycleDuration = await tokeManager.getCycleDuration();
     const cycleStart = await tokeManager.getCurrentCycle();
-    let blocksTilNextCycle =
-      cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
-    while (blocksTilNextCycle > 0) {
-      blocksTilNextCycle--;
-      await network.provider.request({
-        method: "evm_mine",
-        params: [],
-      });
+    const nextCycleTime = cycleStart.toNumber() + cycleDuration.toNumber();
+
+    while (currentTime <= nextCycleTime) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      const block = await ethers.provider.getBlockNumber();
+      currentTime = (await ethers.provider.getBlock(block)).timestamp;
     }
   }
 
@@ -56,7 +55,7 @@ describe("Staking", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14101169,
+            blockNumber: Number(process.env.BLOCK_NUMBER),
           },
         },
       ],
@@ -2242,9 +2241,9 @@ describe("Staking", function () {
       await stakingAdmin.shouldPauseUnstaking(true);
       await stakingAdmin.setCoolDownPeriod(99999999999999);
 
-      await stakingAdmin.setBlocksLeftToRequestWithdrawal(10);
-      const blocksLeftToRequest = await staking.blocksLeftToRequestWithdrawal();
-      await expect(blocksLeftToRequest).eq(10);
+      await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
+      const timeLeftToRequest = await staking.timeLeftToRequestWithdrawal();
+      await expect(timeLeftToRequest).eq(10);
 
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("10000");
