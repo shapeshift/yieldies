@@ -20,7 +20,6 @@ contract Staking is Ownable {
     address public immutable TOKE_POOL;
     address public immutable TOKE_MANAGER;
     address public immutable TOKE_REWARD;
-    address public immutable TOKE_REWARD_HASH;
     address public immutable STAKING_TOKEN;
     address public immutable REWARD_TOKEN;
     address public immutable TOKE_TOKEN;
@@ -81,7 +80,6 @@ contract Staking is Ownable {
         TOKE_POOL = _tokePool;
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
-        TOKE_REWARD_HASH = _tokeRewardHash;
         LIQUIDITY_RESERVE = _liquidityReserve;
         timeLeftToRequestWithdrawal = 500;
 
