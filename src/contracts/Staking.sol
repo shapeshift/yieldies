@@ -344,7 +344,14 @@ contract Staking is Ownable {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
-        rebase();
+        uint256 circulatingSupply = IRewardToken(REWARD_TOKEN)
+            .circulatingSupply();
+
+        // Don't rebase unless tokens are already staked or could get locked out of staking
+        if (circulatingSupply > 0) {
+            rebase();
+        }
+
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),

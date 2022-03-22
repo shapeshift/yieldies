@@ -101,15 +101,14 @@ contract Foxy is ERC20Permit, Ownable {
     {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
+        require(circulatingSupply_ > 0, "Can't rebase if not circulating");
 
         if (_profit == 0) {
             emit LogSupply(_epoch, block.timestamp, _totalSupply);
             emit LogRebase(_epoch, 0, getIndex());
             return _totalSupply;
-        } else if (circulatingSupply_ > 0) {
-            rebaseAmount = (_profit * _totalSupply) / circulatingSupply_;
         } else {
-            rebaseAmount = _profit;
+            rebaseAmount = (_profit * _totalSupply) / circulatingSupply_;
         }
 
         _totalSupply = _totalSupply + rebaseAmount;
@@ -136,9 +135,6 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
-        // don't divide by 0
-        require(_previousCirculating > 0, "Can't rebase if not circulating");
-
         uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 
         rebases.push(
