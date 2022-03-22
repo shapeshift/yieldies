@@ -1,6 +1,5 @@
 // this script is used to initialize the contracts on the local node
 // as well as transfer stakingTokens to account[0]
-// will automatically be called by the cli
 
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
