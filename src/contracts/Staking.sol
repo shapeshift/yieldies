@@ -11,7 +11,6 @@ import "../interfaces/IVesting.sol";
 import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
-import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
 
 contract Staking is Ownable {
@@ -56,7 +55,6 @@ contract Staking is Ownable {
         address _tokePool,
         address _tokeManager,
         address _tokeReward,
-        address _tokeRewardHash,
         address _liquidityReserve,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
@@ -70,7 +68,6 @@ contract Staking is Ownable {
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
-                _tokeRewardHash != address(0) &&
                 _liquidityReserve != address(0),
             "Invalid address"
         );

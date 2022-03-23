@@ -26,7 +26,6 @@ describe("Staking", function () {
   const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
   const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
   const TOKE_REWARD = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5"; // TOKE reward contract address
-  const TOKE_REWARD_HASH = "0x5ec3EC6A8aC774c7d53665ebc5DDf89145d02fB6"; // TOKE reward hash contract address
 
   const LATEST_CLAIMABLE_HASH =
     "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
@@ -158,7 +157,6 @@ describe("Staking", function () {
           tokePool.address,
           tokeManager.address,
           TOKE_REWARD,
-          TOKE_REWARD_HASH,
           liquidityReserve.address,
           1,
           1,
@@ -173,7 +171,6 @@ describe("Staking", function () {
           tokePool.address,
           tokeManager.address,
           TOKE_REWARD,
-          TOKE_REWARD_HASH,
           liquidityReserve.address,
           1,
           1,
@@ -188,7 +185,6 @@ describe("Staking", function () {
           tokePool.address,
           tokeManager.address,
           TOKE_REWARD,
-          TOKE_REWARD_HASH,
           liquidityReserve.address,
           1,
           1,
@@ -203,7 +199,6 @@ describe("Staking", function () {
           "0x0000000000000000000000000000000000000000",
           tokeManager.address,
           TOKE_REWARD,
-          TOKE_REWARD_HASH,
           liquidityReserve.address,
           1,
           1,
@@ -218,7 +213,6 @@ describe("Staking", function () {
           tokePool.address,
           "0x0000000000000000000000000000000000000000",
           TOKE_REWARD,
-          TOKE_REWARD_HASH,
           liquidityReserve.address,
           1,
           1,
@@ -232,22 +226,6 @@ describe("Staking", function () {
           TOKE_ADDRESS,
           tokePool.address,
           tokeManager.address,
-          "0x0000000000000000000000000000000000000000",
-          TOKE_REWARD_HASH,
-          liquidityReserve.address,
-          1,
-          1,
-          1
-        )
-      ).to.be.reverted;
-      await expect(
-        stakingFactory.deploy(
-          stakingToken.address,
-          rewardToken.address,
-          TOKE_ADDRESS,
-          tokePool.address,
-          tokeManager.address,
-          TOKE_REWARD,
           "0x0000000000000000000000000000000000000000",
           liquidityReserve.address,
           1,
