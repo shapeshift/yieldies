@@ -282,7 +282,7 @@ contract Staking is Ownable {
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
-    function _canBatchTransactions() public view returns (bool) {
+    function _canBatchTransactions() internal view returns (bool) {
         ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
         uint256 duration = tokeManager.getCycleDuration();
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
