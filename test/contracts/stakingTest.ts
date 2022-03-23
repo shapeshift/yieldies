@@ -1529,6 +1529,84 @@ describe("Staking", function () {
         newStakingAmount1.add(newStakingAmount2)
       );
     });
+    it("Gives the correct amount of rewards ", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000000000");
+
+      await stakingToken.transfer(staker1, transferAmount);
+      await stakingToken.transfer(staker2, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const staker2Signer = accounts.find(
+        (account) => account.address === staker2
+      );
+      const stakingStaker2 = staking.connect(staker2Signer as Signer);
+
+      const stakingAmount1 = BigNumber.from("1000");
+      const stakingAmount2 = BigNumber.from("10000000000");
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount1);
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
+
+      const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
+      await stakingTokenStaker2.approve(staking.address, stakingAmount2);
+      await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
+
+      let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      let rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+
+      expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
+      expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
+
+      // call rebase without rewards, no change should occur in balances.
+      await staking.rebase();
+
+      await rewardToken
+        .connect(staker2Signer as Signer)
+        .approve(staking.address, stakingAmount2);
+      await stakingStaker2.unstake(stakingAmount2, false);
+
+      // initial withdraw request sets lastTokeCycleIndex
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+
+      await mineBlocksToNextCycle();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      let stakingContractBalance = await stakingToken.balanceOf(
+        staking.address
+      );
+      expect(stakingContractBalance).eq(stakingAmount2);
+
+      const withdrawalAmount = await staking.withdrawalAmount()
+      console.log('withdrawalAmount', withdrawalAmount)
+      await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
+      const awardAmount = BigNumber.from("100000");
+      await staking.addRewardsForStakers(awardAmount, true);
+
+
+      stakingContractBalance = await stakingToken.balanceOf(
+        staking.address
+      );
+      expect(stakingContractBalance).eq(stakingAmount2);
+
+      const epoch = await staking.epoch();
+      expect(epoch.distribute).eq(awardAmount)
+    });
   });
 
   describe("vesting", function () {
