@@ -1558,8 +1558,8 @@ describe("Staking", function () {
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
 
-      let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
-      let rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
+      const rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
+      const rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
 
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
@@ -1592,20 +1592,18 @@ describe("Staking", function () {
       );
       expect(stakingContractBalance).eq(stakingAmount2);
 
-      const withdrawalAmount = await staking.withdrawalAmount()
-      console.log('withdrawalAmount', withdrawalAmount)
+      const withdrawalAmount = await staking.withdrawalAmount();
+      expect(withdrawalAmount).eq(stakingAmount2);
+
       await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("100000");
       await staking.addRewardsForStakers(awardAmount, true);
 
-
-      stakingContractBalance = await stakingToken.balanceOf(
-        staking.address
-      );
+      stakingContractBalance = await stakingToken.balanceOf(staking.address);
       expect(stakingContractBalance).eq(stakingAmount2);
 
       const epoch = await staking.epoch();
-      expect(epoch.distribute).eq(awardAmount)
+      expect(epoch.distribute).eq(awardAmount);
     });
   });
 

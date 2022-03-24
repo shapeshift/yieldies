@@ -41,16 +41,15 @@ async function mineBlocks() {
 
   // mine to next cycle
   const currentBlock = await ethers.provider.getBlockNumber();
+  let currentTime = (await ethers.provider.getBlock(currentBlock)).timestamp;
   const cycleDuration = await tokeManager.getCycleDuration();
   const cycleStart = await tokeManager.getCurrentCycle();
-  let blocksTilNextCycle =
-    cycleStart.toNumber() + cycleDuration.toNumber() - currentBlock;
-  while (blocksTilNextCycle > 0) {
-    blocksTilNextCycle--;
-    await network.provider.request({
-      method: "evm_mine",
-      params: [],
-    });
+  const nextCycleTime = cycleStart.toNumber() + cycleDuration.toNumber();
+
+  while (currentTime <= nextCycleTime) {
+    await network.provider.send("hardhat_mine", ["0x100"]);
+    const block = await ethers.provider.getBlockNumber();
+    currentTime = (await ethers.provider.getBlock(block)).timestamp;
   }
 
   // send withdrawal request

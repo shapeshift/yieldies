@@ -26,7 +26,10 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         _;
     }
 
-    constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") ERC20Permit("Liquidity Reserve FOX") {
+    constructor(address _stakingToken)
+        ERC20("Liquidity Reserve FOX", "lrFOX")
+        ERC20Permit("Liquidity Reserve FOX")
+    {
         // verify address isn't 0x0
         require(_stakingToken != address(0), "Invalid address");
         initializer = msg.sender;
