@@ -1608,13 +1608,13 @@ describe("Staking", function () {
   });
 
   describe("vesting", function () {
-    it("Fails when no staking or reward token is passed in", async () => {
+    it("Fails when no staking contract or reward token is passed in", async () => {
       const { staker1 } = await getNamedAccounts();
       const vestingFactory = await ethers.getContractFactory("Vesting");
 
       await expect(
         vestingFactory.deploy(
-          stakingToken.address,
+          staking.address,
           "0x0000000000000000000000000000000000000000"
         )
       ).to.be.reverted;
@@ -1626,7 +1626,7 @@ describe("Staking", function () {
       ).to.be.reverted;
 
       const vestingContract = await vestingFactory.deploy(
-        stakingToken.address,
+        staking.address,
         rewardToken.address
       );
       const staker1Signer = accounts.find(
