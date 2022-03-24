@@ -6,8 +6,6 @@ interface IOwnable {
 
     function getNewOwner() external view returns (address);
 
-    function renounceOwner() external;
-
     function pushOwner(address _newOwner) external;
 
     function pullOwner() external;

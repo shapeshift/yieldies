@@ -1593,7 +1593,8 @@ describe("Staking", function () {
       expect(stakingContractBalance).eq(stakingAmount2);
 
       const withdrawalAmount = await staking.withdrawalAmount()
-      console.log('withdrawalAmount', withdrawalAmount)
+      expect(withdrawalAmount).eq(stakingAmount2)
+
       await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("100000");
       await staking.addRewardsForStakers(awardAmount, true);
