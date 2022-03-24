@@ -60,8 +60,8 @@ contract Ownable is IOwnable {
      */
     function pullOwner() public virtual override {
         require(msg.sender == newOwner, "Ownable: must be new owner to pull");
+        emit OwnershipPulled(owner, newOwner);
         owner = newOwner;
         newOwner = address(0);
-        emit OwnershipPulled(owner, newOwner);
     }
 }
