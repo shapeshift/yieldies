@@ -37,7 +37,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
     mapping(address => mapping(address => uint256)) private _allowances;
 
-    // only line different from OpenSeppelin ERC20.sol
+    // only line different from OpenZeppelin ERC20.sol
     uint256 internal _totalSupply;
 
     string private _name;
