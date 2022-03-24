@@ -30,6 +30,14 @@ contract Ownable is IOwnable {
     }
 
     /**
+        @notice gets next owner of contract
+        @return address - owner of contract
+     */
+    function getNewOwner() public view returns (address) {
+        return newOwner;
+    }
+
+    /**
         @notice modifier to only let owner call function
      */
     modifier onlyOwner() {
@@ -38,23 +46,11 @@ contract Ownable is IOwnable {
     }
 
     /**
-        @notice renounce ownership to 0 address
-     */
-    function renounceOwner() public virtual override onlyOwner {
-        emit OwnershipPushed(owner, address(0));
-        owner = address(0);
-    }
-
-    /**
         @notice push a new owner to be the next owner of contract
         @param _newOwner address - next owner address
         @dev owner is not active until pullOwner() is called
      */
     function pushOwner(address _newOwner) public virtual override onlyOwner {
-        require(
-            _newOwner != address(0),
-            "Ownable: new owner is the zero address"
-        );
         emit OwnershipPushed(owner, _newOwner);
         newOwner = _newOwner;
     }
@@ -64,7 +60,8 @@ contract Ownable is IOwnable {
      */
     function pullOwner() public virtual override {
         require(msg.sender == newOwner, "Ownable: must be new owner to pull");
-        emit OwnershipPulled(owner, newOwner);
         owner = newOwner;
+        newOwner = address(0);
+        emit OwnershipPulled(owner, newOwner);
     }
 }

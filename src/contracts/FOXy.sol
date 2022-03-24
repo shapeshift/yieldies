@@ -37,7 +37,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5000000 * WAD;
+    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 500000000 * WAD;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
@@ -56,6 +56,7 @@ contract Foxy is ERC20Permit, Ownable {
         initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
+        _setIndex(WAD);
     }
 
     /**
@@ -66,15 +67,14 @@ contract Foxy is ERC20Permit, Ownable {
     function initialize(address _stakingContract) external returns (bool) {
         // check if initializer is msg.sender that was set in constructor
         require(msg.sender == initializer, "Must be called from initializer");
+        initializer = address(0);
+
         // make sure _stakingContract isn't 0x0
         require(_stakingContract != address(0), "Invalid address");
         stakingContract = _stakingContract;
         gonBalances[stakingContract] = TOTAL_GONS;
-
         emit Transfer(address(0x0), stakingContract, _totalSupply);
 
-        initializer = address(0);
-        _setIndex(WAD);
         return true;
     }
 
