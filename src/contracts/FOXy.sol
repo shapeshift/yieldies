@@ -37,7 +37,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     uint256 private constant WAD = 1e18;
     uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 5000000 * WAD;
+    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 500000000 * WAD;
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
     // Use the highest value that fits in a uint256 for max granularity.
