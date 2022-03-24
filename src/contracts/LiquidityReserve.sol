@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../libraries/ERC20.sol";
 import "../libraries/Ownable.sol";
 import "../interfaces/IStaking.sol";
 
-contract LiquidityReserve is ERC20, Ownable {
+contract LiquidityReserve is ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
 
     event FeeChanged(uint256 fee);
@@ -26,7 +26,7 @@ contract LiquidityReserve is ERC20, Ownable {
         _;
     }
 
-    constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") {
+    constructor(address _stakingToken) ERC20("Liquidity Reserve FOX", "lrFOX") ERC20Permit("Liquidity Reserve FOX") {
         // verify address isn't 0x0
         require(_stakingToken != address(0), "Invalid address");
         initializer = msg.sender;
