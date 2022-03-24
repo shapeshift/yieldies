@@ -43,6 +43,8 @@ describe("Ownable", function () {
 
     await ownableStaker1.pullOwner();
     expect(await ownable.getOwner()).eq(staker1);
-    expect(await ownable.getNewOwner()).eq("0x0000000000000000000000000000000000000000");
+    expect(await ownable.getNewOwner()).eq(
+      "0x0000000000000000000000000000000000000000"
+    );
   });
 });
