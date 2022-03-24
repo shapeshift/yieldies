@@ -46,16 +46,6 @@ contract Ownable is IOwnable {
     }
 
     /**
-        @notice renounce ownership to 0 address
-     */
-    function renounceOwner() public virtual override onlyOwner {
-        newOwner = address(0);
-        emit OwnershipPushed(owner, address(0));
-        owner = address(0);
-        emit OwnershipPulled(owner, address(0));
-    }
-
-    /**
         @notice push a new owner to be the next owner of contract
         @param _newOwner address - next owner address
         @dev owner is not active until pullOwner() is called
