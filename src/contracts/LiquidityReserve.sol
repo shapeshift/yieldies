@@ -39,8 +39,11 @@ contract LiquidityReserve is ERC20, Ownable {
      */
     function initialize(address _stakingContract, address _rewardToken)
         external
-        onlyOwner
     {
+        // check if initializer is msg.sender that was set in constructor
+        require(msg.sender == initializer, "Must be called from initializer");
+        initializer = address(0);
+
         uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
             msg.sender
         );
