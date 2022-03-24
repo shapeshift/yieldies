@@ -233,11 +233,9 @@ describe("Foxy", function () {
       ) as Signer;
 
       await foxy.connect(staker1Signer).approve(stakingContractMock, 10);
-      await foxy
-        .connect(staker1Signer)
-        .decreaseAllowance(stakingContractMock, 11);
-
-      expect(await foxy.allowance(staker1, stakingContractMock)).to.equal(0);
+      await expect(
+        foxy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 11)
+      ).to.be.revertedWith("Not enough allowance");
     });
     it("Emits an Approval event", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();

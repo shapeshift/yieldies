@@ -60,7 +60,7 @@ contract LiquidityReserve is ERC20, Ownable {
         rewardToken = _rewardToken;
 
         // permanently lock the first MINIMUM_LIQUIDITY of lrTokens
-        IERC20(stakingToken).transferFrom(
+        IERC20(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             MINIMUM_LIQUIDITY

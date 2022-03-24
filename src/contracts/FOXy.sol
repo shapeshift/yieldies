@@ -101,15 +101,14 @@ contract Foxy is ERC20Permit, Ownable {
     {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
+        require(circulatingSupply_ > 0, "Can't rebase if not circulating");
 
         if (_profit == 0) {
             emit LogSupply(_epoch, block.timestamp, _totalSupply);
             emit LogRebase(_epoch, 0, getIndex());
             return _totalSupply;
-        } else if (circulatingSupply_ > 0) {
-            rebaseAmount = (_profit * _totalSupply) / circulatingSupply_;
         } else {
-            rebaseAmount = _profit;
+            rebaseAmount = (_profit * _totalSupply) / circulatingSupply_;
         }
 
         _totalSupply = _totalSupply + rebaseAmount;
@@ -136,9 +135,6 @@ contract Foxy is ERC20Permit, Ownable {
         uint256 _profit,
         uint256 _epoch
     ) internal {
-        // don't divide by 0
-        require(_previousCirculating > 0, "Can't rebase if not circulating");
-
         uint256 rebasePercent = (_profit * WAD) / _previousCirculating;
 
         rebases.push(
@@ -212,7 +208,11 @@ contract Foxy is ERC20Permit, Ownable {
         override
         returns (bool)
     {
+        require(_to != address(0), "Invalid address");
+
         uint256 gonValue = _value * gonsPerFragment;
+        require(gonValue <= gonBalances[msg.sender], "Not enough funds");
+
         gonBalances[msg.sender] = gonBalances[msg.sender] - gonValue;
         gonBalances[_to] = gonBalances[_to] + gonValue;
         emit Transfer(msg.sender, _to, _value);
@@ -246,6 +246,8 @@ contract Foxy is ERC20Permit, Ownable {
         address _to,
         uint256 _value
     ) public override returns (bool) {
+        require(allowedValue[_from][msg.sender] >= _value, "Allowance too low");
+
         uint256 newValue = allowedValue[_from][msg.sender] - _value;
         allowedValue[_from][msg.sender] = newValue;
         emit Approval(_from, msg.sender, newValue);
@@ -302,11 +304,13 @@ contract Foxy is ERC20Permit, Ownable {
         override
         returns (bool)
     {
+        require(
+            allowedValue[msg.sender][_spender] >= _subtractedValue,
+            "Not enough allowance"
+        );
         uint256 oldValue = allowedValue[msg.sender][_spender];
-        uint256 newValue = 0;
-        if (_subtractedValue < oldValue) {
-            newValue = oldValue - _subtractedValue;
-        }
+        uint256 newValue = oldValue - _subtractedValue;
+
         allowedValue[msg.sender][_spender] = newValue;
         emit Approval(msg.sender, _spender, newValue);
         return true;

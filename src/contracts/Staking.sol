@@ -11,7 +11,6 @@ import "../interfaces/IVesting.sol";
 import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
-import "../interfaces/ITokeRewardHash.sol";
 import "../interfaces/ILiquidityReserve.sol";
 
 contract Staking is Ownable {
@@ -20,7 +19,6 @@ contract Staking is Ownable {
     address public immutable TOKE_POOL;
     address public immutable TOKE_MANAGER;
     address public immutable TOKE_REWARD;
-    address public immutable TOKE_REWARD_HASH;
     address public immutable STAKING_TOKEN;
     address public immutable REWARD_TOKEN;
     address public immutable TOKE_TOKEN;
@@ -57,7 +55,6 @@ contract Staking is Ownable {
         address _tokePool,
         address _tokeManager,
         address _tokeReward,
-        address _tokeRewardHash,
         address _liquidityReserve,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
@@ -71,7 +68,6 @@ contract Staking is Ownable {
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
                 _tokeReward != address(0) &&
-                _tokeRewardHash != address(0) &&
                 _liquidityReserve != address(0),
             "Invalid address"
         );
@@ -81,7 +77,6 @@ contract Staking is Ownable {
         TOKE_POOL = _tokePool;
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
-        TOKE_REWARD_HASH = _tokeRewardHash;
         LIQUIDITY_RESERVE = _liquidityReserve;
         timeLeftToRequestWithdrawal = 500;
 
@@ -287,7 +282,7 @@ contract Staking is Ownable {
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
-    function _canBatchTransactions() public view returns (bool) {
+    function _canBatchTransactions() internal view returns (bool) {
         ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
         uint256 duration = tokeManager.getCycleDuration();
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
@@ -346,7 +341,14 @@ contract Staking is Ownable {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
-        rebase();
+        uint256 circulatingSupply = IRewardToken(REWARD_TOKEN)
+            .circulatingSupply();
+
+        // Don't rebase unless tokens are already staked or could get locked out of staking
+        if (circulatingSupply > 0) {
+            rebase();
+        }
+
         IERC20(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
