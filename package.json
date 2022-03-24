@@ -13,7 +13,7 @@
     "lint:ts": "yarn eslint '**/*.{js,ts}'",
     "lint:solidity": "yarn solhint src/**/*.sol",
     "lint:fix": "yarn solhint src/**/*.sol --fix && yarn eslint '**/*.{js,ts}' --fix",
-    "prettier": "npx prettier '**/*.{json,sol,md}' --write",
+    "prettier": "prettier '**/*.{json,sol,md}' --write",
     "clean": "rm -rf node_modules artifacts cache typechain-types deployments",
     "test": "yarn hardhat test",
     "local-node": "dotenv cross-var yarn hardhat node --fork %MAINNET_URL%",
