@@ -30,10 +30,11 @@ describe("Ownable", function () {
 
     await expect(
       ownable.pushOwner("0x0000000000000000000000000000000000000000")
-    ).to.be.revertedWith("Ownable: new owner is the zero address");
+    ).not.to.be.reverted;
 
     await ownable.pushOwner(staker1);
     expect(await ownable.getOwner()).eq(admin);
+    expect(await ownable.getNewOwner()).eq(staker1);
 
     const staker1Signer = accounts.find(
       (account) => account.address === staker1
@@ -50,5 +51,6 @@ describe("Ownable", function () {
 
     await ownableStaker1.pullOwner();
     expect(await ownable.getOwner()).eq(staker1);
+    expect(await ownable.getNewOwner()).eq("0x0000000000000000000000000000000000000000");
   });
 });
