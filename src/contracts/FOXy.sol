@@ -52,7 +52,7 @@ contract Foxy is ERC20Permit, Ownable {
 
     mapping(address => mapping(address => uint256)) private allowedValue;
 
-    constructor() ERC20("FOX Yield", "FOXy") ERC20Permit("FOX Yield") {
+    constructor() ERC20("FOX Yieldy", "FOXy") ERC20Permit("FOX Yieldy") {
         initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
