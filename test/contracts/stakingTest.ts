@@ -40,6 +40,7 @@ describe("Staking", function () {
 
     while (currentTime <= nextCycleTime) {
       await network.provider.send("hardhat_mine", ["0x100"]);
+      await network.provider.send('hardhat_setNextBlockBaseFeePerGas', ['0x0'])
       const block = await ethers.provider.getBlockNumber();
       currentTime = (await ethers.provider.getBlock(block)).timestamp;
     }
