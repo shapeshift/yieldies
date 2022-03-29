@@ -104,8 +104,6 @@ dist
 # TernJS port file
 .tern-port
 
-
-artifacts/
 deployments/
 cache/
 typechain-types/

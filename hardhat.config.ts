@@ -44,9 +44,8 @@ const config: HardhatUserConfig = {
     goerli: {
       url: process.env.GOERLI_URL || "",
       deploy: ["deploy/core", "deploy/test"],
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",

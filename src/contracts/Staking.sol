@@ -78,7 +78,7 @@ contract Staking is Ownable {
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        timeLeftToRequestWithdrawal = 500;
+        timeLeftToRequestWithdrawal = 43200;
 
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
