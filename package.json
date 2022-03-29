@@ -1,6 +1,6 @@
 {
   "name": "@shapeshiftoss/foxy",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Rebasing Rewards for FOX Stakers",
   "main": "index.js",
   "private": false,
