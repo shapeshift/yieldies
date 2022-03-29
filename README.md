@@ -23,7 +23,7 @@ FOXy is a proposed staking rewards system that allows FOX token holders the abil
 
 ### Other Commands
 
-`yarn local-node` - used to run your own node you can start your node by running the following command:
+`yarn local-node` - used to run your own forked mainnet node locally
 
 `yarn local-init` - used to initialize local-node and set up the FOXy contracts to use locally
 
