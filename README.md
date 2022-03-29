@@ -2,8 +2,9 @@
 
 ## Ethereum Mainnet Addresses 
 
-Deployed [Tag 1.0.0](https://github.com/shapeshift/foxy/releases/tag/1.0.0);
-[Audit from Zokyo](https://github.com/shapeshift/foxy/blob/release/1.0.0/docs/Zokyo_Security_Audit.pdf)
+Deployed [Tag 1.0.0](https://github.com/shapeshift/foxy/releases/tag/1.0.0)
+
+[Audit from Zokyo](https://github.com/shapeshift/foxy/blob/main/docs/Zokyo_Security_Audit.pdf)
 
 * FOXy - [0xDc49108ce5C57bc3408c3A5E95F3d864eC386Ed3](https://etherscan.io/address/0xDc49108ce5C57bc3408c3A5E95F3d864eC386Ed3)
 * FOX - [0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d](https://etherscan.io/address/0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d)
