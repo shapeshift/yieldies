@@ -23,17 +23,11 @@ contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
 
     event LogRebase(uint256 indexed epoch, uint256 rebase, uint256 index);
 
-    /**
-        @notice initialize gons and stakingContract
-        @param _stakingContract address
-     */
+    
     function initialize(
         string memory _tokenName,
-        string memory _tokenSymbol,
-        address _stakingContract
+        string memory _tokenSymbol
     ) external initializer {
-        require(_stakingContract != address(0), "Invalid address");
-
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         AccessControlUpgradeable.__AccessControl_init();
 
@@ -44,6 +38,12 @@ contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
         gonsPerFragment = TOTAL_GONS / _totalSupply;
         _setIndex(WAD);
 
+
+    }
+
+    function initializeStakingContract(address _stakingContract) external onlyRole(ADMIN_ROLE) {
+        require(stakingContract == address(0), "Already Initialized");
+        require(_stakingContract != address(0), "Invalid address");
         // TODO: staking contract can just have the minter role soon....
         stakingContract = _stakingContract;
         gonBalances[stakingContract] = TOTAL_GONS;

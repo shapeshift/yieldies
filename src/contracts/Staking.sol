@@ -13,6 +13,7 @@ import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "hardhat/console.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -392,8 +393,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Claim memory info = coolDownInfo[_recipient];
         uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
             .balanceForGons(info.gons);
+        console.log("claimWithdraw");
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
+            console.log("claimWithdraw - avilable?");
+
             _withdrawFromTokemak();
 
             delete coolDownInfo[_recipient];
@@ -410,6 +414,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 totalAmountIncludingRewards
             );
             withdrawalAmount -= info.amount;
+            console.log(info.amount);
         }
     }
 

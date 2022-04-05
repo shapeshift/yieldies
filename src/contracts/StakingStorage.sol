@@ -16,8 +16,8 @@ contract StakingStorage {
     address public COOL_DOWN_CONTRACT;
 
     // owner overrides
-    bool public pauseStaking = false; // pauses staking
-    bool public pauseUnstaking = false; // pauses unstaking
+    bool public pauseStaking; // pauses staking
+    bool public pauseUnstaking; // pauses unstaking
 
     Epoch public epoch;
 
