@@ -18,7 +18,7 @@ contract StakingStorage {
     // owner overrides
     bool public pauseStaking = false; // pauses staking
     bool public pauseUnstaking = false; // pauses unstaking
-    
+
     Epoch public epoch;
 
     mapping(address => Claim) public warmUpInfo;

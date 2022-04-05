@@ -2,6 +2,7 @@
 pragma solidity 0.8.9;
 
 import "../structs/Claim.sol";
+
 interface IStaking {
     function unstake(uint256 amount_, bool trigger) external;
 

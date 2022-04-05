@@ -30,7 +30,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 _firstEpochBlock
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
-        
+
         // must have valid initial addresses
         require(
             _stakingToken != address(0) &&
@@ -60,7 +60,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         COOL_DOWN_CONTRACT = address(coolDown);
 
         IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
-        IERC20Upgradeable(REWARD_TOKEN).approve(LIQUIDITY_RESERVE, type(uint256).max);
+        IERC20Upgradeable(REWARD_TOKEN).approve(
+            LIQUIDITY_RESERVE,
+            type(uint256).max
+        );
 
         epoch = Epoch({
             length: _epochLength,
@@ -69,8 +72,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             distribute: 0
         });
     }
-
-    
 
     /**
         @notice claim TOKE rewards from Tokemak
@@ -349,7 +350,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 expiry: epoch.number + warmUpPeriod
             });
 
-            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
+            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
+                WARM_UP_CONTRACT,
+                _amount
+            );
         }
     }
 
@@ -396,7 +400,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
-            IERC20Upgradeable(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
+            IERC20Upgradeable(STAKING_TOKEN).safeTransfer(
+                _recipient,
+                info.amount
+            );
 
             IVesting(COOL_DOWN_CONTRACT).retrieve(
                 address(this),
@@ -415,7 +422,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
-        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(_user);
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            _user
+        );
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
@@ -482,14 +491,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
-        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(msg.sender);
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            msg.sender
+        );
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
         uint256 totalBalance = warmUpBalance + walletBalance;
-        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
-            LIQUIDITY_RESERVE
-        );
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(LIQUIDITY_RESERVE);
 
         // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
@@ -551,7 +561,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         sendWithdrawalRequests();
 
-        IERC20Upgradeable(REWARD_TOKEN).safeTransfer(COOL_DOWN_CONTRACT, _amount);
+        IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
+            COOL_DOWN_CONTRACT,
+            _amount
+        );
     }
 
     /**
@@ -583,7 +596,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
-        return IERC20Upgradeable(STAKING_TOKEN).balanceOf(address(this)) + tokeBalance;
+        return
+            IERC20Upgradeable(STAKING_TOKEN).balanceOf(address(this)) +
+            tokeBalance;
     }
 
     /**
@@ -600,9 +615,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         );
 
         // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
-        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
-            address(this)
-        );
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(address(this));
         uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
         _depositToTokemak(amountToDeposit);
 

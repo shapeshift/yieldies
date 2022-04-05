@@ -27,15 +27,19 @@ contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
         @notice initialize gons and stakingContract
         @param _stakingContract address
      */
-    function initialize(string memory _tokenName, string memory  _tokenSymbol, address _stakingContract) external initializer {
+    function initialize(
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        address _stakingContract
+    ) external initializer {
         require(_stakingContract != address(0), "Invalid address");
 
-        ERC20Upgradeable.__ERC20_init( _tokenName, _tokenSymbol);        
+        ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         AccessControlUpgradeable.__AccessControl_init();
 
         _setupRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
-        
+
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
         _setIndex(WAD);

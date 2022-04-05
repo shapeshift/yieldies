@@ -9,7 +9,11 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../interfaces/IStaking.sol";
 import "./LiquidityReserveStorage.sol";
 
-contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableUpgradeable {
+contract LiquidityReserve is
+    LiquidityReserveStorage,
+    ERC20Upgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     event FeeChanged(uint256 fee);
@@ -25,13 +29,15 @@ contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableU
         @param _stakingContract address
      */
     function initialize(
-        string memory _tokenName, string memory _tokenSymbol,
-        address _stakingToken, address _stakingContract, address _rewardToken)
-        external
-    {
-        ERC20Upgradeable.__ERC20_init( _tokenName, _tokenSymbol);        
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        address _stakingToken,
+        address _stakingContract,
+        address _rewardToken
+    ) external {
+        ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         OwnableUpgradeable.__Ownable_init();
-        
+
         require(_stakingToken != address(0), "Invalid address");
         stakingToken = _stakingToken;
 
@@ -62,7 +68,10 @@ contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableU
         );
         _mint(address(this), MINIMUM_LIQUIDITY);
 
-        IERC20Upgradeable(rewardToken).approve(stakingContract, type(uint256).max);
+        IERC20Upgradeable(rewardToken).approve(
+            stakingContract,
+            type(uint256).max
+        );
     }
 
     /**
@@ -147,12 +156,16 @@ contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableU
 
         // verify that we have enough stakingTokens
         require(
-            IERC20Upgradeable(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
+            IERC20Upgradeable(stakingToken).balanceOf(address(this)) >=
+                amountToWithdraw,
             "Not enough funds"
         );
 
         _burn(msg.sender, _amount);
-        IERC20Upgradeable(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
+        IERC20Upgradeable(stakingToken).safeTransfer(
+            msg.sender,
+            amountToWithdraw
+        );
     }
 
     /**
@@ -175,7 +188,10 @@ contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableU
             _amount
         );
 
-        IERC20Upgradeable(stakingToken).safeTransfer(_recipient, amountMinusFee);
+        IERC20Upgradeable(stakingToken).safeTransfer(
+            _recipient,
+            amountMinusFee
+        );
         unstakeAllRewardTokens();
     }
 
@@ -183,7 +199,9 @@ contract LiquidityReserve is LiquidityReserveStorage, ERC20Upgradeable, OwnableU
         @notice find balance of reward tokens in contract and unstake them from staking contract
      */
     function unstakeAllRewardTokens() public {
-        uint256 amount = IERC20Upgradeable(rewardToken).balanceOf(address(this));
+        uint256 amount = IERC20Upgradeable(rewardToken).balanceOf(
+            address(this)
+        );
         if (amount > 0) IStaking(stakingContract).unstake(amount, false);
     }
 }
