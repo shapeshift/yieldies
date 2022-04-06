@@ -8,7 +8,7 @@ import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve, Vesting, Staking } from "../../typechain-types";
-import { INSTANT_UNSTAKE_FEE } from "../constants";
+import * as constants from "../constants";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -20,21 +20,7 @@ describe("Staking", function () {
   let tokeManager: Contract;
   let stakingWarmup: Vesting;
   let stakingCooldown: Vesting;
-
-  const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
-  const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
-  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
-  const TOKE_TOKEN = "0x2e9d63788249371f1dfc918a52f8d799f4a38c94";
-  const TOKE_MANAGER = "0xa86e412109f77c45a3bc1c5870b880492fb86a14";
-  const TOKE_REWARD = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5"; // TOKE reward contract address
-
-  const EPOCH_LENGTH = 44800;
-  const FIRST_EPOCH_NUMBER = 1;
-  
-
-  const LATEST_CLAIMABLE_HASH =
-    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
+ 
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -68,8 +54,8 @@ describe("Staking", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
-    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    stakingToken = new ethers.Contract(constants.STAKING_TOKEN, ERC20.abi, accounts[0]);
+    tokePool = new ethers.Contract(constants.TOKE_ADDRESS, tokePoolAbi, accounts[0]);
 
     const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
     rewardToken =  await upgrades.deployProxy(rewardTokenDeployment, [
@@ -82,24 +68,24 @@ describe("Staking", function () {
     liquidityReserve = await upgrades.deployProxy(liquidityReserveDeployment, [
       "Liquidity Reserve FOX",
       "lrFOX",
-      STAKING_TOKEN,
+      constants.STAKING_TOKEN,
       rewardToken.address
     ]) as LiquidityReserve;
 
     const currentBlock = await ethers.provider.getBlockNumber();
-    const firstEpochBlock = currentBlock + EPOCH_LENGTH;
+    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
     staking = await upgrades.deployProxy(stakingDeployment, [
       stakingToken.address,
       rewardToken.address,
-      TOKE_TOKEN,
-      TOKE_ADDRESS,
-      TOKE_MANAGER,
-      TOKE_REWARD,
+      constants.TOKE_TOKEN,
+      constants.TOKE_ADDRESS,
+      constants.TOKE_MANAGER,
+      constants.TOKE_REWARD,
       liquidityReserve.address,
-      EPOCH_LENGTH,
-      FIRST_EPOCH_NUMBER,
+      constants.EPOCH_LENGTH,
+      constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
     ]) as Staking;
 
@@ -126,12 +112,12 @@ describe("Staking", function () {
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [STAKING_TOKEN_WHALE],
+      params: [constants.STAKING_TOKEN_WHALE],
     });
 
     // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
     const transferAmount = BigNumber.from("9000000000000000");
-    const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
+    const whaleSigner = await ethers.getSigner(constants.STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
@@ -145,7 +131,7 @@ describe("Staking", function () {
       BigNumber.from("1000000000000000")
     ); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(staking.address);
-    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
+    await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
   });
 
   describe("initialize", function () {
@@ -159,20 +145,20 @@ describe("Staking", function () {
     it("Fails when no staking/reward token or staking contract is passed in", async () => {
        const stakingFactory = await ethers.getContractFactory("Staking");
       const currentBlock = await ethers.provider.getBlockNumber();
-      const firstEpochBlock = currentBlock + EPOCH_LENGTH;
+      const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
 
       // fail due to bad addresses
       await expect(
         upgrades.deployProxy(stakingFactory, [
           stakingToken.address,
           ethers.constants.AddressZero,
-          TOKE_TOKEN,
-          TOKE_ADDRESS,
-          TOKE_MANAGER,
-          TOKE_REWARD,
+          constants.TOKE_TOKEN,
+          constants.TOKE_ADDRESS,
+          constants.TOKE_MANAGER,
+          constants.TOKE_REWARD,
           liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
         ])
       ).to.be.reverted;
@@ -180,27 +166,13 @@ describe("Staking", function () {
         upgrades.deployProxy(stakingFactory, [
           stakingToken.address,
           ethers.constants.AddressZero,
-          TOKE_TOKEN,
-          TOKE_ADDRESS,
-          TOKE_MANAGER,
-          TOKE_REWARD,
+          constants.TOKE_TOKEN,
+          constants.TOKE_ADDRESS,
+          constants.TOKE_MANAGER,
+          constants.TOKE_REWARD,
           liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          rewardToken.address,
-          ethers.constants.AddressZero,
-          TOKE_ADDRESS,
-          TOKE_MANAGER,
-          TOKE_REWARD,
-          liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
         ])
       ).to.be.reverted;
@@ -208,13 +180,13 @@ describe("Staking", function () {
         upgrades.deployProxy(stakingFactory, [
           stakingToken.address,
           rewardToken.address,
-          TOKE_TOKEN,
           ethers.constants.AddressZero,
-          TOKE_MANAGER,
-          TOKE_REWARD,
+          constants.TOKE_ADDRESS,
+          constants.TOKE_MANAGER,
+          constants.TOKE_REWARD,
           liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
         ])
       ).to.be.reverted;
@@ -222,13 +194,13 @@ describe("Staking", function () {
         upgrades.deployProxy(stakingFactory, [
           stakingToken.address,
           rewardToken.address,
-          TOKE_TOKEN,
-          TOKE_ADDRESS,
+          constants.TOKE_TOKEN,
           ethers.constants.AddressZero,
-          TOKE_REWARD,
+          constants.TOKE_MANAGER,
+          constants.TOKE_REWARD,
           liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
         ])
       ).to.be.reverted;
@@ -236,13 +208,27 @@ describe("Staking", function () {
         upgrades.deployProxy(stakingFactory, [
           stakingToken.address,
           rewardToken.address,
-          TOKE_TOKEN,
-          TOKE_ADDRESS,
-          TOKE_MANAGER,
+          constants.TOKE_TOKEN,
+          constants.TOKE_ADDRESS,
+          ethers.constants.AddressZero,
+          constants.TOKE_REWARD,
+          liquidityReserve.address,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
+          firstEpochBlock,
+        ])
+      ).to.be.reverted;
+      await expect(
+        upgrades.deployProxy(stakingFactory, [
+          stakingToken.address,
+          rewardToken.address,
+          constants.TOKE_TOKEN,
+          constants.TOKE_ADDRESS,
+          constants.TOKE_MANAGER,
           ethers.constants.AddressZero,
           liquidityReserve.address,
-          EPOCH_LENGTH,
-          FIRST_EPOCH_NUMBER,
+          constants.EPOCH_LENGTH,
+          constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
         ])
       ).to.be.reverted;
@@ -302,7 +288,7 @@ describe("Staking", function () {
       );
       expect(cooldownRewardTokenBalance).eq(stakingAmount);
     });
-    it.only("Users have to wait for warmup period to claim and cooldown period to withdraw", async () => {
+    it("Users have to wait for warmup period to claim and cooldown period to withdraw", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
@@ -367,11 +353,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // shouldn't have stakingToken balance
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -729,7 +715,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
+        transferAmount.mul(constants.INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
@@ -766,7 +752,7 @@ describe("Staking", function () {
       expect(rewardBalance).eq(0);
 
       const amountMinusFee = transferAmount.sub(
-        transferAmount.mul(INSTANT_UNSTAKE_FEE).div(10000)
+        transferAmount.mul(constants.INSTANT_UNSTAKE_FEE).div(10000)
       );
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(amountMinusFee);
@@ -915,11 +901,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
 
@@ -938,7 +924,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(0);
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await stakingStaker1.rebase();
 
@@ -952,7 +938,7 @@ describe("Staking", function () {
       coolDownInfo = await staking.coolDownInfo(staker1);
       expect(coolDownInfo.amount).eq(stakingAmount.mul(3));
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await stakingStaker1.rebase();
 
@@ -1052,11 +1038,11 @@ describe("Staking", function () {
       // do rollover
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.rebase();
 
@@ -1117,11 +1103,11 @@ describe("Staking", function () {
       // do rollover
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.claimWithdraw(staker1);
 
@@ -1176,11 +1162,11 @@ describe("Staking", function () {
       // do rollover
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // user can still unstake and claim without sendWithdrawalRequest
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -1236,11 +1222,11 @@ describe("Staking", function () {
       // do rollover
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // user can still unstake and claim without sendWithdrawalRequest
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -1591,11 +1577,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
@@ -1715,11 +1701,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
 
       await stakingStaker1.sendWithdrawalRequests();
@@ -1732,7 +1718,7 @@ describe("Staking", function () {
         stakingAmount1.add(stakingAmount2)
       );
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
 
       await stakingStaker2.claimWithdraw(staker2);
@@ -1750,7 +1736,7 @@ describe("Staking", function () {
         .approve(staking.address, stakingAmount3);
       await stakingStaker3.unstake(stakingAmount3, false);
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await stakingStaker3.sendWithdrawalRequests();
 
@@ -1824,11 +1810,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.sendWithdrawalRequests();
 
@@ -1872,7 +1858,7 @@ describe("Staking", function () {
         stakingAmount1.add(stakingAmount2)
       );
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await stakingStaker3.sendWithdrawalRequests();
 
@@ -1931,11 +1917,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
       await mineBlocksToNextCycle();
 
@@ -1962,7 +1948,7 @@ describe("Staking", function () {
       );
 
       // both should be able to claim
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.claimWithdraw(staker1);
       await stakingStaker2.claimWithdraw(staker2);
@@ -2124,11 +2110,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // shouldn't have stakingToken balance
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2166,12 +2152,12 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await stakingStaker1.claimWithdraw(staker1);
 
       // has no stakingBalance after withdrawal
@@ -2227,12 +2213,12 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
 
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
@@ -2353,11 +2339,11 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.claimWithdraw(staker1);
 
@@ -2475,12 +2461,12 @@ describe("Staking", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await mineBlocksToNextCycle();
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // staker1 doesn't need to unstake since they already did
       await stakingStaker1.claimWithdraw(staker1);
