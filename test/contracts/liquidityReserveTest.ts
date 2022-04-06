@@ -4,7 +4,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { Yieldy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 import * as constants from "../constants";
@@ -98,11 +97,11 @@ describe("Liquidity Reserve", function () {
       transferAmount.toNumber()
     );
 
-    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
+    await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
     await rewardToken.initializeStakingContract(stakingContract.address); // initialize reward contract
 
 
-    await stakingToken.approve(liquidityReserve.address, INITIAL_LR_BALANCE); // approve initial liquidity amount
+    await stakingToken.approve(liquidityReserve.address, constants.INITIAL_LR_BALANCE); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(stakingContract.address);
     tokePool = new ethers.Contract(constants.TOKE_ADDRESS, tokePoolAbi, accounts[0]);
     const tokeManagerAddress = await tokePool.manager();
@@ -401,7 +400,7 @@ describe("Liquidity Reserve", function () {
       let lrStakingBalance = await stakingToken.balanceOf(
         liquidityReserve.address
       );
-      expect(lrStakingBalance).eq(INITIAL_LR_BALANCE);
+      expect(lrStakingBalance).eq(constants.INITIAL_LR_BALANCE);
 
       const transferAmount = BigNumber.from("4000000000000000");
 
