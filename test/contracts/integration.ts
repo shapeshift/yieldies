@@ -271,14 +271,22 @@
 //     // rebase
 //     let currentBlock = await ethers.provider.getBlockNumber();
 //     let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
+
 //     await staking.rebase();
+
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 //     await staking.rebase();
 
@@ -332,15 +340,21 @@
 //     // rebase
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 
 //     await staking.rebase();
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 
 //     await staking.rebase();
@@ -385,14 +399,20 @@
 //     // rebase
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 //     await staking.rebase();
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 //     await staking.rebase();
 
@@ -445,15 +465,21 @@
 //     // rebase
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 //     await staking.rebase();
 
 //     currentBlock = await ethers.provider.getBlockNumber();
 //     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-//     for (let i = currentBlock; i <= nextRewardBlock; i++) {
-//       await ethers.provider.send("evm_mine", []);
+
+//     // mining 256 blocks at a time
+//     for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+//       await network.provider.send("hardhat_mine", ["0x100"]);
+//       currentBlock = await ethers.provider.getBlockNumber();
 //     }
 //     await staking.rebase();
 
