@@ -22,7 +22,7 @@ describe("Yieldy", function () {
     ])) as Yieldy;
     await yieldy.deployed();
 
-    await yieldy.initializeStakingContract(stakingContractMock)
+    await yieldy.initializeStakingContract(stakingContractMock);
   });
 
   describe("initialize", function () {

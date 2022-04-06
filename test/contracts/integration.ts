@@ -6,7 +6,6 @@ import {
   upgrades,
 } from "hardhat";
 import { expect } from "chai";
-import { Foxy } from "../../typechain-types/Foxy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";

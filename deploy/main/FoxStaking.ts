@@ -38,8 +38,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       firstEpochBlock,
     ],
     log: true,
-    maxFeePerGas: BigNumber.from('78114762067'),
-    maxPriorityFeePerGas: BigNumber.from('3000000000')
+    maxFeePerGas: BigNumber.from("78114762067"),
+    maxPriorityFeePerGas: BigNumber.from("3000000000"),
   });
 };
 export default func;
