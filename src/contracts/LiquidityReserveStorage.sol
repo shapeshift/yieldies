@@ -8,5 +8,5 @@ contract LiquidityReserveStorage {
     uint256 public fee; // fee for instant unstaking
     uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
-    bool public isReserveEnabled; // ensures we are fully initialized 
+    bool public isReserveEnabled; // ensures we are fully initialized
 }

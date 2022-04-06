@@ -4,7 +4,7 @@ import { Yieldy } from "../../typechain-types/Yieldy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, ContractFactory, Signer } from "ethers";
 
-describe.skip("Yieldy", function () {
+describe("Yieldy", function () {
   let accounts: SignerWithAddress[];
   let Yieldy: ContractFactory;
   let yieldy: Yieldy;
@@ -18,9 +18,11 @@ describe.skip("Yieldy", function () {
     yieldy = (await upgrades.deployProxy(Yieldy, [
       "Fox Yieldy",
       "FOXy",
-      stakingContractMock,
+      // stakingContractMock,
     ])) as Yieldy;
     await yieldy.deployed();
+
+    await yieldy.initializeStakingContract(stakingContractMock)
   });
 
   describe("initialize", function () {
