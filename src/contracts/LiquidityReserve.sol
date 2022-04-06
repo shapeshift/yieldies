@@ -39,18 +39,21 @@ contract LiquidityReserve is
     ) external initializer {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         OwnableUpgradeable.__Ownable_init();
-        require(_stakingToken != address(0) && _rewardToken != address(0), "Invalid address");
+        require(
+            _stakingToken != address(0) && _rewardToken != address(0),
+            "Invalid address"
+        );
         stakingToken = _stakingToken;
         rewardToken = _rewardToken;
     }
 
-    function enableLiquidityReserve(address _stakingContract) external onlyOwner {
+    function enableLiquidityReserve(address _stakingContract)
+        external
+        onlyOwner
+    {
         // check if initializer is msg.sender that was set in constructor
         require(!isReserveEnabled, "Already enabled");
-        require(
-            _stakingContract != address(0),
-            "Invalid address"
-        );
+        require(_stakingContract != address(0), "Invalid address");
 
         uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
             msg.sender
@@ -69,7 +72,10 @@ contract LiquidityReserve is
             MINIMUM_LIQUIDITY
         );
         _mint(address(this), MINIMUM_LIQUIDITY);
-        IERC20Upgradeable(rewardToken).approve(stakingContract, type(uint256).max);
+        IERC20Upgradeable(rewardToken).approve(
+            stakingContract,
+            type(uint256).max
+        );
         isReserveEnabled = true;
     }
 

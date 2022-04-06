@@ -50,26 +50,32 @@ describe("Liquidity Reserve", function () {
     accounts = await ethers.getSigners();
 
     const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
-    rewardToken =  await upgrades.deployProxy(rewardTokenDeployment, [
+    rewardToken = (await upgrades.deployProxy(rewardTokenDeployment, [
       "Fox Yieldy",
       "FOXy",
-    ]) as Yieldy;
+    ])) as Yieldy;
     await rewardToken.deployed();
-    
+
     const currentBlock = await ethers.provider.getBlockNumber();
     const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
-    stakingToken = new ethers.Contract(constants.STAKING_TOKEN, ERC20.abi, accounts[0]);
+    stakingToken = new ethers.Contract(
+      constants.STAKING_TOKEN,
+      ERC20.abi,
+      accounts[0]
+    );
 
-    const liquidityReserveDeployment =  await ethers.getContractFactory("LiquidityReserve");
-    liquidityReserve = await upgrades.deployProxy(liquidityReserveDeployment, [
+    const liquidityReserveDeployment = await ethers.getContractFactory(
+      "LiquidityReserve"
+    );
+    liquidityReserve = (await upgrades.deployProxy(liquidityReserveDeployment, [
       "Liquidity Reserve FOX",
       "lrFOX",
       constants.STAKING_TOKEN,
-      rewardToken.address
-    ]) as LiquidityReserve;
+      rewardToken.address,
+    ])) as LiquidityReserve;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
-    stakingContract = await upgrades.deployProxy(stakingDeployment, [
+    stakingContract = (await upgrades.deployProxy(stakingDeployment, [
       stakingToken.address,
       rewardToken.address,
       constants.TOKE_TOKEN,
@@ -80,7 +86,7 @@ describe("Liquidity Reserve", function () {
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
-    ]) as Staking;
+    ])) as Staking;
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -103,7 +109,11 @@ describe("Liquidity Reserve", function () {
 
     await stakingToken.approve(liquidityReserve.address, constants.INITIAL_LR_BALANCE); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(stakingContract.address);
-    tokePool = new ethers.Contract(constants.TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    tokePool = new ethers.Contract(
+      constants.TOKE_ADDRESS,
+      tokePoolAbi,
+      accounts[0]
+    );
     const tokeManagerAddress = await tokePool.manager();
     tokeManager = new ethers.Contract(
       tokeManagerAddress,
@@ -507,8 +517,8 @@ describe("Liquidity Reserve", function () {
           "Liquidity Reserve FOX",
           "lrFOX",
           ethers.constants.AddressZero,
-          rewardToken.address
-        ]) 
+          rewardToken.address,
+        ])
       ).to.be.reverted;
 
       await expect(
@@ -516,16 +526,19 @@ describe("Liquidity Reserve", function () {
           "Liquidity Reserve FOX",
           "lrFOX",
           constants.STAKING_TOKEN,
-          ethers.constants.AddressZero
-        ]) 
+          ethers.constants.AddressZero,
+        ])
       ).to.be.reverted;
 
-      const liquidityReserveContract = await upgrades.deployProxy(liquidityFactory, [
-        "Liquidity Reserve FOX",
-        "lrFOX",
-        constants.STAKING_TOKEN,
-        rewardToken.address
-      ]) as LiquidityReserve;
+      const liquidityReserveContract = (await upgrades.deployProxy(
+        liquidityFactory,
+        [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          constants.STAKING_TOKEN,
+          rewardToken.address,
+        ]
+      )) as LiquidityReserve;
 
       // fail due to no stakingContract
       await expect(
@@ -539,9 +552,7 @@ describe("Liquidity Reserve", function () {
 
       // fail due to not enough liquidity
       await expect(
-        liquidityReserveContract.enableLiquidityReserve(
-          stakingContract.address
-        )
+        liquidityReserveContract.enableLiquidityReserve(stakingContract.address)
       ).to.be.reverted;
     });
 
@@ -565,12 +576,15 @@ describe("Liquidity Reserve", function () {
       const liquidityFactory = await ethers.getContractFactory(
         "LiquidityReserve"
       );
-      const liquidityReserveContract = await upgrades.deployProxy(liquidityFactory, [
-        "Liquidity Reserve FOX",
-        "lrFOX",
-        constants.STAKING_TOKEN,
-        rewardToken.address
-      ]) as LiquidityReserve;
+      const liquidityReserveContract = (await upgrades.deployProxy(
+        liquidityFactory,
+        [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          constants.STAKING_TOKEN,
+          rewardToken.address,
+        ]
+      )) as LiquidityReserve;
 
       await expect(
         liquidityReserveContract.instantUnstake(1000, staker1)

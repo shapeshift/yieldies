@@ -15,20 +15,23 @@ describe("Yieldy", function () {
     accounts = await ethers.getSigners();
     const { stakingContractMock } = await getNamedAccounts();
     Yieldy = await ethers.getContractFactory("Yieldy");
-    yieldy = await upgrades.deployProxy(Yieldy, [
+    yieldy = (await upgrades.deployProxy(Yieldy, [
       "Fox Yieldy",
       "FOXy",
-      stakingContractMock
-    ]) as Yieldy;
+      // stakingContractMock,
+    ])) as Yieldy;
     await yieldy.deployed();
 
+    await yieldy.initializeStakingContract(stakingContractMock);
   });
 
   describe("initialize", function () {
     it("Should assign the total supply of tokens to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
       const supply = await yieldy.totalSupply();
-      const stakingContractBalance = await yieldy.balanceOf(stakingContractMock);
+      const stakingContractBalance = await yieldy.balanceOf(
+        stakingContractMock
+      );
       expect(stakingContractBalance).eq(supply);
     });
     it("Fails if no stakingContract is passed to initialize", async () => {
@@ -120,8 +123,9 @@ describe("Yieldy", function () {
 
       const profit = BigNumber.from("1000");
       // no circulating supply can't be rebased
-      await expect(yieldyStakingContractSigner.rebase(profit, BigNumber.from(1)))
-        .to.be.reverted;
+      await expect(
+        yieldyStakingContractSigner.rebase(profit, BigNumber.from(1))
+      ).to.be.reverted;
     });
     it("If profit = 0 then no additonal funds should be received", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
