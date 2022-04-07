@@ -27,6 +27,7 @@ contract Yieldy is YieldyStorage, ERC20PermitUpgradeable, AccessControlUpgradeab
         initializer
     {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
 
         _setupRole(ADMIN_ROLE, msg.sender);
