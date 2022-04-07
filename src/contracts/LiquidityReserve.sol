@@ -47,6 +47,11 @@ contract LiquidityReserve is
         rewardToken = _rewardToken;
     }
 
+    /**
+        @notice callable once after initialized by the owner to set the staking contract and enable
+        our reserve to be used.
+        @param _stakingContract address of the staking contract
+     */
     function enableLiquidityReserve(address _stakingContract)
         external
         onlyOwner

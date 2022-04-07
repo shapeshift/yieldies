@@ -38,6 +38,11 @@ contract Yieldy is YieldyStorage, ERC20PermitUpgradeable, AccessControlUpgradeab
         _setIndex(WAD);
     }
 
+    /**
+        @notice called by the admin role address to set the staking contract. Can only be called
+        once. 
+        @param _stakingContract address of the staking contract
+     */
     function initializeStakingContract(address _stakingContract)
         external
         onlyRole(ADMIN_ROLE)
