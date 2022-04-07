@@ -506,7 +506,7 @@ describe("Liquidity Reserve", function () {
   });
 
   describe("fail states", () => {
-    it.only("Fails when no staking/reward token or staking contract is passed in", async () => {
+    it("Fails when no staking/reward token or staking contract is passed in", async () => {
       const { admin, staker1 } = await getNamedAccounts();
 
       const liquidityFactory = await ethers.getContractFactory(

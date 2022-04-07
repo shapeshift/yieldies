@@ -25,7 +25,7 @@ describe("Yieldy", function () {
     await yieldy.initializeStakingContract(stakingContractMock);
   });
 
-  describe("initialize", function () {
+  describe("initializeStakingContract", function () {
     it("Should assign the total supply of tokens to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
       const supply = await yieldy.totalSupply();
@@ -33,16 +33,45 @@ describe("Yieldy", function () {
         stakingContractMock
       );
       expect(stakingContractBalance).eq(supply);
+      expect(await yieldy.stakingContract()).to.equal(stakingContractMock);
     });
-    it("Fails if no stakingContract is passed to initialize", async () => {
-      // fails due to no staking/reward token
+
+    it("Fails if called from non admin", async () => {
+      const yieldy1 = (await upgrades.deployProxy(Yieldy, [
+        "Fox Yieldy",
+        "FOXy",
+      ])) as Yieldy;
+
       await expect(
-        upgrades.deployProxy(Yieldy, [
-          "Fox Yieldy",
-          "FOXy",
-          ethers.constants.AddressZero,
-        ])
-      ).to.be.reverted;
+        yieldy1
+          .connect(accounts[2])
+          .initializeStakingContract(accounts[2].address)
+      ).to.be.revertedWith(
+        "AccessControl: account 0xb6a8490101a0521677b66866b8052ee9f9975c17 is missing role 0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42"
+      );
+    });
+
+    it("Fails if _stakingContract is zero address", async () => {
+      // fails due to no staking/reward token
+      const yieldy1 = (await upgrades.deployProxy(Yieldy, [
+        "Fox Yieldy",
+        "FOXy",
+      ])) as Yieldy;
+      await expect(
+        yieldy1.initializeStakingContract(ethers.constants.AddressZero)
+      ).to.be.revertedWith("Invalid address");
+    });
+
+    it("Fails if called twice", async () => {
+      // fails due to no staking/reward token
+      const yieldy1 = (await upgrades.deployProxy(Yieldy, [
+        "Fox Yieldy",
+        "FOXy",
+      ])) as Yieldy;
+      await yieldy1.initializeStakingContract(accounts[1].address);
+      await expect(
+        yieldy1.initializeStakingContract(accounts[1].address)
+      ).to.be.revertedWith("Already Initialized");
     });
   });
 
