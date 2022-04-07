@@ -22,14 +22,21 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  *
  * @custom:storage-size 51
  */
-abstract contract ERC20PermitUpgradeable is Initializable, ERC20Upgradeable, IERC20PermitUpgradeable, EIP712Upgradeable {
+abstract contract ERC20PermitUpgradeable is
+    Initializable,
+    ERC20Upgradeable,
+    IERC20PermitUpgradeable,
+    EIP712Upgradeable
+{
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     mapping(address => CountersUpgradeable.Counter) private _nonces;
 
     // solhint-disable-next-line var-name-mixedcase
     bytes32 private constant _PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
     /**
      * @dev In previous versions `_PERMIT_TYPEHASH` was declared as `immutable`.
      * However, to ensure consistency with the upgradeable transpiler, we will continue
@@ -48,7 +55,10 @@ abstract contract ERC20PermitUpgradeable is Initializable, ERC20Upgradeable, IER
         __EIP712_init_unchained(name, "1");
     }
 
-    function __ERC20Permit_init_unchained(string memory) internal onlyInitializing {}
+    function __ERC20Permit_init_unchained(string memory)
+        internal
+        onlyInitializing
+    {}
 
     /**
      * @dev See {IERC20Permit-permit}.
@@ -64,7 +74,16 @@ abstract contract ERC20PermitUpgradeable is Initializable, ERC20Upgradeable, IER
     ) public virtual override {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
+        bytes32 structHash = keccak256(
+            abi.encode(
+                _PERMIT_TYPEHASH,
+                owner,
+                spender,
+                value,
+                _useNonce(owner),
+                deadline
+            )
+        );
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
@@ -77,7 +96,13 @@ abstract contract ERC20PermitUpgradeable is Initializable, ERC20Upgradeable, IER
     /**
      * @dev See {IERC20Permit-nonces}.
      */
-    function nonces(address owner) public view virtual override returns (uint256) {
+    function nonces(address owner)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _nonces[owner].current();
     }
 
@@ -94,7 +119,11 @@ abstract contract ERC20PermitUpgradeable is Initializable, ERC20Upgradeable, IER
      *
      * _Available since v4.1._
      */
-    function _useNonce(address owner) internal virtual returns (uint256 current) {
+    function _useNonce(address owner)
+        internal
+        virtual
+        returns (uint256 current)
+    {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
         nonce.increment();

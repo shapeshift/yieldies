@@ -63,8 +63,16 @@ describe("Integration", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    stakingToken = new ethers.Contract(constants.STAKING_TOKEN, ERC20.abi, accounts[0]);
-    tokePool = new ethers.Contract(constants.TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    stakingToken = new ethers.Contract(
+      constants.STAKING_TOKEN,
+      ERC20.abi,
+      accounts[0]
+    );
+    tokePool = new ethers.Contract(
+      constants.TOKE_ADDRESS,
+      tokePoolAbi,
+      accounts[0]
+    );
 
     const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
     yieldy = (await upgrades.deployProxy(rewardTokenDeployment, [

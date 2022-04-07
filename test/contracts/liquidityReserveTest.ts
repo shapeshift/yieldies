@@ -106,8 +106,10 @@ describe("Liquidity Reserve", function () {
     await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
     await rewardToken.initializeStakingContract(stakingContract.address); // initialize reward contract
 
-
-    await stakingToken.approve(liquidityReserve.address, constants.INITIAL_LR_BALANCE); // approve initial liquidity amount
+    await stakingToken.approve(
+      liquidityReserve.address,
+      constants.INITIAL_LR_BALANCE
+    ); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(stakingContract.address);
     tokePool = new ethers.Contract(
       constants.TOKE_ADDRESS,
@@ -504,7 +506,7 @@ describe("Liquidity Reserve", function () {
   });
 
   describe("fail states", () => {
-    it("Fails when no staking/reward token or staking contract is passed in", async () => {
+    it.only("Fails when no staking/reward token or staking contract is passed in", async () => {
       const { admin, staker1 } = await getNamedAccounts();
 
       const liquidityFactory = await ethers.getContractFactory(
@@ -545,7 +547,7 @@ describe("Liquidity Reserve", function () {
         liquidityReserveContract.enableLiquidityReserve(
           ethers.constants.AddressZero
         )
-      ).to.be.reverted;
+      ).to.be.revertedWith("Invalid address");
 
       const transferAmount = await stakingToken.balanceOf(admin);
       await stakingToken.transfer(staker1, transferAmount);
@@ -553,7 +555,40 @@ describe("Liquidity Reserve", function () {
       // fail due to not enough liquidity
       await expect(
         liquidityReserveContract.enableLiquidityReserve(stakingContract.address)
-      ).to.be.reverted;
+      ).to.be.revertedWith("Not enough staking tokens");
+
+      // fail since not the owner
+      await expect(
+        liquidityReserveContract
+          .connect(accounts[3])
+          .enableLiquidityReserve(stakingContract.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+
+      const adminSigner = accounts.find(
+        (account) => account.address === admin
+      ) as Signer;
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+      await stakingToken
+        .connect(staker1Signer)
+        .transfer(admin, await stakingToken.balanceOf(staker1));
+      await stakingToken
+        .connect(adminSigner)
+        .approve(
+          liquidityReserveContract.address,
+          await stakingToken.balanceOf(admin)
+        );
+      await liquidityReserveContract
+        .connect(adminSigner)
+        .enableLiquidityReserve(stakingContract.address);
+
+      // fail since already called!
+      await expect(
+        liquidityReserveContract
+          .connect(adminSigner)
+          .enableLiquidityReserve(stakingContract.address)
+      ).to.be.revertedWith("Already enabled");
     });
 
     it("Must have correct fee amount", async () => {

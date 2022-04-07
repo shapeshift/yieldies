@@ -56,7 +56,6 @@ contract LiquidityReserve is
         external
         onlyOwner
     {
-        // check if initializer is msg.sender that was set in constructor
         require(!isReserveEnabled, "Already enabled");
         require(_stakingContract != address(0), "Invalid address");
 
