@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       epochLength,
       firstEpochNumber,
       firstEpochBlock,
-      timeLeftToRequestWithdrawal
+      timeLeftToRequestWithdrawal,
     ],
     log: true,
     maxFeePerGas: BigNumber.from("78114762067"),
