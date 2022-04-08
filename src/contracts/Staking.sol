@@ -27,7 +27,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _liquidityReserve,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
-        uint256 _firstEpochBlock
+        uint256 _firstEpochBlock,
+        uint256 _timeLeftToRequestWithdrawal
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -49,7 +50,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        timeLeftToRequestWithdrawal = 43200;
+        timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
 
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);

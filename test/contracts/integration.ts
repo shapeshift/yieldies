@@ -155,7 +155,7 @@ describe("Integration", function () {
     await yieldy.initializeStakingContract(staking.address); // initialize reward contract
   });
 
-  it.only("Should do everything", async () => {
+  it("Should do everything", async () => {
     const {
       staker1,
       staker2,

@@ -19,6 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const liquidityReserve = await deployments.get("LiquidityReserve");
 
   const epochLength = 44800;
+  const timeLeftToRequestWithdrawal = 43200;
   const firstEpochNumber = 1;
   const currentBlock = await ethers.provider.getBlockNumber();
   const firstEpochBlock = currentBlock + epochLength;
@@ -36,6 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       epochLength,
       firstEpochNumber,
       firstEpochBlock,
+      timeLeftToRequestWithdrawal
     ],
     log: true,
     maxFeePerGas: BigNumber.from("78114762067"),
