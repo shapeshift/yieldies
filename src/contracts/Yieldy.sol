@@ -2,13 +2,16 @@
 pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./YieldyStorage.sol";
-import "../libraries/ERC20Upgradeable.sol";
+import "../libraries/ERC20PermitUpgradeable.sol";
 
-contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
+contract Yieldy is
+    YieldyStorage,
+    ERC20PermitUpgradeable,
+    AccessControlUpgradeable
+{
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
         require(msg.sender == stakingContract, "Not staking contract");
@@ -28,6 +31,7 @@ contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
         initializer
     {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
 
         _setupRole(ADMIN_ROLE, msg.sender);
@@ -38,6 +42,11 @@ contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
         _setIndex(WAD);
     }
 
+    /**
+        @notice called by the admin role address to set the staking contract. Can only be called
+        once. 
+        @param _stakingContract address of the staking contract
+     */
     function initializeStakingContract(address _stakingContract)
         external
         onlyRole(ADMIN_ROLE)

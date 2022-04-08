@@ -31,14 +31,6 @@ describe("Integration", function () {
   let stakingWarmup: Vesting;
   let stakingCooldown: Vesting;
 
-  const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
-  const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
-  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
-
-  const LATEST_CLAIMABLE_HASH =
-    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
-
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -71,8 +63,16 @@ describe("Integration", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
-    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    stakingToken = new ethers.Contract(
+      constants.STAKING_TOKEN,
+      ERC20.abi,
+      accounts[0]
+    );
+    tokePool = new ethers.Contract(
+      constants.TOKE_ADDRESS,
+      tokePoolAbi,
+      accounts[0]
+    );
 
     const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
     yieldy = (await upgrades.deployProxy(rewardTokenDeployment, [
@@ -131,12 +131,12 @@ describe("Integration", function () {
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [STAKING_TOKEN_WHALE],
+      params: [constants.STAKING_TOKEN_WHALE],
     });
 
-    // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
+    // Transfer to admin account for constants.STAKING_TOKEN to be easily transferred to other accounts
     const transferAmount = BigNumber.from("9000000000000000");
-    const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
+    const whaleSigner = await ethers.getSigner(constants.STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
@@ -376,15 +376,15 @@ describe("Integration", function () {
     // staker2 & staker3 & liquidity reserve contract
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [TOKE_OWNER],
+      params: [constants.TOKE_OWNER],
     });
-    const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+    const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
     const tokeManagerOwner = tokeManager.connect(tokeSigner);
     await mineBlocksToNextCycle();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
     await mineBlocksToNextCycle();
     await stakingStaker1.sendWithdrawalRequests();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
     let stakingBalance = await stakingToken.balanceOf(staker2);
     expect(stakingBalance).eq(0);
@@ -496,7 +496,7 @@ describe("Integration", function () {
 
     // complete rollover to increase tokeIndex
     await mineBlocksToNextCycle();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
     // claimWithdraw from liquidityProvider2
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
