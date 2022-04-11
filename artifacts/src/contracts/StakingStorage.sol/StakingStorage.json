@@ -1,0 +1,318 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StakingStorage",
+  "sourceName": "src/contracts/StakingStorage.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "COOL_DOWN_CONTRACT",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "LIQUIDITY_RESERVE",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "REWARD_TOKEN",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "STAKING_TOKEN",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "TOKE_MANAGER",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "TOKE_POOL",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "TOKE_REWARD",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "TOKE_TOKEN",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WARM_UP_CONTRACT",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "coolDownInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gons",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expiry",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "coolDownPeriod",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "epoch",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "length",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "number",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "endBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "distribute",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastTokeCycleIndex",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pauseStaking",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pauseUnstaking",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "requestWithdrawalAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "timeLeftToRequestWithdrawal",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "warmUpInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gons",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expiry",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "warmUpPeriod",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "withdrawalAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5061047c806100206000396000f3fe608060405234801561001057600080fd5b506004361061016c5760003560e01c8063900cf0cf116100cd578063c9d4f35011610081578063e6e268f411610066578063e6e268f4146103bb578063ed295509146103c4578063f999c506146103e457600080fd5b8063c9d4f35014610392578063e2a8179d1461039b57600080fd5b806399248ea7116100b257806399248ea714610332578063b09881cc14610352578063b8e4b2441461037257600080fd5b8063900cf0cf146102f35780639776cb781461032957600080fd5b80631c4e6ab71161012457806330f1ebb91161010957806330f1ebb9146102b2578063820c6f5b146102bb578063823a46a1146102ea57600080fd5b80631c4e6ab71461025c57806328ebcda11461029257600080fd5b8063107816791161015557806310781679146101db578063156c46bf146101fb5780631b618cc01461021257600080fd5b80630479d64414610171578063050c486c146101bb575b600080fd5b6003546101919073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6005546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6000546101919073ffffffffffffffffffffffffffffffffffffffff1681565b610204600f5481565b6040519081526020016101b2565b610241610220366004610409565b600e6020526000908152604090208054600182015460029092015490919083565b604080519384526020840192909252908201526060016101b2565b600854610282907501000000000000000000000000000000000000000000900460ff1681565b60405190151581526020016101b2565b6006546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460115481565b6102416102c9366004610409565b600d6020526000908152604090208054600182015460029092015490919083565b61020460125481565b600954600a54600b54600c546103099392919084565b6040805194855260208501939093529183015260608201526080016101b2565b61020460105481565b6004546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6002546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6008546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460145481565b6001546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460135481565b6007546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6008546102829074010000000000000000000000000000000000000000900460ff1681565b60006020828403121561041b57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461043f57600080fd5b939250505056fea2646970667358221220f7a4c33344c9f8bf0583652cdf16281d84377a4dd5ea20a90df49c45534673f064736f6c63430008090033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061016c5760003560e01c8063900cf0cf116100cd578063c9d4f35011610081578063e6e268f411610066578063e6e268f4146103bb578063ed295509146103c4578063f999c506146103e457600080fd5b8063c9d4f35014610392578063e2a8179d1461039b57600080fd5b806399248ea7116100b257806399248ea714610332578063b09881cc14610352578063b8e4b2441461037257600080fd5b8063900cf0cf146102f35780639776cb781461032957600080fd5b80631c4e6ab71161012457806330f1ebb91161010957806330f1ebb9146102b2578063820c6f5b146102bb578063823a46a1146102ea57600080fd5b80631c4e6ab71461025c57806328ebcda11461029257600080fd5b8063107816791161015557806310781679146101db578063156c46bf146101fb5780631b618cc01461021257600080fd5b80630479d64414610171578063050c486c146101bb575b600080fd5b6003546101919073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6005546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6000546101919073ffffffffffffffffffffffffffffffffffffffff1681565b610204600f5481565b6040519081526020016101b2565b610241610220366004610409565b600e6020526000908152604090208054600182015460029092015490919083565b604080519384526020840192909252908201526060016101b2565b600854610282907501000000000000000000000000000000000000000000900460ff1681565b60405190151581526020016101b2565b6006546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460115481565b6102416102c9366004610409565b600d6020526000908152604090208054600182015460029092015490919083565b61020460125481565b600954600a54600b54600c546103099392919084565b6040805194855260208501939093529183015260608201526080016101b2565b61020460105481565b6004546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6002546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6008546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460145481565b6001546101919073ffffffffffffffffffffffffffffffffffffffff1681565b61020460135481565b6007546101919073ffffffffffffffffffffffffffffffffffffffff1681565b6008546102829074010000000000000000000000000000000000000000900460ff1681565b60006020828403121561041b57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461043f57600080fd5b939250505056fea2646970667358221220f7a4c33344c9f8bf0583652cdf16281d84377a4dd5ea20a90df49c45534673f064736f6c63430008090033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
