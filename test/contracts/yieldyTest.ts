@@ -47,7 +47,7 @@ describe("Yieldy", function () {
           .connect(accounts[2])
           .initializeStakingContract(accounts[2].address)
       ).to.be.revertedWith(
-        "AccessControl: account 0xb6a8490101a0521677b66866b8052ee9f9975c17 is missing role 0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42"
+        `AccessControl: account ${accounts[2].address.toLowerCase()} is missing role 0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42`
       );
     });
 

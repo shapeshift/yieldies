@@ -58,6 +58,8 @@ describe("Liquidity Reserve", function () {
 
     const currentBlock = await ethers.provider.getBlockNumber();
     const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+    const timeLeftToRequestWithdrawal = 43200;
+
     stakingToken = new ethers.Contract(
       constants.STAKING_TOKEN,
       ERC20.abi,
@@ -86,6 +88,7 @@ describe("Liquidity Reserve", function () {
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
+      timeLeftToRequestWithdrawal,
     ])) as Staking;
 
     await network.provider.request({
