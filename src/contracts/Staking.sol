@@ -52,6 +52,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         LIQUIDITY_RESERVE = _liquidityReserve;
         timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
 
+        // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
         WARM_UP_CONTRACT = address(warmUp);
