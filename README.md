@@ -8,7 +8,7 @@ Deployed [Tag 1.0.0](https://github.com/shapeshift/foxy/releases/tag/1.0.0)
 
 - FOXy - [0xDc49108ce5C57bc3408c3A5E95F3d864eC386Ed3](https://etherscan.io/address/0xDc49108ce5C57bc3408c3A5E95F3d864eC386Ed3)
 - FOX - [0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d](https://etherscan.io/address/0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d)
-- Staking -[0x8EC637Fe2800940C7959f9BAd4fE69e41225CD39](https://etherscan.io/address/0x8EC637Fe2800940C7959f9BAd4fE69e41225CD39)
+- Staking -[0xee77aa3Fd23BbeBaf94386dD44b548e9a785ea4b](https://etherscan.io/address/0xee77aa3Fd23BbeBaf94386dD44b548e9a785ea4b)
 - Liquidity Reserve - [0x8EC637Fe2800940C7959f9BAd4fE69e41225CD39](https://etherscan.io/address/0x8EC637Fe2800940C7959f9BAd4fE69e41225CD39)
 
 ## Background
