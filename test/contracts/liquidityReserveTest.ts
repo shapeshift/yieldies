@@ -1,12 +1,12 @@
-import { ethers, deployments, getNamedAccounts, network } from "hardhat";
+import { ethers, getNamedAccounts, network, upgrades } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { Foxy, LiquidityReserve, Staking } from "../../typechain-types";
+import { Yieldy, LiquidityReserve, Staking } from "../../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { INITIAL_LR_BALANCE, INSTANT_UNSTAKE_FEE } from "../constants";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
+import * as constants from "../constants";
 
 describe("Liquidity Reserve", function () {
   let accounts: SignerWithAddress[];
@@ -17,12 +17,6 @@ describe("Liquidity Reserve", function () {
   let tokeManager: Contract;
   let tokePool: Contract;
 
-  const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
-  const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
-  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
-  const LATEST_CLAIMABLE_HASH =
-    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
     const currentBlock = await ethers.provider.getBlockNumber();
@@ -53,41 +47,54 @@ describe("Liquidity Reserve", function () {
       ],
     });
 
-    await deployments.fixture();
     accounts = await ethers.getSigners();
 
-    const foxyDeployment = await deployments.get("Foxy");
-    rewardToken = new ethers.Contract(
-      foxyDeployment.address,
-      foxyDeployment.abi,
-      accounts[0]
-    ) as Foxy;
+    const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
+    rewardToken = (await upgrades.deployProxy(rewardTokenDeployment, [
+      "Fox Yieldy",
+      "FOXy",
+    ])) as Yieldy;
+    await rewardToken.deployed();
 
-    const stakingDeployment = await deployments.get("Staking");
-    stakingContract = new ethers.Contract(
-      stakingDeployment.address,
-      stakingDeployment.abi,
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+    stakingToken = new ethers.Contract(
+      constants.STAKING_TOKEN,
+      ERC20.abi,
       accounts[0]
-    ) as Staking;
+    );
 
-    const liquidityReserveDeployment = await deployments.get(
+    const liquidityReserveDeployment = await ethers.getContractFactory(
       "LiquidityReserve"
     );
-    liquidityReserve = new ethers.Contract(
-      liquidityReserveDeployment.address,
-      liquidityReserveDeployment.abi,
-      accounts[0]
-    ) as LiquidityReserve;
+    liquidityReserve = (await upgrades.deployProxy(liquidityReserveDeployment, [
+      "Liquidity Reserve FOX",
+      "lrFOX",
+      constants.STAKING_TOKEN,
+      rewardToken.address,
+    ])) as LiquidityReserve;
+
+    const stakingDeployment = await ethers.getContractFactory("Staking");
+    stakingContract = (await upgrades.deployProxy(stakingDeployment, [
+      stakingToken.address,
+      rewardToken.address,
+      constants.TOKE_TOKEN,
+      constants.TOKE_ADDRESS,
+      constants.TOKE_MANAGER,
+      constants.TOKE_REWARD,
+      liquidityReserve.address,
+      constants.EPOCH_LENGTH,
+      constants.FIRST_EPOCH_NUMBER,
+      firstEpochBlock,
+    ])) as Staking;
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [STAKING_TOKEN_WHALE],
+      params: [constants.STAKING_TOKEN_WHALE],
     });
 
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
-
     const transferAmount = BigNumber.from("9000000000000000");
-    const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
+    const whaleSigner = await ethers.getSigner(constants.STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
@@ -96,15 +103,19 @@ describe("Liquidity Reserve", function () {
       transferAmount.toNumber()
     );
 
-    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
-    await rewardToken.initialize(stakingContract.address);
+    await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
+    await rewardToken.initializeStakingContract(stakingContract.address); // initialize reward contract
 
-    await stakingToken.approve(liquidityReserve.address, INITIAL_LR_BALANCE); // approve initial liquidity amount
-    await liquidityReserve.initialize(
-      stakingContract.address,
-      foxyDeployment.address
-    ); // initialize liquidity reserve contract
-    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
+    await stakingToken.approve(
+      liquidityReserve.address,
+      constants.INITIAL_LR_BALANCE
+    ); // approve initial liquidity amount
+    await liquidityReserve.enableLiquidityReserve(stakingContract.address);
+    tokePool = new ethers.Contract(
+      constants.TOKE_ADDRESS,
+      tokePoolAbi,
+      accounts[0]
+    );
     const tokeManagerAddress = await tokePool.manager();
     tokeManager = new ethers.Contract(
       tokeManagerAddress,
@@ -401,7 +412,7 @@ describe("Liquidity Reserve", function () {
       let lrStakingBalance = await stakingToken.balanceOf(
         liquidityReserve.address
       );
-      expect(lrStakingBalance).eq(INITIAL_LR_BALANCE);
+      expect(lrStakingBalance).eq(constants.INITIAL_LR_BALANCE);
 
       const transferAmount = BigNumber.from("4000000000000000");
 
@@ -504,30 +515,80 @@ describe("Liquidity Reserve", function () {
 
       // fail due to no staking/reward token
       await expect(
-        liquidityFactory.deploy("0x0000000000000000000000000000000000000000")
+        upgrades.deployProxy(liquidityFactory, [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          ethers.constants.AddressZero,
+          rewardToken.address,
+        ])
       ).to.be.reverted;
 
-      const liquidityReserveContract = await liquidityFactory.deploy(
-        stakingToken.address
-      );
+      await expect(
+        upgrades.deployProxy(liquidityFactory, [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          constants.STAKING_TOKEN,
+          ethers.constants.AddressZero,
+        ])
+      ).to.be.reverted;
+
+      const liquidityReserveContract = (await upgrades.deployProxy(
+        liquidityFactory,
+        [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          constants.STAKING_TOKEN,
+          rewardToken.address,
+        ]
+      )) as LiquidityReserve;
+
       // fail due to no stakingContract
       await expect(
-        liquidityReserveContract.initialize(
-          "0x0000000000000000000000000000000000000000",
-          "0x0000000000000000000000000000000000000000"
+        liquidityReserveContract.enableLiquidityReserve(
+          ethers.constants.AddressZero
         )
-      ).to.be.reverted;
+      ).to.be.revertedWith("Invalid address");
 
       const transferAmount = await stakingToken.balanceOf(admin);
       await stakingToken.transfer(staker1, transferAmount);
 
       // fail due to not enough liquidity
       await expect(
-        liquidityReserveContract.initialize(
-          stakingContract.address,
-          rewardToken.address
-        )
-      ).to.be.reverted;
+        liquidityReserveContract.enableLiquidityReserve(stakingContract.address)
+      ).to.be.revertedWith("Not enough staking tokens");
+
+      // fail since not the owner
+      await expect(
+        liquidityReserveContract
+          .connect(accounts[3])
+          .enableLiquidityReserve(stakingContract.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+
+      const adminSigner = accounts.find(
+        (account) => account.address === admin
+      ) as Signer;
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      ) as Signer;
+      await stakingToken
+        .connect(staker1Signer)
+        .transfer(admin, await stakingToken.balanceOf(staker1));
+      await stakingToken
+        .connect(adminSigner)
+        .approve(
+          liquidityReserveContract.address,
+          await stakingToken.balanceOf(admin)
+        );
+      await liquidityReserveContract
+        .connect(adminSigner)
+        .enableLiquidityReserve(stakingContract.address);
+
+      // fail since already called!
+      await expect(
+        liquidityReserveContract
+          .connect(adminSigner)
+          .enableLiquidityReserve(stakingContract.address)
+      ).to.be.revertedWith("Already enabled");
     });
 
     it("Must have correct fee amount", async () => {
@@ -550,9 +611,16 @@ describe("Liquidity Reserve", function () {
       const liquidityFactory = await ethers.getContractFactory(
         "LiquidityReserve"
       );
-      const liquidityReserveContract = await liquidityFactory.deploy(
-        stakingToken.address
-      );
+      const liquidityReserveContract = (await upgrades.deployProxy(
+        liquidityFactory,
+        [
+          "Liquidity Reserve FOX",
+          "lrFOX",
+          constants.STAKING_TOKEN,
+          rewardToken.address,
+        ]
+      )) as LiquidityReserve;
+
       await expect(
         liquidityReserveContract.instantUnstake(1000, staker1)
       ).to.be.revertedWith("Not staking contract");
@@ -705,11 +773,11 @@ describe("Liquidity Reserve", function () {
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [TOKE_OWNER],
+        params: [constants.TOKE_OWNER],
       });
-      const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
-      await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       expect(await stakingToken.balanceOf(liquidityProvider2)).eq(0);
       expect(await liquidityReserve.balanceOf(liquidityProvider2)).eq(

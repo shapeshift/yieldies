@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./Vesting.sol";
 import "./LiquidityReserve.sol";
-import "../libraries/Ownable.sol";
+import "./StakingStorage.sol";
 import "../interfaces/IRewardToken.sol";
 import "../interfaces/IVesting.sol";
 import "../interfaces/ITokeManager.sol";
@@ -13,42 +14,10 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 
-contract Staking is Ownable {
-    using SafeERC20 for IERC20;
+contract Staking is OwnableUpgradeable, StakingStorage {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    address public immutable TOKE_POOL;
-    address public immutable TOKE_MANAGER;
-    address public immutable TOKE_REWARD;
-    address public immutable STAKING_TOKEN;
-    address public immutable REWARD_TOKEN;
-    address public immutable TOKE_TOKEN;
-    address public immutable LIQUIDITY_RESERVE;
-    address public immutable WARM_UP_CONTRACT;
-    address public immutable COOL_DOWN_CONTRACT;
-
-    // owner overrides
-    bool public pauseStaking = false; // pauses staking
-    bool public pauseUnstaking = false; // pauses unstaking
-
-    struct Epoch {
-        uint256 length; // length of epoch
-        uint256 number; // epoch number (starting 1)
-        uint256 endBlock; // block that current epoch ends on
-        uint256 distribute; // amount of rewards to distribute this epoch
-    }
-    Epoch public epoch;
-
-    mapping(address => Claim) public warmUpInfo;
-    mapping(address => Claim) public coolDownInfo;
-
-    uint256 public timeLeftToRequestWithdrawal; // time (in seconds) before TOKE cycle ends to request withdrawal
-    uint256 public warmUpPeriod; // amount of epochs to delay warmup vesting
-    uint256 public coolDownPeriod; // amount of epochs to delay cooldown vesting
-    uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
-    uint256 public withdrawalAmount; // amount of stakings tokens available for withdrawal
-    uint256 public lastTokeCycleIndex; // last tokemak cycle index which requested withdrawals
-
-    constructor(
+    function initialize(
         address _stakingToken,
         address _rewardToken,
         address _tokeToken,
@@ -58,9 +27,12 @@ contract Staking is Ownable {
         address _liquidityReserve,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
-        uint256 _firstEpochBlock
-    ) {
-        // must have valid inital addresses
+        uint256 _firstEpochBlock,
+        uint256 _timeLeftToRequestWithdrawal
+    ) external initializer {
+        OwnableUpgradeable.__Ownable_init();
+
+        // must have valid initial addresses
         require(
             _stakingToken != address(0) &&
                 _rewardToken != address(0) &&
@@ -78,7 +50,7 @@ contract Staking is Ownable {
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        timeLeftToRequestWithdrawal = 43200;
+        timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
 
         // create vesting contract to hold newly staked rewardTokens based on warmup period
         Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
@@ -88,8 +60,11 @@ contract Staking is Ownable {
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
-        IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
-        IERC20(REWARD_TOKEN).approve(LIQUIDITY_RESERVE, type(uint256).max);
+        IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
+        IERC20Upgradeable(REWARD_TOKEN).approve(
+            LIQUIDITY_RESERVE,
+            type(uint256).max
+        );
 
         epoch = Epoch({
             length: _epochLength,
@@ -128,8 +103,8 @@ contract Staking is Ownable {
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
         require(_claimAddress != address(0), "Invalid address");
-        uint256 amount = IERC20(TOKE_TOKEN).balanceOf(address(this));
-        IERC20(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
+        uint256 amount = IERC20Upgradeable(TOKE_TOKEN).balanceOf(address(this));
+        IERC20Upgradeable(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
     }
 
     /**
@@ -349,7 +324,7 @@ contract Staking is Ownable {
             rebase();
         }
 
-        IERC20(STAKING_TOKEN).safeTransferFrom(
+        IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
@@ -366,7 +341,7 @@ contract Staking is Ownable {
 
         // skip adding to warmup contract if period is 0
         if (warmUpPeriod == 0) {
-            IERC20(REWARD_TOKEN).safeTransfer(_recipient, _amount);
+            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(_recipient, _amount);
         } else {
             // create a claim and send tokens to the warmup contract
             warmUpInfo[_recipient] = Claim({
@@ -376,7 +351,10 @@ contract Staking is Ownable {
                 expiry: epoch.number + warmUpPeriod
             });
 
-            IERC20(REWARD_TOKEN).safeTransfer(WARM_UP_CONTRACT, _amount);
+            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
+                WARM_UP_CONTRACT,
+                _amount
+            );
         }
     }
 
@@ -423,7 +401,10 @@ contract Staking is Ownable {
 
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
-            IERC20(STAKING_TOKEN).safeTransfer(_recipient, info.amount);
+            IERC20Upgradeable(STAKING_TOKEN).safeTransfer(
+                _recipient,
+                info.amount
+            );
 
             IVesting(COOL_DOWN_CONTRACT).retrieve(
                 address(this),
@@ -442,7 +423,9 @@ contract Staking is Ownable {
      */
     function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
-        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(_user);
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            _user
+        );
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
@@ -486,7 +469,7 @@ contract Staking is Ownable {
 
         if (amountLeft != 0) {
             // transfer the rest from the users address
-            IERC20(REWARD_TOKEN).safeTransferFrom(
+            IERC20Upgradeable(REWARD_TOKEN).safeTransferFrom(
                 _user,
                 address(this),
                 amountLeft
@@ -509,14 +492,15 @@ contract Staking is Ownable {
 
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
-        uint256 walletBalance = IERC20(REWARD_TOKEN).balanceOf(msg.sender);
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            msg.sender
+        );
         uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
             userWarmInfo.gons
         );
         uint256 totalBalance = warmUpBalance + walletBalance;
-        uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
-            LIQUIDITY_RESERVE
-        );
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(LIQUIDITY_RESERVE);
 
         // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
@@ -533,7 +517,7 @@ contract Staking is Ownable {
 
         // claim senders wallet balance
         if (walletBalance > 0) {
-            IERC20(REWARD_TOKEN).safeTransferFrom(
+            IERC20Upgradeable(REWARD_TOKEN).safeTransferFrom(
                 msg.sender,
                 address(this),
                 walletBalance
@@ -578,7 +562,10 @@ contract Staking is Ownable {
 
         sendWithdrawalRequests();
 
-        IERC20(REWARD_TOKEN).safeTransfer(COOL_DOWN_CONTRACT, _amount);
+        IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
+            COOL_DOWN_CONTRACT,
+            _amount
+        );
     }
 
     /**
@@ -610,7 +597,9 @@ contract Staking is Ownable {
      */
     function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
-        return IERC20(STAKING_TOKEN).balanceOf(address(this)) + tokeBalance;
+        return
+            IERC20Upgradeable(STAKING_TOKEN).balanceOf(address(this)) +
+            tokeBalance;
     }
 
     /**
@@ -620,16 +609,15 @@ contract Staking is Ownable {
      * @param _trigger bool - should trigger rebase
      */
     function addRewardsForStakers(uint256 _amount, bool _trigger) external {
-        IERC20(STAKING_TOKEN).safeTransferFrom(
+        IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
 
         // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
-        uint256 stakingTokenBalance = IERC20(STAKING_TOKEN).balanceOf(
-            address(this)
-        );
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(address(this));
         uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
         _depositToTokemak(amountToDeposit);
 

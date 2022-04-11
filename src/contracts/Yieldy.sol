@@ -1,81 +1,62 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../libraries/ERC20Permit.sol";
-import "../libraries/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract Foxy is ERC20Permit, Ownable {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./YieldyStorage.sol";
+import "../libraries/ERC20PermitUpgradeable.sol";
+
+contract Yieldy is
+    YieldyStorage,
+    ERC20PermitUpgradeable,
+    AccessControlUpgradeable
+{
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
         require(msg.sender == stakingContract, "Not staking contract");
         _;
     }
 
-    address public stakingContract;
-    address public initializer;
-
     event LogSupply(
         uint256 indexed epoch,
         uint256 timestamp,
         uint256 totalSupply
     );
+
     event LogRebase(uint256 indexed epoch, uint256 rebase, uint256 index);
 
-    struct Rebase {
-        uint256 epoch;
-        uint256 rebase; // 18 decimals
-        uint256 totalStakedBefore;
-        uint256 totalStakedAfter;
-        uint256 amountRebased;
-        uint256 index;
-        uint256 blockNumberOccurred;
-    }
-    Rebase[] public rebases;
+    function initialize(string memory _tokenName, string memory _tokenSymbol)
+        external
+        initializer
+    {
+        ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
+        ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
+        AccessControlUpgradeable.__AccessControl_init();
 
-    uint256 public index;
+        _setupRole(ADMIN_ROLE, msg.sender);
+        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
 
-    uint256 private constant WAD = 1e18;
-    uint256 private constant MAX_UINT256 = ~uint256(0);
-    uint256 private constant INITIAL_FRAGMENTS_SUPPLY = 500000000 * WAD;
-
-    // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
-    // Use the highest value that fits in a uint256 for max granularity.
-    uint256 private constant TOTAL_GONS =
-        MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
-
-    // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
-    uint256 private constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
-
-    uint256 private gonsPerFragment;
-    mapping(address => uint256) private gonBalances;
-
-    mapping(address => mapping(address => uint256)) private allowedValue;
-
-    constructor() ERC20("FOX Yieldy", "FOXy") ERC20Permit("FOX Yieldy") {
-        initializer = msg.sender;
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
         _setIndex(WAD);
     }
 
     /**
-        @notice initialize gons and stakingContract
-        @param _stakingContract address
-        @return bool
+        @notice called by the admin role address to set the staking contract. Can only be called
+        once. 
+        @param _stakingContract address of the staking contract
      */
-    function initialize(address _stakingContract) external returns (bool) {
-        // check if initializer is msg.sender that was set in constructor
-        require(msg.sender == initializer, "Must be called from initializer");
-        initializer = address(0);
-
-        // make sure _stakingContract isn't 0x0
+    function initializeStakingContract(address _stakingContract)
+        external
+        onlyRole(ADMIN_ROLE)
+    {
+        require(stakingContract == address(0), "Already Initialized");
         require(_stakingContract != address(0), "Invalid address");
+        // TODO: staking contract can just have the minter role soon....
         stakingContract = _stakingContract;
         gonBalances[stakingContract] = TOTAL_GONS;
         emit Transfer(address(0x0), stakingContract, _totalSupply);
-
-        return true;
     }
 
     /**

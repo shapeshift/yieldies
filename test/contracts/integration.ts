@@ -1,18 +1,28 @@
-import { ethers, deployments, getNamedAccounts, network } from "hardhat";
+import {
+  ethers,
+  deployments,
+  getNamedAccounts,
+  network,
+  upgrades,
+} from "hardhat";
 import { expect } from "chai";
-import { Foxy } from "../../typechain-types/Foxy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../../src/abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { LiquidityReserve, Vesting, Staking } from "../../typechain-types";
-import { INSTANT_UNSTAKE_FEE } from "../constants";
+import {
+  LiquidityReserve,
+  Vesting,
+  Staking,
+  Yieldy,
+} from "../../typechain-types";
+import * as constants from "../constants";
 
 describe("Integration", function () {
   let accounts: SignerWithAddress[];
-  let rewardToken: Foxy;
+  let yieldy: Yieldy;
   let staking: Staking;
   let liquidityReserve: LiquidityReserve;
   let stakingToken: Contract;
@@ -20,14 +30,6 @@ describe("Integration", function () {
   let tokeManager: Contract;
   let stakingWarmup: Vesting;
   let stakingCooldown: Vesting;
-
-  const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
-  const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
-  const TOKE_ADDRESS = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311"; // tFOX Address
-  const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner of Tokemak Pool
-
-  const LATEST_CLAIMABLE_HASH =
-    "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
@@ -61,31 +63,50 @@ describe("Integration", function () {
 
     await deployments.fixture();
     accounts = await ethers.getSigners();
-    stakingToken = new ethers.Contract(STAKING_TOKEN, ERC20.abi, accounts[0]);
-    tokePool = new ethers.Contract(TOKE_ADDRESS, tokePoolAbi, accounts[0]);
-
-    const rewardTokenDeployment = await deployments.get("Foxy");
-    rewardToken = new ethers.Contract(
-      rewardTokenDeployment.address,
-      rewardTokenDeployment.abi,
+    stakingToken = new ethers.Contract(
+      constants.STAKING_TOKEN,
+      ERC20.abi,
       accounts[0]
-    ) as Foxy;
-
-    const stakingDeployment = await deployments.get("Staking");
-    staking = new ethers.Contract(
-      stakingDeployment.address,
-      stakingDeployment.abi,
+    );
+    tokePool = new ethers.Contract(
+      constants.TOKE_ADDRESS,
+      tokePoolAbi,
       accounts[0]
-    ) as Staking;
+    );
 
-    const liquidityReserveDeployment = await deployments.get(
+    const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
+    yieldy = (await upgrades.deployProxy(rewardTokenDeployment, [
+      "Fox Yieldy",
+      "FOXy",
+    ])) as Yieldy;
+    await yieldy.deployed();
+
+    const liquidityReserveDeployment = await ethers.getContractFactory(
       "LiquidityReserve"
     );
-    liquidityReserve = new ethers.Contract(
-      liquidityReserveDeployment.address,
-      liquidityReserveDeployment.abi,
-      accounts[0]
-    ) as LiquidityReserve;
+    liquidityReserve = (await upgrades.deployProxy(liquidityReserveDeployment, [
+      "Liquidity Reserve FOX",
+      "lrFOX",
+      constants.STAKING_TOKEN,
+      yieldy.address,
+    ])) as LiquidityReserve;
+
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+
+    const stakingDeployment = await ethers.getContractFactory("Staking");
+    staking = (await upgrades.deployProxy(stakingDeployment, [
+      stakingToken.address,
+      yieldy.address,
+      constants.TOKE_TOKEN,
+      constants.TOKE_ADDRESS,
+      constants.TOKE_MANAGER,
+      constants.TOKE_REWARD,
+      liquidityReserve.address,
+      constants.EPOCH_LENGTH,
+      constants.FIRST_EPOCH_NUMBER,
+      firstEpochBlock,
+    ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();
     stakingWarmup = new ethers.Contract(
@@ -110,12 +131,12 @@ describe("Integration", function () {
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [STAKING_TOKEN_WHALE],
+      params: [constants.STAKING_TOKEN_WHALE],
     });
 
-    // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
+    // Transfer to admin account for constants.STAKING_TOKEN to be easily transferred to other accounts
     const transferAmount = BigNumber.from("9000000000000000");
-    const whaleSigner = await ethers.getSigner(STAKING_TOKEN_WHALE);
+    const whaleSigner = await ethers.getSigner(constants.STAKING_TOKEN_WHALE);
     const stakingTokenWhale = stakingToken.connect(whaleSigner);
     await stakingTokenWhale.transfer(admin, transferAmount);
     const stakingTokenBalance = await stakingToken.balanceOf(admin);
@@ -123,17 +144,15 @@ describe("Integration", function () {
       transferAmount.toNumber()
     );
 
-    await rewardToken.initialize(stakingDeployment.address); // initialize reward contract
     await stakingToken.approve(
       liquidityReserve.address,
       BigNumber.from("1000000000000000")
     ); // approve initial liquidity amount
-    await liquidityReserve.initialize(
-      stakingDeployment.address,
-      rewardToken.address
-    ); // initialize liquidity reserve contract
 
-    await liquidityReserve.setFee(INSTANT_UNSTAKE_FEE);
+    await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
+
+    await liquidityReserve.enableLiquidityReserve(staking.address);
+    await yieldy.initializeStakingContract(staking.address); // initialize reward contract
   });
 
   it("Should do everything", async () => {
@@ -194,13 +213,13 @@ describe("Integration", function () {
     await stakingToken
       .connect(liquidityProvider3Signer as Signer)
       .approve(liquidityReserve.address, ethers.constants.MaxUint256);
-    await rewardToken
+    await yieldy
       .connect(staker1Signer as Signer)
       .approve(staking.address, ethers.constants.MaxUint256);
-    await rewardToken
+    await yieldy
       .connect(staker2Signer as Signer)
       .approve(staking.address, ethers.constants.MaxUint256);
-    await rewardToken
+    await yieldy
       .connect(staker3Signer as Signer)
       .approve(staking.address, ethers.constants.MaxUint256);
 
@@ -229,7 +248,7 @@ describe("Integration", function () {
     await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
     let warmUpInfo = await staking.warmUpInfo(staker1);
     expect(warmUpInfo.amount).eq(stakingAmount1);
-    let warmupRewardTokenBalance = await rewardToken.balanceOf(
+    let warmupRewardTokenBalance = await yieldy.balanceOf(
       stakingWarmup.address
     );
     expect(warmupRewardTokenBalance).eq(stakingAmount1);
@@ -246,9 +265,7 @@ describe("Integration", function () {
     await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
     warmUpInfo = await staking.warmUpInfo(staker2);
     expect(warmUpInfo.amount).eq(stakingAmount2);
-    warmupRewardTokenBalance = await rewardToken.balanceOf(
-      stakingWarmup.address
-    );
+    warmupRewardTokenBalance = await yieldy.balanceOf(stakingWarmup.address);
     expect(warmupRewardTokenBalance).eq(stakingAmount2.add(stakingAmount1));
 
     // add liquidity twice with lp2
@@ -271,23 +288,31 @@ describe("Integration", function () {
     // rebase
     let currentBlock = await ethers.provider.getBlockNumber();
     let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
+
     await staking.rebase();
+
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
     await staking.rebase();
 
     // instantUnstake with staker1
-    await rewardToken
+    await yieldy
       .connect(staker1Signer as Signer)
       .approve(staking.address, ethers.constants.MaxUint256);
     await stakingStaker1.instantUnstake(true);
-    const rewardBalanceStaker1 = await rewardToken.balanceOf(staker1);
+    const rewardBalanceStaker1 = await yieldy.balanceOf(staker1);
     expect(rewardBalanceStaker1).eq(0);
     const stakingBalanceStaker1 = await stakingToken.balanceOf(staker1);
     expect(stakingBalanceStaker1).eq(74158730158730);
@@ -296,18 +321,16 @@ describe("Integration", function () {
     await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
     warmUpInfo = await staking.warmUpInfo(staker3);
     expect(warmUpInfo.amount).eq(stakingAmount3);
-    warmupRewardTokenBalance = await rewardToken.balanceOf(
-      stakingWarmup.address
-    );
+    warmupRewardTokenBalance = await yieldy.balanceOf(stakingWarmup.address);
     expect(warmupRewardTokenBalance).eq(89523809523809); // stakingAmount3 + stakingAmount2 + rewards
 
     // claim and unstake with staker2
     await stakingStaker2.claim(staker2);
-    const rewardBalanceStaker2 = await rewardToken.balanceOf(staker2);
+    const rewardBalanceStaker2 = await yieldy.balanceOf(staker2);
     await stakingStaker2.unstake(rewardBalanceStaker2, true);
     let coolDownInfo = await staking.coolDownInfo(staker2);
     expect(coolDownInfo.amount).eq(rewardBalanceStaker2);
-    let cooldownRewardTokenBalance = await rewardToken.balanceOf(
+    let cooldownRewardTokenBalance = await yieldy.balanceOf(
       stakingCooldown.address
     );
     expect(cooldownRewardTokenBalance).eq(162222222222221);
@@ -315,16 +338,14 @@ describe("Integration", function () {
     // check warmup is correct after unstake
     warmUpInfo = await staking.warmUpInfo(staker3);
     expect(warmUpInfo.amount).eq(stakingAmount3); // staker3 didn't get rewards because they staked after
-    const warmUpStaker3Reward = await rewardToken.balanceForGons(
-      warmUpInfo.gons
-    );
+    const warmUpStaker3Reward = await yieldy.balanceForGons(warmUpInfo.gons);
 
     // unstake with staker3
     await stakingStaker3.unstake(warmUpStaker3Reward, true);
 
     // add another set of rewards with belong to no one due to all FOXy being locked in cooldown
     await staking.addRewardsForStakers(awardAmount, true);
-    cooldownRewardTokenBalance = await rewardToken.balanceOf(
+    cooldownRewardTokenBalance = await yieldy.balanceOf(
       stakingCooldown.address
     );
     expect(cooldownRewardTokenBalance).eq(182222222222221);
@@ -332,15 +353,21 @@ describe("Integration", function () {
     // rebase
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
 
     await staking.rebase();
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
 
     await staking.rebase();
@@ -349,24 +376,22 @@ describe("Integration", function () {
     // staker2 & staker3 & liquidity reserve contract
     await network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [TOKE_OWNER],
+      params: [constants.TOKE_OWNER],
     });
-    const tokeSigner = await ethers.getSigner(TOKE_OWNER);
+    const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
     const tokeManagerOwner = tokeManager.connect(tokeSigner);
     await mineBlocksToNextCycle();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
     await mineBlocksToNextCycle();
     await stakingStaker1.sendWithdrawalRequests();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
     let stakingBalance = await stakingToken.balanceOf(staker2);
     expect(stakingBalance).eq(0);
-    let rewardBalance = await rewardToken.balanceOf(staker2);
+    let rewardBalance = await yieldy.balanceOf(staker2);
     expect(rewardBalance).eq(0);
     coolDownInfo = await staking.coolDownInfo(staker2);
-    expect(await rewardToken.balanceForGons(coolDownInfo.gons)).eq(
-      78002322880370
-    );
+    expect(await yieldy.balanceForGons(coolDownInfo.gons)).eq(78002322880370);
 
     // remove liquidity with lp1 + rewards from instantUnstake
     await liquidityReserve
@@ -385,14 +410,20 @@ describe("Integration", function () {
     // rebase
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
     await staking.rebase();
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
     await staking.rebase();
 
@@ -407,7 +438,7 @@ describe("Integration", function () {
       897613444916262
     );
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    let warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    let warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
     expect(warmUpLP2Reward).eq(897613444916262);
 
     // claim with staker2
@@ -415,7 +446,7 @@ describe("Integration", function () {
     stakingBalance = await stakingToken.balanceOf(staker2);
     expect(stakingBalance).eq(69523809523809); // stakingAmount2 + rewards
     expect(stakingBalance).eq(coolDownInfo.amount);
-    rewardBalance = await rewardToken.balanceOf(staker2);
+    rewardBalance = await yieldy.balanceOf(staker2);
     expect(rewardBalance).eq(0);
     coolDownInfo = await staking.coolDownInfo(staker2);
     expect(coolDownInfo.amount).eq(0);
@@ -424,18 +455,18 @@ describe("Integration", function () {
     await stakingStaker3.claimWithdraw(staker3);
     stakingBalance = await stakingToken.balanceOf(staker3);
     expect(stakingBalance).eq(stakingAmount3); // staker3 never got rewards because they staked after rewards and unstaked before next rewards
-    rewardBalance = await rewardToken.balanceOf(staker3);
+    rewardBalance = await yieldy.balanceOf(staker3);
     expect(rewardBalance).eq(0);
     coolDownInfo = await staking.coolDownInfo(staker3);
     expect(coolDownInfo.amount).eq(0);
 
     // liquidity reserve claimed due to claimWithdraw inside instantUnstake
-    cooldownRewardTokenBalance = await rewardToken.balanceOf(
+    cooldownRewardTokenBalance = await yieldy.balanceOf(
       stakingCooldown.address
     );
     expect(cooldownRewardTokenBalance).eq(2); // small amount left over after calculation.  seems within the percentage of error
     coolDownInfo = await staking.coolDownInfo(liquidityReserve.address);
-    expect(await rewardToken.balanceForGons(coolDownInfo.gons)).eq(0);
+    expect(await yieldy.balanceForGons(coolDownInfo.gons)).eq(0);
 
     // add rewards for a third time.  This time liquidityProvider2 should full amount for last two rebases
     // due to no circulating supply outside of cooldown when second reward rebase happened
@@ -445,32 +476,38 @@ describe("Integration", function () {
     // rebase
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
     await staking.rebase();
 
     currentBlock = await ethers.provider.getBlockNumber();
     nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-    for (let i = currentBlock; i <= nextRewardBlock; i++) {
-      await ethers.provider.send("evm_mine", []);
+
+    // mining 256 blocks at a time
+    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
+      await network.provider.send("hardhat_mine", ["0x100"]);
+      currentBlock = await ethers.provider.getBlockNumber();
     }
     await staking.rebase();
 
     // complete rollover to increase tokeIndex
     await mineBlocksToNextCycle();
-    await tokeManagerOwner.completeRollover(LATEST_CLAIMABLE_HASH);
+    await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
     // claimWithdraw from liquidityProvider2
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
     expect(warmUpLP2Reward).eq(942057889360702);
     await staking.claimWithdraw(liquidityReserve.address);
 
     // instantUnstake with liquidityProvider2
     await stakingLiquidityProvider2.instantUnstake(true);
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    warmUpLP2Reward = await rewardToken.balanceForGons(warmUpInfo.gons);
+    warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
     expect(warmUpLP2Reward).eq(0);
     const stakingBalanceLP2 = await stakingToken.balanceOf(liquidityProvider2);
     expect(stakingBalanceLP2).eq(753646311488562); // 80% of 942057889360702

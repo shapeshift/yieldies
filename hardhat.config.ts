@@ -8,6 +8,7 @@ import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan";
 import "hardhat-deploy";
 import "solidity-coverage";
+import "@openzeppelin/hardhat-upgrades";
 import { HardhatUserConfig } from "hardhat/types";
 
 dotenv.config();
@@ -30,7 +31,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: ["deploy/core", "deploy/main"],
+      deploy: [],
       chainId: 1,
       accounts: {
         mnemonic: process.env.MNEMONIC,

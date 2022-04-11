@@ -3,9 +3,8 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -32,7 +31,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20, IERC20Metadata {
+contract ERC20Upgradeable is ContextUpgradeable, IERC20MetadataUpgradeable {
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -52,7 +51,17 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * All two of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(string memory name_, string memory symbol_) {
+    function __ERC20_init(string memory name_, string memory symbol_)
+        internal
+        onlyInitializing
+    {
+        __ERC20_init_unchained(name_, symbol_);
+    }
+
+    function __ERC20_init_unchained(string memory name_, string memory symbol_)
+        internal
+        onlyInitializing
+    {
         _name = name_;
         _symbol = symbol_;
     }

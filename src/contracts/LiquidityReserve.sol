@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../libraries/Ownable.sol";
-import "../interfaces/IStaking.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract LiquidityReserve is ERC20Permit, Ownable {
-    using SafeERC20 for IERC20;
+import "../interfaces/IStaking.sol";
+import "./LiquidityReserveStorage.sol";
+
+contract LiquidityReserve is
+    LiquidityReserveStorage,
+    ERC20Upgradeable,
+    OwnableUpgradeable
+{
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     event FeeChanged(uint256 fee);
-
-    address public stakingToken; // staking token address
-    address public rewardToken; // reward token address
-    address public stakingContract; // staking contract address
-    uint256 public fee; // fee for instant unstaking
-    address public initializer; // LiquidityReserve initializer
-    uint256 public constant MINIMUM_LIQUIDITY = 10**15; // lock .001 stakingTokens for initial liquidity
-    uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
@@ -26,54 +24,63 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         _;
     }
 
-    constructor(address _stakingToken)
-        ERC20("Liquidity Reserve FOX", "lrFOX")
-        ERC20Permit("Liquidity Reserve FOX")
-    {
-        // verify address isn't 0x0
-        require(_stakingToken != address(0), "Invalid address");
-        initializer = msg.sender;
+    /**
+        @notice initialize by setting stakingContract & setting initial liquidity
+        @param _tokenName name of the lrToken to be created
+        @param _tokenSymbol symbol of the lrToken to be created.
+        @param _stakingToken the staking token in use
+        @param _rewardToken the reward token in use
+     */
+    function initialize(
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        address _stakingToken,
+        address _rewardToken
+    ) external initializer {
+        ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
+        OwnableUpgradeable.__Ownable_init();
+        require(
+            _stakingToken != address(0) && _rewardToken != address(0),
+            "Invalid address"
+        );
         stakingToken = _stakingToken;
+        rewardToken = _rewardToken;
     }
 
     /**
-        @notice initialize by setting stakingContract & setting initial liquidity
-        @param _stakingContract address
+        @notice callable once after initialized by the owner to set the staking contract and enable
+        our reserve to be used.
+        @param _stakingContract address of the staking contract
      */
-    function initialize(address _stakingContract, address _rewardToken)
+    function enableLiquidityReserve(address _stakingContract)
         external
+        onlyOwner
     {
-        // check if initializer is msg.sender that was set in constructor
-        require(msg.sender == initializer, "Must be called from initializer");
-        initializer = address(0);
+        require(!isReserveEnabled, "Already enabled");
+        require(_stakingContract != address(0), "Invalid address");
 
-        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+        uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
             msg.sender
         );
-
-        // verify addresses aren't 0x0
-        require(
-            _stakingContract != address(0) && _rewardToken != address(0),
-            "Invalid address"
-        );
-
         // require address has minimum liquidity
         require(
             stakingTokenBalance >= MINIMUM_LIQUIDITY,
             "Not enough staking tokens"
         );
         stakingContract = _stakingContract;
-        rewardToken = _rewardToken;
 
         // permanently lock the first MINIMUM_LIQUIDITY of lrTokens
-        IERC20(stakingToken).safeTransferFrom(
+        IERC20Upgradeable(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             MINIMUM_LIQUIDITY
         );
         _mint(address(this), MINIMUM_LIQUIDITY);
-
-        IERC20(rewardToken).approve(stakingContract, type(uint256).max);
+        IERC20Upgradeable(rewardToken).approve(
+            stakingContract,
+            type(uint256).max
+        );
+        isReserveEnabled = true;
     }
 
     /**
@@ -93,10 +100,11 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         @param _amount uint - amount of staking tokens to add
      */
     function addLiquidity(uint256 _amount) external {
-        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+        require(isReserveEnabled, "Not enabled yet");
+        uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
             address(this)
         );
-        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+        uint256 rewardTokenBalance = IERC20Upgradeable(rewardToken).balanceOf(
             address(this)
         );
         uint256 lrFoxSupply = totalSupply();
@@ -108,7 +116,7 @@ contract LiquidityReserve is ERC20Permit, Ownable {
             coolDownAmount;
 
         uint256 amountToMint = (_amount * lrFoxSupply) / totalLockedValue;
-        IERC20(stakingToken).safeTransferFrom(
+        IERC20Upgradeable(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
@@ -127,10 +135,10 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         returns (uint256)
     {
         uint256 lrFoxSupply = totalSupply();
-        uint256 stakingTokenBalance = IERC20(stakingToken).balanceOf(
+        uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
             address(this)
         );
-        uint256 rewardTokenBalance = IERC20(rewardToken).balanceOf(
+        uint256 rewardTokenBalance = IERC20Upgradeable(rewardToken).balanceOf(
             address(this)
         );
         uint256 coolDownAmount = IStaking(stakingContract)
@@ -158,12 +166,16 @@ contract LiquidityReserve is ERC20Permit, Ownable {
 
         // verify that we have enough stakingTokens
         require(
-            IERC20(stakingToken).balanceOf(address(this)) >= amountToWithdraw,
+            IERC20Upgradeable(stakingToken).balanceOf(address(this)) >=
+                amountToWithdraw,
             "Not enough funds"
         );
 
         _burn(msg.sender, _amount);
-        IERC20(stakingToken).safeTransfer(msg.sender, amountToWithdraw);
+        IERC20Upgradeable(stakingToken).safeTransfer(
+            msg.sender,
+            amountToWithdraw
+        );
     }
 
     /**
@@ -175,18 +187,22 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         external
         onlyStakingContract
     {
+        require(isReserveEnabled, "Not enabled yet");
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
-        IERC20(rewardToken).safeTransferFrom(
+        IERC20Upgradeable(rewardToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
 
-        IERC20(stakingToken).safeTransfer(_recipient, amountMinusFee);
+        IERC20Upgradeable(stakingToken).safeTransfer(
+            _recipient,
+            amountMinusFee
+        );
         unstakeAllRewardTokens();
     }
 
@@ -194,7 +210,10 @@ contract LiquidityReserve is ERC20Permit, Ownable {
         @notice find balance of reward tokens in contract and unstake them from staking contract
      */
     function unstakeAllRewardTokens() public {
-        uint256 amount = IERC20(rewardToken).balanceOf(address(this));
+        require(isReserveEnabled, "Not enabled yet");
+        uint256 amount = IERC20Upgradeable(rewardToken).balanceOf(
+            address(this)
+        );
         if (amount > 0) IStaking(stakingContract).unstake(amount, false);
     }
 }
