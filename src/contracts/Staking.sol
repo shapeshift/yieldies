@@ -71,7 +71,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             length: _epochLength,
             number: _firstEpochNumber,
             endBlock: _firstEpochBlock,
-            distribute: 0 // TODO: don't reset epoch rewards
+            distribute: 0
         });
     }
 
