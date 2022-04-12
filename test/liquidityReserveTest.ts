@@ -2,7 +2,12 @@ import { ethers, getNamedAccounts, network, upgrades } from "hardhat";
 import { expect } from "chai";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
-import { Yieldy, LiquidityReserve, Staking, LiquidityReserveV2Test } from "../typechain-types";
+import {
+  Yieldy,
+  LiquidityReserve,
+  Staking,
+  LiquidityReserveV2Test,
+} from "../typechain-types";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
@@ -219,8 +224,9 @@ describe("Liquidity Reserve", function () {
 
       // upgrade liquidity reserve contract
 
-
-      const lrDeployment = await ethers.getContractFactory("LiquidityReserveV2Test");
+      const lrDeployment = await ethers.getContractFactory(
+        "LiquidityReserveV2Test"
+      );
       const LiquidityReserveV2 = (await upgrades.upgradeProxy(
         liquidityReserve.address,
         lrDeployment

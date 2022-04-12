@@ -12,12 +12,7 @@ import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import {
-  LiquidityReserve,
-  Vesting,
-  Staking,
-  Yieldy,
-} from "../typechain-types";
+import { LiquidityReserve, Vesting, Staking, Yieldy } from "../typechain-types";
 import * as constants from "./constants";
 
 describe("Integration", function () {

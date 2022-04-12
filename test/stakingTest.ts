@@ -20,7 +20,6 @@ import {
   StakingV2Test,
 } from "../typechain-types";
 import * as constants from "./constants";
-import { StakingV2 } from "../typechain-types/StakingV2";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -1491,7 +1490,9 @@ describe("Staking", function () {
       let circulatingSupply = await rewardToken.circulatingSupply();
       expect(circulatingSupply).eq("10000000");
 
-      const rewardTokenDeployment = await ethers.getContractFactory("YieldyV2Test");
+      const rewardTokenDeployment = await ethers.getContractFactory(
+        "YieldyV2Test"
+      );
       (await upgrades.upgradeProxy(
         rewardToken.address,
         rewardTokenDeployment
@@ -1503,7 +1504,9 @@ describe("Staking", function () {
       circulatingSupply = await rewardToken.circulatingSupply();
       expect(circulatingSupply).eq(7777777);
 
-      const stakingDeployment = await ethers.getContractFactory("StakingV2Test");
+      const stakingDeployment = await ethers.getContractFactory(
+        "StakingV2Test"
+      );
       const StakingV2 = (await upgrades.upgradeProxy(
         staking.address,
         stakingDeployment
