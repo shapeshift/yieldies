@@ -5,13 +5,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./YieldyStorage.sol";
-import "../libraries/ERC20PermitUpgradeable.sol";
+import "../libraries/ERC20Upgradeable.sol";
 
-contract Yieldy is
-    YieldyStorage,
-    ERC20PermitUpgradeable,
-    AccessControlUpgradeable
-{
+contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
         require(msg.sender == stakingContract, "Not staking contract");
@@ -31,7 +27,7 @@ contract Yieldy is
         initializer
     {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
-        ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
+        // ERC20Upgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
 
         _setupRole(ADMIN_ROLE, msg.sender);

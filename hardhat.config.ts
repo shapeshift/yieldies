@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
   },
   paths: {
     deploy: ["deploy/core", "deploy/main"],
-    sources: "./src",
+    sources: "./src/contracts",
   },
   namedAccounts: {
     admin: {
