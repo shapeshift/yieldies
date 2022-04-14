@@ -24,7 +24,7 @@ async function main() {
     "Fox Yieldy",
     "FOXy",
   ]);
-  await yieldy.deployed()
+  await yieldy.deployed();
   console.log("Yieldy deployed to:", yieldy.address);
 
   console.log("Deploying Liquidity Reserve...");
@@ -32,7 +32,7 @@ async function main() {
     liquidityReserveDeployment,
     ["Liquidity Reserve FOX", "lrFOX", stakingToken, yieldy.address]
   );
-  await liquidityReserve.deployed()
+  await liquidityReserve.deployed();
   console.log("Liquidity Reserve deployed to:", liquidityReserve.address);
 
   console.log("Deploying Staking...");
@@ -50,7 +50,7 @@ async function main() {
     timeLeftToRequestWithdrawal,
   ]);
   console.log("Staking deployed to:", staking.address);
-  await staking.deployed()
+  await staking.deployed();
 }
 
 main()
