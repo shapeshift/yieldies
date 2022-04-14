@@ -31,7 +31,6 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      deploy: [],
       chainId: 1,
       accounts: {
         mnemonic: process.env.MNEMONIC,
@@ -44,19 +43,18 @@ const config: HardhatUserConfig = {
     },
     goerli: {
       url: process.env.GOERLI_URL || "",
-      deploy: ["deploy/core", "deploy/test"],
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",
-      deploy: ["deploy/core", "deploy/main"],
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   paths: {
-    deploy: ["deploy/core", "deploy/main"],
+    deploy: "./scripts/deploy",
+    deployments: "./deployments",
     sources: "./src/contracts",
   },
   namedAccounts: {
