@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./YieldyStorage.sol";
-import "../libraries/ERC20Upgradeable.sol";
+import "../libraries/ERC20PermitUpgradeable.sol";
 
-contract Yieldy is YieldyStorage, ERC20Upgradeable, AccessControlUpgradeable {
+contract Yieldy is YieldyStorage, ERC20PermitUpgradeable, AccessControlUpgradeable {
     // check if sender is the stakingContract
     modifier onlyStakingContract() {
         require(msg.sender == stakingContract, "Not staking contract");
