@@ -2594,14 +2594,13 @@ describe("Staking", function () {
     });
   });
   describe("admin", () => {
-    it("Admin functions work correctly", async () => {
+    it.only("Admin functions work correctly", async () => {
       const { admin, staker1 } = await getNamedAccounts();
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
 
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
-      await stakingAdmin.shouldPauseInstantUnstaking(true);
       await stakingAdmin.setCoolDownPeriod(99999999999999);
 
       await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
@@ -2641,7 +2640,12 @@ describe("Staking", function () {
         "Unstaking is paused"
       );
 
+      await stakingAdmin.shouldPauseInstantUnstaking(true);
       await stakingAdmin.shouldPauseUnstaking(false);
+
+      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
+        "Unstaking is paused"
+      );
       await stakingStaker1.unstake(stakingAmount, true);
 
       await mineBlocksToNextCycle();
