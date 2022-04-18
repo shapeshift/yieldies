@@ -2594,7 +2594,7 @@ describe("Staking", function () {
     });
   });
   describe("admin", () => {
-    it.only("Admin functions work correctly", async () => {
+    it("Admin functions work correctly", async () => {
       const { admin, staker1 } = await getNamedAccounts();
       const adminSigner = accounts.find((account) => account.address === admin);
       const stakingAdmin = staking.connect(adminSigner as Signer);
