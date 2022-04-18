@@ -211,9 +211,14 @@ contract LiquidityReserve is
      */
     function unstakeAllRewardTokens() public {
         require(isReserveEnabled, "Not enabled yet");
-        uint256 amount = IERC20Upgradeable(rewardToken).balanceOf(
-            address(this)
-        );
-        if (amount > 0) IStaking(stakingContract).unstake(amount, false);
+        uint256 coolDownAmount = IStaking(stakingContract)
+            .coolDownInfo(address(this))
+            .amount;
+        if (coolDownAmount == 0) {
+            uint256 amount = IERC20Upgradeable(rewardToken).balanceOf(
+                address(this)
+            );
+            if (amount > 0) IStaking(stakingContract).unstake(amount, false);
+        }
     }
 }

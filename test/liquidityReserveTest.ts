@@ -438,6 +438,178 @@ describe("Liquidity Reserve", function () {
 
       expect(daoTreasuryReward).eq(lp1Reward.mul(4));
     });
+    it.only("Should call unstake with full unstake amount, only when reserve has no cool down info", async () => {
+      const { daoTreasury, staker1, staker2, staker3, liquidityProvider1 } =
+        await getNamedAccounts();
+      const transferAmount = BigNumber.from("100000000000000");
+      const stakingAmount = transferAmount.div(4);
+
+      await stakingToken.transfer(daoTreasury, transferAmount);
+      await stakingToken.transfer(liquidityProvider1, stakingAmount);
+
+      // add liquidity with daoTreasury
+      let daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+      expect(daoTreasuryStakingBalance).eq(transferAmount);
+
+      let daoLiquidityReserveBalance = await liquidityReserve.balanceOf(
+        daoTreasury
+      );
+      expect(daoLiquidityReserveBalance).eq(0);
+
+      const daoTreasurySigner = accounts.find(
+        (account) => account.address === daoTreasury
+      );
+      const liquidityReserveDao = liquidityReserve.connect(
+        daoTreasurySigner as Signer
+      );
+      const stakingTokenDao = stakingToken.connect(daoTreasurySigner as Signer);
+
+      await stakingTokenDao.approve(liquidityReserve.address, transferAmount);
+      await liquidityReserveDao.addLiquidity(transferAmount);
+
+      daoTreasuryStakingBalance = await stakingToken.balanceOf(daoTreasury);
+      expect(daoTreasuryStakingBalance).eq(0);
+
+      daoLiquidityReserveBalance = await liquidityReserve.balanceOf(
+        daoTreasury
+      );
+      expect(daoLiquidityReserveBalance).eq(transferAmount);
+
+      // add liquidity with liquidityProvider1
+      const liquidityProvider1Signer = accounts.find(
+        (account) => account.address === liquidityProvider1
+      );
+      const liquidityReserveLiquidityProvider = liquidityReserve.connect(
+        liquidityProvider1Signer as Signer
+      );
+      const stakingTokenLiquidityProvider = stakingToken.connect(
+        liquidityProvider1Signer as Signer
+      );
+
+      await stakingTokenLiquidityProvider.approve(
+        liquidityReserve.address,
+        stakingAmount
+      );
+      await liquidityReserveLiquidityProvider.addLiquidity(stakingAmount);
+
+      const lp1StakingBalance = await stakingToken.balanceOf(
+        liquidityProvider1
+      );
+      expect(lp1StakingBalance).eq(0);
+
+      const lp1LiquidityReserveBalance = await liquidityReserve.balanceOf(
+        liquidityProvider1
+      );
+      expect(lp1LiquidityReserveBalance).eq(stakingAmount);
+
+      // get stakingToken at staker1
+      await stakingToken.transfer(staker1, stakingAmount);
+
+      const staking1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+
+      // get stakingToken at staker2
+      await stakingToken.transfer(staker2, stakingAmount);
+
+      const staking2Signer = accounts.find(
+        (account) => account.address === staker2
+      );
+
+      // get stakingToken at staker3
+      await stakingToken.transfer(staker3, stakingAmount);
+
+      const staking3Signer = accounts.find(
+        (account) => account.address === staker3
+      );
+
+      const stakingContractStaker1 = stakingContract.connect(
+        staking1Signer as Signer
+      );
+      const stakingTokenStaker1 = stakingToken.connect(
+        staking1Signer as Signer
+      );
+      const stakingContractStaker2 = stakingContract.connect(
+        staking2Signer as Signer
+      );
+      const stakingTokenStaker2 = stakingToken.connect(
+        staking2Signer as Signer
+      );
+      const stakingContractStaker3 = stakingContract.connect(
+        staking3Signer as Signer
+      );
+      const stakingTokenStaker3 = stakingToken.connect(
+        staking3Signer as Signer
+      );
+
+      // stake with staker1, staker2, and staker3
+      await stakingTokenStaker1.approve(
+        stakingContract.address,
+        transferAmount
+      );
+      await stakingContractStaker1.functions["stake(uint256)"](stakingAmount);
+      await stakingTokenStaker2.approve(
+        stakingContract.address,
+        transferAmount
+      );
+      await stakingContractStaker2.functions["stake(uint256)"](stakingAmount);
+      await stakingTokenStaker3.approve(
+        stakingContract.address,
+        transferAmount
+      );
+      await stakingContractStaker3.functions["stake(uint256)"](stakingAmount);
+
+      const staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(stakingAmount);
+
+      // instant unstake with staker1
+      const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
+      await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
+      await stakingContractStaker1.instantUnstake(false);
+
+      let coolDownInfo = await stakingContract.coolDownInfo(
+        liquidityReserve.address
+      );
+      expect(coolDownInfo.amount).eq(stakingAmount);
+
+      // instant unstake with staker2
+      // not unstaked through tokemak yet
+      const rewardTokenStaker2 = rewardToken.connect(staking2Signer as Signer);
+      await rewardTokenStaker2.approve(stakingContract.address, transferAmount);
+      await stakingContractStaker2.instantUnstake(false);
+
+      coolDownInfo = await stakingContract.coolDownInfo(
+        liquidityReserve.address
+      );
+      expect(coolDownInfo.amount).eq(stakingAmount);
+
+      coolDownInfo = await stakingContract.coolDownInfo(
+        liquidityReserve.address
+      );
+      expect(coolDownInfo.amount).eq(stakingAmount);
+
+      await mineBlocksToNextCycle();
+      await stakingContract.sendWithdrawalRequests();
+      await stakingContract.rebase();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
+
+      // instant unstake with staker3 and all reward tokens are unstaked
+      const rewardTokenStaker3 = rewardToken.connect(staking3Signer as Signer);
+      await rewardTokenStaker3.approve(stakingContract.address, transferAmount);
+      await stakingContractStaker3.instantUnstake(false);
+
+      coolDownInfo = await stakingContract.coolDownInfo(
+        liquidityReserve.address
+      );
+      expect(coolDownInfo.amount).eq(stakingAmount.mul(2));
+    });
     it("Liquidity providers should get correct amounts", async () => {
       const { daoTreasury, staker1, liquidityProvider1 } =
         await getNamedAccounts();
