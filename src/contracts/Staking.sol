@@ -118,12 +118,21 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice override whether or not unstaking is paused
-        @dev used to pause unstaking in case some attack vector becomes present
+        @notice override whether or not unstake & instantUnstake is paused
+        @dev used to pause unstake & instantUnstake in case some attack vector becomes present
         @param _shouldPause bool
      */
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         pauseUnstaking = _shouldPause;
+    }
+
+    /**
+        @notice override whether or not instantUnstake is paused
+        @dev used to pause instantUnstake in case some attack vector becomes present
+        @param _shouldPause bool
+     */
+    function shouldPauseInstantUnstaking(bool _shouldPause) external onlyOwner {
+        pauseInstantUnstaking = _shouldPause;
     }
 
     /**
@@ -486,7 +495,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
-        require(!pauseUnstaking, "Unstaking is paused");
+        require(!pauseUnstaking && !pauseInstantUnstaking, "Unstaking is paused");
         if (_trigger) {
             rebase();
         }

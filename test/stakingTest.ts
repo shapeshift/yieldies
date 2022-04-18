@@ -2601,6 +2601,7 @@ describe("Staking", function () {
 
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
+      await stakingAdmin.shouldPauseInstantUnstaking(true);
       await stakingAdmin.setCoolDownPeriod(99999999999999);
 
       await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
