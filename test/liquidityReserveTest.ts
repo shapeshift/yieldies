@@ -438,7 +438,7 @@ describe("Liquidity Reserve", function () {
 
       expect(daoTreasuryReward).eq(lp1Reward.mul(4));
     });
-    it.only("Should call unstake with full unstake amount, only when reserve has no cool down info", async () => {
+    it("Should call unstake with full unstake amount, only when reserve has no cool down info", async () => {
       const { daoTreasury, staker1, staker2, staker3, liquidityProvider1 } =
         await getNamedAccounts();
       const transferAmount = BigNumber.from("100000000000000");
