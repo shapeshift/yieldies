@@ -1,0 +1,28 @@
+name: Commitlint Lint Test & Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  commitlint-lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Install
+        run: yarn install --frozen-lockfile
+      # needs to run after install
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
