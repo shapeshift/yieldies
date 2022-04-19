@@ -3,7 +3,7 @@ pragma solidity 0.8.9;
 
 struct Rebase {
     uint256 epoch;
-    uint256 rebase; // 18 decimals
+    uint256 rebase;
     uint256 totalStakedBefore;
     uint256 totalStakedAfter;
     uint256 amountRebased;

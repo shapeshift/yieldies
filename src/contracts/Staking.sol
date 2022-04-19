@@ -529,8 +529,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     /**
         @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
-        @dev this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
-        @dev this function talks to the instantUnstake function in the liquidity reserve contract
+        @dev this function will claim the FOXy from warmUp/user and then route to the appropriate instant unstake interface
+        @dev the current interfaces to instant unstake are through Curve or our Liquidity Reserve contract
         @param _trigger bool - should trigger a rebase
      */
     function instantUnstake(bool _trigger) external {
@@ -577,9 +577,19 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             );
         }
 
+        instantLiquidityReserve(totalBalance);
+    }
+
+    /**
+        @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
+        @dev this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
+        @dev this function talks to the instantUnstake function in the liquidity reserve contract
+        @param _amount uint - amount to instant unstake
+     */
+    function instantLiquidityReserve(uint256 _amount) internal {
         // instant unstake from LR contract
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
-            totalBalance,
+            _amount,
             msg.sender
         );
     }

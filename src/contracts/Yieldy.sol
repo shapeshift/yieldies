@@ -121,7 +121,7 @@ contract Yieldy is
         rebases.push(
             Rebase({
                 epoch: _epoch,
-                rebase: rebasePercent, // 18 decimals
+                rebase: rebasePercent,
                 totalStakedBefore: _previousCirculating,
                 totalStakedAfter: circulatingSupply(),
                 amountRebased: _profit,
