@@ -5,15 +5,16 @@ import "../structs/Claim.sol";
 import "../structs/Epoch.sol";
 
 contract StakingStorage {
-    address public TOKE_POOL;
-    address public TOKE_MANAGER;
-    address public TOKE_REWARD;
-    address public STAKING_TOKEN;
-    address public REWARD_TOKEN;
-    address public TOKE_TOKEN;
-    address public LIQUIDITY_RESERVE;
-    address public WARM_UP_CONTRACT;
-    address public COOL_DOWN_CONTRACT;
+    address public tokePool;
+    address public tokeManager;
+    address public tokeReward;
+    address public stakingToken;
+    address public rewardToken;
+    address public tokeToken;
+    address public liquidityReserve;
+    address public warmUpContract;
+    address public coolDownContract;
+    address public affiliateAddress;
 
     // owner overrides
     bool public pauseStaking; // pauses staking
@@ -31,4 +32,7 @@ contract StakingStorage {
     uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
     uint256 public withdrawalAmount; // amount of stakings tokens available for withdrawal
     uint256 public lastTokeCycleIndex; // last tokemak cycle index which requested withdrawals
+    uint256 public affiliateFee; // fee in basis points to send rewards to affilateAddress
+
+    uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
 }

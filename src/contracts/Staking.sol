@@ -25,6 +25,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _tokeManager,
         address _tokeReward,
         address _liquidityReserve,
+        address _affiliateAddress,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock,
@@ -43,27 +44,28 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 _liquidityReserve != address(0),
             "Invalid address"
         );
-        STAKING_TOKEN = _stakingToken;
-        REWARD_TOKEN = _rewardToken;
-        TOKE_TOKEN = _tokeToken;
-        TOKE_POOL = _tokePool;
-        TOKE_MANAGER = _tokeManager;
-        TOKE_REWARD = _tokeReward;
-        LIQUIDITY_RESERVE = _liquidityReserve;
+        stakingToken = _stakingToken;
+        rewardToken = _rewardToken;
+        tokeToken = _tokeToken;
+        tokePool = _tokePool;
+        tokeManager = _tokeManager;
+        tokeReward = _tokeReward;
+        liquidityReserve = _liquidityReserve;
+        affiliateAddress = _affiliateAddress;
         timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
-        Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
-        WARM_UP_CONTRACT = address(warmUp);
+        Vesting warmUp = new Vesting(address(this), rewardToken);
+        warmUpContract = address(warmUp);
 
         // create vesting contract to hold newly unstaked rewardTokens based on cooldown period
-        Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
-        COOL_DOWN_CONTRACT = address(coolDown);
+        Vesting coolDown = new Vesting(address(this), rewardToken);
+        coolDownContract = address(coolDown);
 
-        IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
-        IERC20Upgradeable(REWARD_TOKEN).approve(
-            LIQUIDITY_RESERVE,
+        IERC20Upgradeable(stakingToken).approve(tokePool, type(uint256).max);
+        IERC20Upgradeable(rewardToken).approve(
+            liquidityReserve,
             type(uint256).max
         );
 
@@ -92,7 +94,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // cannot claim 0
         require(_recipient.amount > 0, "Must enter valid amount");
 
-        ITokeReward tokeRewardContract = ITokeReward(TOKE_REWARD);
+        ITokeReward tokeRewardContract = ITokeReward(tokeReward);
         tokeRewardContract.claim(_recipient, _v, _r, _s);
     }
 
@@ -104,8 +106,46 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
         require(_claimAddress != address(0), "Invalid address");
-        uint256 amount = IERC20Upgradeable(TOKE_TOKEN).balanceOf(address(this));
-        IERC20Upgradeable(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
+        uint256 totalTokeAmount = IERC20Upgradeable(tokeToken).balanceOf(
+            address(this)
+        );
+        if (affiliateFee != 0 && affiliateAddress != address(0)) {
+            uint256 feeAmount = totalTokeAmount -
+                ((totalTokeAmount * affiliateFee) / BASIS_POINTS);
+            uint256 amountMinusFee = totalTokeAmount - feeAmount;
+            
+            IERC20Upgradeable(tokeToken).safeTransfer(
+                affiliateAddress,
+                feeAmount
+            );
+            IERC20Upgradeable(tokeToken).safeTransfer(
+                _claimAddress,
+                amountMinusFee
+            );
+        } else {
+            IERC20Upgradeable(tokeToken).safeTransfer(
+                _claimAddress,
+                totalTokeAmount
+            );
+        }
+    }
+
+    /**
+        @notice sets the affiliate fee
+        @dev fee is set in basis points
+        @param _affiliateFee uint
+     */
+    function setAffiliateFee(uint256 _affiliateFee) public onlyOwner {
+        affiliateFee = _affiliateFee;
+    }
+
+    /**
+        @notice sets the affiliate address to receive the affiliate fee in TOKE
+        @dev if set to 0x000.. then no affiliate will be sent
+        @param _affiliateAddress address
+     */
+    function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
+        affiliateAddress = _affiliateAddress;
     }
 
     /**
@@ -199,8 +239,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         returns (bool)
     {
         Claim memory info = coolDownInfo[_recipient];
-        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        ITokeManager tokeManager = ITokeManager(tokeManager);
+        ITokePool tokePoolContract = ITokePool(tokePool);
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
@@ -218,8 +258,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev needs a valid requestWithdrawal inside Tokemak with a completed cycle rollover to withdraw
      */
     function _withdrawFromTokemak() internal {
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        ITokePool tokePoolContract = ITokePool(tokePool);
+        ITokeManager tokeManager = ITokeManager(tokeManager);
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
@@ -239,7 +279,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to request withdraw
      */
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.requestWithdrawal(_amount);
     }
 
@@ -248,7 +288,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to deposit
      */
     function _depositToTokemak(uint256 _amount) internal {
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        ITokePool tokePoolContract = ITokePool(tokePool);
         tokePoolContract.deposit(_amount);
     }
 
@@ -257,7 +297,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @return uint - amount of stakingToken in TOKE pool
      */
     function _getTokemakBalance() internal view returns (uint256) {
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        ITokePool tokePoolContract = ITokePool(tokePool);
         return tokePoolContract.balanceOf(address(this));
     }
 
@@ -268,7 +308,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @return bool - returns true if can batch transactions
      */
     function _canBatchTransactions() internal view returns (bool) {
-        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        ITokeManager tokeManager = ITokeManager(tokeManager);
         uint256 duration = tokeManager.getCycleDuration();
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
@@ -285,7 +325,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev this bypasses the normal flow of sending a withdrawal request and allows the owner to requestWithdraw entire pool balance
      */
     function unstakeAllFromTokemak() public onlyOwner {
-        ITokePool tokePoolContract = ITokePool(TOKE_POOL);
+        ITokePool tokePoolContract = ITokePool(tokePool);
         uint256 tokePoolBalance = ITokePool(tokePoolContract).balanceOf(
             address(this)
         );
@@ -305,7 +345,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             _withdrawFromTokemak();
 
             // if more requestWithdrawalAmount exists after _withdrawFromTokemak then request the new amount
-            ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+            ITokeManager tokeManager = ITokeManager(tokeManager);
             if (requestWithdrawalAmount > 0) {
                 _requestWithdrawalFromTokemak(requestWithdrawalAmount);
             }
@@ -326,7 +366,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
-        uint256 circulatingSupply = IRewardToken(REWARD_TOKEN)
+        uint256 circulatingSupply = IRewardToken(rewardToken)
             .circulatingSupply();
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
@@ -334,7 +374,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             rebase();
         }
 
-        IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
+        IERC20Upgradeable(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
@@ -351,18 +391,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         // skip adding to warmup contract if period is 0
         if (warmUpPeriod == 0) {
-            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(_recipient, _amount);
+            IERC20Upgradeable(rewardToken).safeTransfer(_recipient, _amount);
         } else {
             // create a claim and send tokens to the warmup contract
             warmUpInfo[_recipient] = Claim({
                 amount: info.amount + _amount,
                 gons: info.gons +
-                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
+                    IRewardToken(rewardToken).gonsForBalance(_amount),
                 expiry: epoch.number + warmUpPeriod
             });
 
-            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
-                WARM_UP_CONTRACT,
+            IERC20Upgradeable(rewardToken).safeTransfer(
+                warmUpContract,
                 _amount
             );
         }
@@ -386,9 +426,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
-            IVesting(WARM_UP_CONTRACT).retrieve(
+            IVesting(warmUpContract).retrieve(
                 _recipient,
-                IRewardToken(REWARD_TOKEN).balanceForGons(info.gons)
+                IRewardToken(rewardToken).balanceForGons(info.gons)
             );
         }
     }
@@ -401,7 +441,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
-        uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
+        uint256 totalAmountIncludingRewards = IRewardToken(rewardToken)
             .balanceForGons(info.gons);
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
@@ -411,12 +451,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
-            IERC20Upgradeable(STAKING_TOKEN).safeTransfer(
+            IERC20Upgradeable(stakingToken).safeTransfer(
                 _recipient,
                 info.amount
             );
 
-            IVesting(COOL_DOWN_CONTRACT).retrieve(
+            IVesting(coolDownContract).retrieve(
                 address(this),
                 totalAmountIncludingRewards
             );
@@ -433,10 +473,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
-        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
-            _user
-        );
-        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+        uint256 walletBalance = IERC20Upgradeable(rewardToken).balanceOf(_user);
+        uint256 warmUpBalance = IRewardToken(rewardToken).balanceForGons(
             userWarmInfo.gons
         );
 
@@ -455,18 +493,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                     amountLeft -= warmUpBalance;
                 }
 
-                IVesting(WARM_UP_CONTRACT).retrieve(
-                    address(this),
-                    warmUpBalance
-                );
+                IVesting(warmUpContract).retrieve(address(this), warmUpBalance);
                 delete warmUpInfo[_user];
             } else {
                 // partially consume warmup balance
                 amountLeft = 0;
-                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
+                IVesting(warmUpContract).retrieve(address(this), _amount);
                 uint256 remainingGonsAmount = userWarmInfo.gons -
-                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
-                uint256 remainingAmount = IRewardToken(REWARD_TOKEN)
+                    IRewardToken(rewardToken).gonsForBalance(_amount);
+                uint256 remainingAmount = IRewardToken(rewardToken)
                     .balanceForGons(remainingGonsAmount);
 
                 warmUpInfo[_user] = Claim({
@@ -479,7 +514,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         if (amountLeft != 0) {
             // transfer the rest from the users address
-            IERC20Upgradeable(REWARD_TOKEN).safeTransferFrom(
+            IERC20Upgradeable(rewardToken).safeTransferFrom(
                 _user,
                 address(this),
                 amountLeft
@@ -495,22 +530,26 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
-        require(!pauseUnstaking && !pauseInstantUnstaking, "Unstaking is paused");
+        require(
+            !pauseUnstaking && !pauseInstantUnstaking,
+            "Unstaking is paused"
+        );
         if (_trigger) {
             rebase();
         }
 
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
-        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+        uint256 walletBalance = IERC20Upgradeable(rewardToken).balanceOf(
             msg.sender
         );
-        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+        uint256 warmUpBalance = IRewardToken(rewardToken).balanceForGons(
             userWarmInfo.gons
         );
         uint256 totalBalance = warmUpBalance + walletBalance;
-        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
-            .balanceOf(LIQUIDITY_RESERVE);
+        uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
+            liquidityReserve
+        );
 
         // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
@@ -521,13 +560,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         // claim senders warmup balance
         if (warmUpBalance > 0) {
-            IVesting(WARM_UP_CONTRACT).retrieve(address(this), warmUpBalance);
+            IVesting(warmUpContract).retrieve(address(this), warmUpBalance);
             delete warmUpInfo[msg.sender];
         }
 
         // claim senders wallet balance
         if (walletBalance > 0) {
-            IERC20Upgradeable(REWARD_TOKEN).safeTransferFrom(
+            IERC20Upgradeable(rewardToken).safeTransferFrom(
                 msg.sender,
                 address(this),
                 walletBalance
@@ -535,7 +574,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
 
         // instant unstake from LR contract
-        ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
+        ILiquidityReserve(liquidityReserve).instantUnstake(
             totalBalance,
             msg.sender
         );
@@ -564,7 +603,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
             gons: userCoolInfo.gons +
-                IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
+                IRewardToken(rewardToken).gonsForBalance(_amount),
             expiry: epoch.number + coolDownPeriod
         });
 
@@ -572,10 +611,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         sendWithdrawalRequests();
 
-        IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
-            COOL_DOWN_CONTRACT,
-            _amount
-        );
+        IERC20Upgradeable(rewardToken).safeTransfer(coolDownContract, _amount);
     }
 
     /**
@@ -583,13 +619,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function rebase() public {
         if (epoch.endBlock <= block.number) {
-            IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.number);
+            IRewardToken(rewardToken).rebase(epoch.distribute, epoch.number);
 
             epoch.endBlock = epoch.endBlock + epoch.length;
             epoch.number++;
 
             uint256 balance = contractBalance();
-            uint256 staked = IRewardToken(REWARD_TOKEN).circulatingSupply();
+            uint256 staked = IRewardToken(rewardToken).circulatingSupply();
 
             if (balance <= staked) {
                 epoch.distribute = 0;
@@ -608,7 +644,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function contractBalance() internal view returns (uint256) {
         uint256 tokeBalance = _getTokemakBalance();
         return
-            IERC20Upgradeable(STAKING_TOKEN).balanceOf(address(this)) +
+            IERC20Upgradeable(stakingToken).balanceOf(address(this)) +
             tokeBalance;
     }
 
@@ -619,15 +655,16 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _trigger bool - should trigger rebase
      */
     function addRewardsForStakers(uint256 _amount, bool _trigger) external {
-        IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
+        IERC20Upgradeable(stakingToken).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
 
         // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
-        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
-            .balanceOf(address(this));
+        uint256 stakingTokenBalance = IERC20Upgradeable(stakingToken).balanceOf(
+            address(this)
+        );
         uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
         _depositToTokemak(amountToDeposit);
 
