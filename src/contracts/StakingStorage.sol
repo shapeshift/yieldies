@@ -15,6 +15,7 @@ contract StakingStorage {
     address public WARM_UP_CONTRACT;
     address public COOL_DOWN_CONTRACT;
     address public AFFILIATE_ADDRESS;
+    address public CURVE_POOL = 0xC250B22d15e43d95fBE27B12d98B6098f8493eaC;
 
     // owner overrides
     bool public pauseStaking; // pauses staking

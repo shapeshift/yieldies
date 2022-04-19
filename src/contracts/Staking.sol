@@ -13,6 +13,8 @@ import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "../interfaces/ICurvePool.sol";
+import "hardhat/console.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -527,6 +529,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
+    enum InstantUnstakeType {
+        RESERVE,
+        CURVE
+    }
+
     /**
         @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
         @dev this function will claim the FOXy from warmUp/user and then route to the appropriate instant unstake interface
@@ -534,6 +541,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _trigger bool - should trigger a rebase
      */
     function instantUnstake(bool _trigger) external {
+        InstantUnstakeType _type = InstantUnstakeType.CURVE;
         // prevent unstaking if override due to vulnerabilities
         require(
             !pauseUnstaking && !pauseInstantUnstaking,
@@ -542,6 +550,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_trigger) {
             rebase();
         }
+
+        console.log("isCurve", _type == InstantUnstakeType.CURVE);
+        console.log("isReserve", _type == InstantUnstakeType.RESERVE);
 
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
@@ -577,13 +588,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             );
         }
 
-        instantLiquidityReserve(totalBalance);
+        if (_type == InstantUnstakeType.CURVE) {
+            instantCurve(totalBalance);
+        } else {
+            instantLiquidityReserve(totalBalance);
+        }
     }
 
     /**
-        @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
-        @dev this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
-        @dev this function talks to the instantUnstake function in the liquidity reserve contract
+        @notice instant unstake from liquidity reserve
         @param _amount uint - amount to instant unstake
      */
     function instantLiquidityReserve(uint256 _amount) internal {
@@ -592,6 +605,56 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             _amount,
             msg.sender
         );
+    }
+
+    /**
+        @notice get to and from coin indexes for curve exchange
+     */
+    function getToAndromCurve() internal returns (int128, int128) {
+        address address0 = ICurvePool(CURVE_POOL).coins(0);
+        address address1 = ICurvePool(CURVE_POOL).coins(1);
+        int128 i;
+        int128 j;
+
+        if (TOKE_POOL == address0 && STAKING_TOKEN == address1) {
+            i = 0;
+            j = 1;
+        } else if (TOKE_POOL == address1 && STAKING_TOKEN == address0) {
+            i = 1;
+            j = 0;
+        }
+
+        require(i != 0 || j != 0, "Invalid Curve Pool");
+
+        return (i, j);
+    }
+
+    /**
+        @notice estimate received using instant unstake from curve
+        @param _amount uint - amount to instant unstake
+     */
+    function estimateInstantCurve(uint256 _amount) external returns (uint256) {
+        (int128 i, int128 j) = getToAndromCurve();
+
+        return ICurvePool(CURVE_POOL).get_dy(i, j, _amount);
+    }
+
+    /**
+        @notice instant unstake from curve
+        @param _amount uint - amount to instant unstake
+     */
+    function instantCurve(uint256 _amount) internal returns (uint256) {
+        (int128 i, int128 j) = getToAndromCurve();
+        uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(i, j, _amount);
+
+        return
+            ICurvePool(CURVE_POOL).exchange(
+                i,
+                j,
+                _amount,
+                incomingAmount,
+                address(this)
+            );
     }
 
     /**
