@@ -98,7 +98,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         tokeRewardContract.claim(_recipient, _v, _r, _s);
     }
 
-  /**
+    /**
         @notice transfer TOKE from staking contract to address
         @dev used so DAO can get TOKE and manually trade to return FOX to the staking contract
         @param _claimAddress address to send TOKE rewards
@@ -110,17 +110,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             address(this)
         );
         if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
-            uint256 feeAmount = totalTokeAmount -
+            uint256 amountMinusFee = totalTokeAmount -
                 ((totalTokeAmount * affiliateFee) / BASIS_POINTS);
-            uint256 amountMinusFee = totalTokeAmount - feeAmount;
-            
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                AFFILIATE_ADDRESS,
-                feeAmount
-            );
+            uint256 feeAmount = totalTokeAmount - amountMinusFee;
+
             IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
                 _claimAddress,
                 amountMinusFee
+            );
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+                AFFILIATE_ADDRESS,
+                feeAmount
             );
         } else {
             IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
@@ -535,7 +535,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
-        require(!pauseUnstaking && !pauseInstantUnstaking, "Unstaking is paused");
+        require(
+            !pauseUnstaking && !pauseInstantUnstaking,
+            "Unstaking is paused"
+        );
         if (_trigger) {
             rebase();
         }
