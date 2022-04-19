@@ -27,6 +27,7 @@ describe("Staking", function () {
   let staking: Staking;
   let liquidityReserve: LiquidityReserve;
   let stakingToken: Contract;
+  let tokeToken: Contract;
   let tokePool: Contract;
   let tokeManager: Contract;
   let stakingWarmup: Vesting;
@@ -77,6 +78,11 @@ describe("Staking", function () {
       ERC20.abi,
       accounts[0]
     );
+    tokeToken = new ethers.Contract(
+      constants.TOKE_TOKEN,
+      ERC20.abi,
+      accounts[0]
+    );
     tokePool = new ethers.Contract(
       constants.TOKE_ADDRESS,
       tokePoolAbi,
@@ -113,6 +119,7 @@ describe("Staking", function () {
       constants.TOKE_MANAGER,
       constants.TOKE_REWARD,
       liquidityReserve.address,
+      ethers.constants.AddressZero,
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
@@ -424,6 +431,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -439,6 +447,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -454,6 +463,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -469,6 +479,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -484,6 +495,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -499,6 +511,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           ethers.constants.AddressZero,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -1921,16 +1934,10 @@ describe("Staking", function () {
       const vestingFactory = await ethers.getContractFactory("Vesting");
 
       await expect(
-        vestingFactory.deploy(
-          staking.address,
-          "0x0000000000000000000000000000000000000000"
-        )
+        vestingFactory.deploy(staking.address, ethers.constants.AddressZero)
       ).to.be.reverted;
       await expect(
-        vestingFactory.deploy(
-          "0x0000000000000000000000000000000000000000",
-          rewardToken.address
-        )
+        vestingFactory.deploy(ethers.constants.AddressZero, rewardToken.address)
       ).to.be.reverted;
 
       const vestingContract = await vestingFactory.deploy(
@@ -2301,12 +2308,44 @@ describe("Staking", function () {
       ).to.be.revertedWith("'ECDSA: invalid signature'");
 
       // transferToke fails on 0 address
-      await expect(
-        staking.transferToke("0x0000000000000000000000000000000000000000")
-      ).to.be.reverted;
+      await expect(staking.transferToke(ethers.constants.AddressZero)).to.be
+        .reverted;
 
       // tries to transfer toke, but to staker1 but none exists
       await staking.transferToke(staker1);
+    });
+    it("Sends correct amount to affiliate", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+      const transferAmount = BigNumber.from("1000000");
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_TOKEN_WHALE],
+      });
+
+      const whaleSigner = await ethers.getSigner(constants.TOKE_TOKEN_WHALE);
+      const tokeTokenWhale = tokeToken.connect(whaleSigner);
+      await tokeTokenWhale.transfer(staking.address, transferAmount);
+
+      let tokeTokenBalance = await tokeToken.balanceOf(staking.address);
+      expect(BigNumber.from(tokeTokenBalance).toNumber()).gte(
+        transferAmount.toNumber()
+      );
+
+      await staking.setAffiliateAddress(staker2);
+      await staking.setAffiliateFee(1000);
+
+      // tries to transfer toke, but to staker1 but none exists
+      await staking.transferToke(staker1);
+      const fee = transferAmount.mul(await staking.affiliateFee()).div(10000);
+
+      // staker1 balance
+      tokeTokenBalance = await tokeToken.balanceOf(staker1);
+      expect(tokeTokenBalance).eq(transferAmount.sub(fee));
+
+      // affiliate balance
+      tokeTokenBalance = await tokeToken.balanceOf(staker2);
+      expect(tokeTokenBalance).eq(fee);
     });
     it("Staking gives tStakingToken to the Staking contract", async () => {
       const { staker1 } = await getNamedAccounts();

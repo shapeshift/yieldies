@@ -90,6 +90,7 @@ describe("Liquidity Reserve", function () {
       constants.TOKE_MANAGER,
       constants.TOKE_REWARD,
       liquidityReserve.address,
+      ethers.constants.AddressZero,
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,

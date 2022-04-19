@@ -44,6 +44,7 @@ async function main() {
     tokeManager,
     tokeReward,
     liquidityReserve.address,
+    ethers.constants.AddressZero,
     epochLength,
     firstEpochNumber,
     firstEpochBlock,

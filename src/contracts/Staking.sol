@@ -25,6 +25,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _tokeManager,
         address _tokeReward,
         address _liquidityReserve,
+        address _affilateAddress,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
         uint256 _firstEpochBlock,
@@ -50,6 +51,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
+        AFFILIATE_ADDRESS = _affilateAddress;
         timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
@@ -104,8 +106,46 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function transferToke(address _claimAddress) external onlyOwner {
         // _claimAddress can't be 0x0
         require(_claimAddress != address(0), "Invalid address");
-        uint256 amount = IERC20Upgradeable(TOKE_TOKEN).balanceOf(address(this));
-        IERC20Upgradeable(TOKE_TOKEN).safeTransfer(_claimAddress, amount);
+        uint256 totalTokeAmount = IERC20Upgradeable(TOKE_TOKEN).balanceOf(
+            address(this)
+        );
+        if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
+            uint256 amountMinusFee = totalTokeAmount -
+                ((totalTokeAmount * affiliateFee) / BASIS_POINTS);
+            uint256 feeAmount = totalTokeAmount - amountMinusFee;
+
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+                _claimAddress,
+                amountMinusFee
+            );
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+                AFFILIATE_ADDRESS,
+                feeAmount
+            );
+        } else {
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+                _claimAddress,
+                totalTokeAmount
+            );
+        }
+    }
+
+    /**
+        @notice sets the affiliate fee
+        @dev fee is set in basis points
+        @param _affiliateFee uint
+     */
+    function setAffiliateFee(uint256 _affiliateFee) public onlyOwner {
+        affiliateFee = _affiliateFee;
+    }
+
+    /**
+        @notice sets the affiliate address to receive the affiliate fee in TOKE
+        @dev if set to 0x000.. then no affiliate will be sent
+        @param _affiliateAddress address
+     */
+    function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
+        AFFILIATE_ADDRESS = _affiliateAddress;
     }
 
     /**
@@ -495,7 +535,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
-        require(!pauseUnstaking && !pauseInstantUnstaking, "Unstaking is paused");
+        require(
+            !pauseUnstaking && !pauseInstantUnstaking,
+            "Unstaking is paused"
+        );
         if (_trigger) {
             rebase();
         }
