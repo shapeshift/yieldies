@@ -113,6 +113,7 @@ describe("Staking", function () {
       constants.TOKE_MANAGER,
       constants.TOKE_REWARD,
       liquidityReserve.address,
+      ethers.constants.AddressZero,
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
@@ -424,6 +425,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -439,6 +441,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -454,6 +457,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -469,6 +473,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -484,6 +489,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.TOKE_REWARD,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -499,6 +505,7 @@ describe("Staking", function () {
           constants.TOKE_MANAGER,
           ethers.constants.AddressZero,
           liquidityReserve.address,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
@@ -1923,12 +1930,12 @@ describe("Staking", function () {
       await expect(
         vestingFactory.deploy(
           staking.address,
-          "0x0000000000000000000000000000000000000000"
+          ethers.constants.AddressZero
         )
       ).to.be.reverted;
       await expect(
         vestingFactory.deploy(
-          "0x0000000000000000000000000000000000000000",
+          ethers.constants.AddressZero,
           rewardToken.address
         )
       ).to.be.reverted;
@@ -2302,8 +2309,15 @@ describe("Staking", function () {
 
       // transferToke fails on 0 address
       await expect(
-        staking.transferToke("0x0000000000000000000000000000000000000000")
+        staking.transferToke(ethers.constants.AddressZero)
       ).to.be.reverted;
+
+      // tries to transfer toke, but to staker1 but none exists
+      await staking.transferToke(staker1);
+    });
+    it.skip("Sends correct amount to affiliate", async () => {
+      const { staker1 } = await getNamedAccounts();
+
 
       // tries to transfer toke, but to staker1 but none exists
       await staking.transferToke(staker1);
