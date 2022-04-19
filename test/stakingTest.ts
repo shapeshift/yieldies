@@ -2337,7 +2337,7 @@ describe("Staking", function () {
 
       // tries to transfer toke, but to staker1 but none exists
       await staking.transferToke(staker1);
-      const fee = transferAmount.mul(await staking.affiliateFee()).div(10000)
+      const fee = transferAmount.mul(await staking.affiliateFee()).div(10000);
 
       // staker1 balance
       tokeTokenBalance = await tokeToken.balanceOf(staker1);
