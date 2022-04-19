@@ -17,7 +17,8 @@ contract StakingStorage {
 
     // owner overrides
     bool public pauseStaking; // pauses staking
-    bool public pauseUnstaking; // pauses unstaking
+    bool public pauseUnstaking; // pauses unstaking & instantUnstake
+    bool public pauseInstantUnstaking; // pauses instantUnstake
 
     Epoch public epoch;
 

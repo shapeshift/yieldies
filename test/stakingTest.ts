@@ -2640,7 +2640,12 @@ describe("Staking", function () {
         "Unstaking is paused"
       );
 
+      await stakingAdmin.shouldPauseInstantUnstaking(true);
       await stakingAdmin.shouldPauseUnstaking(false);
+
+      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
+        "Unstaking is paused"
+      );
       await stakingStaker1.unstake(stakingAmount, true);
 
       await mineBlocksToNextCycle();
