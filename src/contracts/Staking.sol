@@ -19,6 +19,11 @@ import "hardhat/console.sol";
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    enum InstantUnstakeType {
+        RESERVE,
+        CURVE
+    }
+
     function initialize(
         address _stakingToken,
         address _rewardToken,
@@ -65,7 +70,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
-        CURVE_POOL = 0xC250B22d15e43d95fBE27B12d98B6098f8493eaC;
+        CURVE_POOL = 0xC250B22d15e43d95fBE27B12d98B6098f8493eaC; // TODO: pass in address
 
         IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
@@ -150,6 +155,14 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
         AFFILIATE_ADDRESS = _affiliateAddress;
+    }
+
+    /**
+        @notice sets the curve factory address to instant unstake through curve
+        @param _curveAddress address
+     */
+    function setCurveAddress(address _curveAddress) public onlyOwner {
+        AFFILIATE_ADDRESS = _curveAddress;
     }
 
     /**
@@ -531,9 +544,36 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
-    enum InstantUnstakeType {
-        RESERVE,
-        CURVE
+    /**
+        @notice figures out which unstake type is needed to instant unstake and then calls instantUnstakeByType
+        @dev checks to see if enough balance exists in liquidity reserve, otherwise uses curve
+        @param _trigger bool - should trigger a rebase
+     */
+    function instantUnstake(bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities
+        require(
+            !pauseUnstaking && !pauseInstantUnstaking,
+            "Unstaking is paused"
+        );
+
+        Claim memory userWarmInfo = warmUpInfo[msg.sender];
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            msg.sender
+        );
+        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+            userWarmInfo.gons
+        );
+        uint256 balance = warmUpBalance + walletBalance;
+        uint256 reserveBalance = IERC20(STAKING_TOKEN).balanceOf(
+            LIQUIDITY_RESERVE
+        );
+
+        InstantUnstakeType unstakeType = InstantUnstakeType.RESERVE;
+        if (reserveBalance < balance) {
+            unstakeType = InstantUnstakeType.CURVE;
+        }
+
+        instantUnstakeByType(_trigger, unstakeType);
     }
 
     /**
@@ -541,9 +581,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev this function will claim the FOXy from warmUp/user and then route to the appropriate instant unstake interface
         @dev the current interfaces to instant unstake are through Curve or our Liquidity Reserve contract
         @param _trigger bool - should trigger a rebase
+        @param _type InstantUnstakeType - type of instantUnstake that should occur
      */
-    function instantUnstake(bool _trigger) external {
-        InstantUnstakeType _type = InstantUnstakeType.RESERVE;
+    function instantUnstakeByType(bool _trigger, InstantUnstakeType _type) public {
         // prevent unstaking if override due to vulnerabilities
         require(
             !pauseUnstaking && !pauseInstantUnstaking,
@@ -553,6 +593,16 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             rebase();
         }
 
+        uint256 balance = getBalanceForInstantUnstake();
+
+        if (_type == InstantUnstakeType.CURVE) {
+            instantCurve(balance);
+        } else {
+            instantLiquidityReserve(balance);
+        }
+    }
+
+    function getBalanceForInstantUnstake() internal returns (uint256) {
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
         uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
@@ -586,12 +636,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 walletBalance
             );
         }
-
-        if (_type == InstantUnstakeType.CURVE) {
-            instantCurve(totalBalance);
-        } else {
-            instantLiquidityReserve(totalBalance);
-        }
+        return totalBalance;
     }
 
     /**
@@ -610,6 +655,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice get to and from coin indexes for curve exchange
      */
     function getToAndromCurve() internal returns (int128, int128) {
+        require(CURVE_POOL != address(0), "No Curve address set");
+
         address address0 = ICurvePool(CURVE_POOL).coins(0);
         address address1 = ICurvePool(CURVE_POOL).coins(1);
         int128 from = 0;
