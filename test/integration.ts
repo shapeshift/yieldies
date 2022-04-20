@@ -88,7 +88,6 @@ describe("Integration", function () {
 
     const currentBlock = await ethers.provider.getBlockNumber();
     const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
-    const timeLeftToRequestWithdrawal = 43200;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(stakingDeployment, [

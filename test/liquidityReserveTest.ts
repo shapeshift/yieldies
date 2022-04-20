@@ -63,7 +63,6 @@ describe("Liquidity Reserve", function () {
 
     const currentBlock = await ethers.provider.getBlockNumber();
     const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
-    const timeLeftToRequestWithdrawal = 43200;
 
     stakingToken = new ethers.Contract(
       constants.STAKING_TOKEN,
