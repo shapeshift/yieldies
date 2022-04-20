@@ -543,7 +543,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _trigger bool - should trigger a rebase
      */
     function instantUnstake(bool _trigger) external {
-        InstantUnstakeType _type = InstantUnstakeType.CURVE;
+        InstantUnstakeType _type = InstantUnstakeType.RESERVE;
         // prevent unstaking if override due to vulnerabilities
         require(
             !pauseUnstaking && !pauseInstantUnstaking,
@@ -552,9 +552,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_trigger) {
             rebase();
         }
-
-        console.log("isCurve", _type == InstantUnstakeType.CURVE);
-        console.log("isReserve", _type == InstantUnstakeType.RESERVE);
 
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
