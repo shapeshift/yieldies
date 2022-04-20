@@ -17,7 +17,7 @@ jobs:
       - name: Install
         run: yarn install
       - name: Compile
-        run: yarn compile
+        run: yarn compile --force
       - name: Lint
         run: yarn lint
       - name: Test
