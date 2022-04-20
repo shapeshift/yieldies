@@ -33,10 +33,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _tokeReward,
         address _liquidityReserve,
         address _affilateAddress,
+        address _curvePool,
         uint256 _epochLength,
         uint256 _firstEpochNumber,
-        uint256 _firstEpochBlock,
-        uint256 _timeLeftToRequestWithdrawal
+        uint256 _firstEpochBlock
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -59,7 +59,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
         AFFILIATE_ADDRESS = _affilateAddress;
-        timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
+        CURVE_POOL = _curvePool;
+
+        timeLeftToRequestWithdrawal = 43200;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
@@ -69,8 +71,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // create vesting contract to hold newly unstaked rewardTokens based on cooldown period
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
-
-        CURVE_POOL = 0xC250B22d15e43d95fBE27B12d98B6098f8493eaC; // TODO: pass in address
 
         IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
@@ -583,7 +583,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _trigger bool - should trigger a rebase
         @param _type InstantUnstakeType - type of instantUnstake that should occur
      */
-    function instantUnstakeByType(bool _trigger, InstantUnstakeType _type) public {
+    function instantUnstakeByType(bool _trigger, InstantUnstakeType _type)
+        public
+    {
         // prevent unstaking if override due to vulnerabilities
         require(
             !pauseUnstaking && !pauseInstantUnstaking,

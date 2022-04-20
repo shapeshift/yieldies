@@ -6,9 +6,10 @@ async function main() {
   const tokePool = "0x808D3E6b23516967ceAE4f17a5F9038383ED5311";
   const tokeManager = "0xa86e412109f77c45a3bc1c5870b880492fb86a14";
   const tokeReward = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5";
+  const curvePool = "0xC250B22d15e43d95fBE27B12d98B6098f8493eaC";
 
   const epochLength = 44800;
-  const timeLeftToRequestWithdrawal = 43200;
+
   const firstEpochNumber = 1;
   const currentBlock = await ethers.provider.getBlockNumber();
   const firstEpochBlock = currentBlock + epochLength;
@@ -45,10 +46,10 @@ async function main() {
     tokeReward,
     liquidityReserve.address,
     ethers.constants.AddressZero,
+    curvePool,
     epochLength,
     firstEpochNumber,
     firstEpochBlock,
-    timeLeftToRequestWithdrawal,
   ]);
   console.log("Staking deployed to:", staking.address);
   await staking.deployed();

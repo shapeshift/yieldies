@@ -120,10 +120,10 @@ describe("Staking", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       constants.EPOCH_LENGTH,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochBlock,
-      timeLeftToRequestWithdrawal,
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();
@@ -432,10 +432,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -448,10 +448,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -464,10 +464,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -480,10 +480,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -496,10 +496,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -512,10 +512,10 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_LENGTH,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochBlock,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
     });
