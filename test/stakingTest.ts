@@ -982,7 +982,7 @@ describe("Staking", function () {
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
     });
-    it.only("Can instant unstake with liquidity reserve", async () => {
+    it("Can instant unstake with liquidity reserve", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
