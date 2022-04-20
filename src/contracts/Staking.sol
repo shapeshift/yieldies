@@ -162,7 +162,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _curveAddress address
      */
     function setCurveAddress(address _curveAddress) public onlyOwner {
-        AFFILIATE_ADDRESS = _curveAddress;
+        CURVE_POOL = _curveAddress;
     }
 
     /**
