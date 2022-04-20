@@ -598,9 +598,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 balance = getBalanceForInstantUnstake();
 
         if (_type == InstantUnstakeType.CURVE) {
-            instantCurve(balance);
+            instantUnstakeCurve(balance);
         } else {
-            instantLiquidityReserve(balance);
+            instantUnstakeReserve(balance);
         }
     }
 
@@ -645,8 +645,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice instant unstake from liquidity reserve
         @param _amount uint - amount to instant unstake
      */
-    function instantLiquidityReserve(uint256 _amount) internal {
-        // instant unstake from LR contract
+    function instantUnstakeReserve(uint256 _amount) internal {
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
             _amount,
             msg.sender
@@ -688,7 +687,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice instant unstake from curve
         @param _amount uint - amount to instant unstake
      */
-    function instantCurve(uint256 _amount) internal returns (uint256) {
+    function instantUnstakeCurve(uint256 _amount) internal returns (uint256) {
         (int128 from, int128 to) = getToAndromCurve();
         uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(
             from,
