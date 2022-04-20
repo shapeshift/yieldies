@@ -65,6 +65,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
+        CURVE_POOL = 0xC250B22d15e43d95fBE27B12d98B6098f8493eaC;
+
         IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
             LIQUIDITY_RESERVE,
@@ -613,20 +615,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function getToAndromCurve() internal returns (int128, int128) {
         address address0 = ICurvePool(CURVE_POOL).coins(0);
         address address1 = ICurvePool(CURVE_POOL).coins(1);
-        int128 i;
-        int128 j;
+        int128 from = 0;
+        int128 to = 0;
 
         if (TOKE_POOL == address0 && STAKING_TOKEN == address1) {
-            i = 0;
-            j = 1;
+            to = 1;
         } else if (TOKE_POOL == address1 && STAKING_TOKEN == address0) {
-            i = 1;
-            j = 0;
+            from = 1;
         }
+        require(from == 1 || to == 1, "Invalid Curve Pool");
 
-        require(i != 0 || j != 0, "Invalid Curve Pool");
-
-        return (i, j);
+        return (from, to);
     }
 
     /**
@@ -634,9 +633,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to instant unstake
      */
     function estimateInstantCurve(uint256 _amount) external returns (uint256) {
-        (int128 i, int128 j) = getToAndromCurve();
+        (int128 from, int128 to) = getToAndromCurve();
 
-        return ICurvePool(CURVE_POOL).get_dy(i, j, _amount);
+        return ICurvePool(CURVE_POOL).get_dy(from, to, _amount);
     }
 
     /**
@@ -644,13 +643,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to instant unstake
      */
     function instantCurve(uint256 _amount) internal returns (uint256) {
-        (int128 i, int128 j) = getToAndromCurve();
-        uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(i, j, _amount);
+        (int128 from, int128 to) = getToAndromCurve();
+        uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(
+            from,
+            to,
+            _amount
+        );
 
         return
             ICurvePool(CURVE_POOL).exchange(
-                i,
-                j,
+                from,
+                to,
                 _amount,
                 incomingAmount,
                 address(this)
