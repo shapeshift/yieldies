@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MAINNET_URL: https://eth-mainnet.alchemyapi.io/v2/CDf_84N-bbVsyODpzmL_ahJwyrZvsTb7
+      BLOCK_NUMBER: 14391300
     steps:
       - name: Checkout
         uses: actions/checkout@v2
