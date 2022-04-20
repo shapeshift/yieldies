@@ -9,6 +9,8 @@ on:
 jobs:
   commitlint-lint-test-build:
     runs-on: ubuntu-latest
+    env:
+      MAINNET_URL: https://eth-mainnet.alchemyapi.io/v2/CDf_84N-bbVsyODpzmL_ahJwyrZvsTb7
     steps:
       - name: Checkout
         uses: actions/checkout@v2
