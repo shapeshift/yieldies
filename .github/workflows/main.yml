@@ -17,10 +17,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - name: Install
-        run: yarn install
+        run: yarn install --frozen-lockfile
       - name: Compile
-        run: yarn compile --force
+        run: yarn compile
       - name: Lint
         run: yarn lint
       - name: Test
