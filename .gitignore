@@ -108,3 +108,4 @@ deployments/
 cache/
 typechain-types/
 coverage.json
+artifacts/
