@@ -25,9 +25,9 @@ contract StakingV2Test is OwnableUpgradeable, StakingStorage {
         address _tokeManager,
         address _tokeReward,
         address _liquidityReserve,
-        uint256 _epochLength,
+        uint256 _epochDuration,
         uint256 _firstEpochNumber,
-        uint256 _firstEpochBlock,
+        uint256 _firstEpochEndTime,
         uint256 _timeLeftToRequestWithdrawal
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
@@ -68,9 +68,10 @@ contract StakingV2Test is OwnableUpgradeable, StakingStorage {
         );
 
         epoch = Epoch({
-            length: _epochLength,
+            duration: _epochDuration,
             number: _firstEpochNumber,
-            endBlock: _firstEpochBlock,
+            timestamp: block.timestamp,
+            endTime: _firstEpochEndTime,
             distribute: 0 // TODO: don't reset epoch rewards
         });
     }
@@ -134,12 +135,12 @@ contract StakingV2Test is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice set epoch length
+        @notice set epoch duration
         @dev epoch's determine how long until a rebase can occur
-        @param length uint
+        @param duration uint
      */
-    function setEpochLength(uint256 length) external onlyOwner {
-        epoch.length = length;
+    function setEpochDuration(uint256 duration) external onlyOwner {
+        epoch.duration = duration;
     }
 
     /**
@@ -580,10 +581,11 @@ contract StakingV2Test is OwnableUpgradeable, StakingStorage {
         @notice trigger rebase if epoch has ended
      */
     function rebase() public {
-        if (epoch.endBlock <= block.number) {
+        if (epoch.endTime <= block.timestamp) {
             IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.number);
 
-            epoch.endBlock = epoch.endBlock + epoch.length;
+            epoch.endTime = epoch.endTime + epoch.duration;
+            epoch.timestamp = block.timestamp;
             epoch.number++;
 
             uint256 balance = contractBalance();

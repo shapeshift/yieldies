@@ -62,7 +62,9 @@ describe("Liquidity Reserve", function () {
     await rewardToken.deployed();
 
     const currentBlock = await ethers.provider.getBlockNumber();
-    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+    const currentTime = (await ethers.provider.getBlock(currentBlock))
+      .timestamp;
+    const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
     const timeLeftToRequestWithdrawal = 43200;
 
     stakingToken = new ethers.Contract(
@@ -91,9 +93,9 @@ describe("Liquidity Reserve", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
-      constants.EPOCH_LENGTH,
+      constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochBlock,
+      firstEpochEndTime,
       timeLeftToRequestWithdrawal,
     ])) as Staking;
 

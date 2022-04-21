@@ -35,25 +35,24 @@ describe("Staking", function () {
 
   // mines blocks to the next TOKE cycle
   async function mineBlocksToNextCycle() {
-    let currentBlock = await ethers.provider.getBlockNumber();
+    const currentBlock = await ethers.provider.getBlockNumber();
     let currentTime = (await ethers.provider.getBlock(currentBlock)).timestamp;
     const cycleDuration = await tokeManager.getCycleDuration();
     const cycleStart = await tokeManager.getCurrentCycle();
     const nextCycleTime = cycleStart.toNumber() + cycleDuration.toNumber();
+
     while (currentTime <= nextCycleTime) {
       await network.provider.send("hardhat_mine", ["0x100"]);
       const block = await ethers.provider.getBlockNumber();
       currentTime = (await ethers.provider.getBlock(block)).timestamp;
     }
+  }
 
-    currentBlock = await ethers.provider.getBlockNumber();
-    const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+  // skips EVM time equal to epoch duration
+  async function mineToNextEpoch() {
+    const epochLength = (await staking.epoch()).duration.toNumber();
+    await network.provider.send("evm_increaseTime", [epochLength + 10]);
+    await network.provider.send("hardhat_mine");
   }
 
   beforeEach(async () => {
@@ -107,7 +106,9 @@ describe("Staking", function () {
     ])) as LiquidityReserve;
 
     const currentBlock = await ethers.provider.getBlockNumber();
-    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+    const currentTime = (await ethers.provider.getBlock(currentBlock))
+      .timestamp;
+    const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
     const timeLeftToRequestWithdrawal = 43200;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
@@ -120,9 +121,9 @@ describe("Staking", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
-      constants.EPOCH_LENGTH,
+      constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochBlock,
+      firstEpochEndTime,
       timeLeftToRequestWithdrawal,
     ])) as Staking;
 
@@ -197,14 +198,8 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
+      await mineToNextEpoch();
 
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
       await stakingStaker1.rebase();
 
       // warmUpInfo for staker1 should be stakingAmount
@@ -237,14 +232,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // should auto claim the current warmup rewards when staking again
@@ -347,6 +335,7 @@ describe("Staking", function () {
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -393,6 +382,7 @@ describe("Staking", function () {
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // can claim now
@@ -417,8 +407,11 @@ describe("Staking", function () {
     });
     it("Fails when no staking/reward token or staking contract is passed in", async () => {
       const stakingFactory = await ethers.getContractFactory("Staking");
+
       const currentBlock = await ethers.provider.getBlockNumber();
-      const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+      const currentTime = (await ethers.provider.getBlock(currentBlock))
+        .timestamp;
+      const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
       const timeLeftToRequestWithdrawal = 43200;
 
       // fail due to bad addresses
@@ -432,9 +425,9 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -448,9 +441,9 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -464,9 +457,9 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -480,9 +473,9 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -496,9 +489,9 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -512,9 +505,9 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           liquidityReserve.address,
           ethers.constants.AddressZero,
-          constants.EPOCH_LENGTH,
+          constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochBlock,
+          firstEpochEndTime,
           timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
@@ -612,14 +605,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // need to rebase to increase epoch number
       await stakingStaker1.rebase();
@@ -638,6 +624,7 @@ describe("Staking", function () {
       await stakingStaker1.unstake(stakingAmount, false);
 
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.sendWithdrawalRequests();
 
       await network.provider.request({
@@ -727,15 +714,7 @@ describe("Staking", function () {
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
-
+      await mineToNextEpoch();
       // need to rebase to increase epoch number
       await stakingStaker1.rebase();
 
@@ -784,14 +763,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // need to rebase to increase epoch number
       await stakingStaker1.rebase();
@@ -850,14 +822,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // warmUpInfo for staker1 should be stakingAmount
@@ -925,14 +890,7 @@ describe("Staking", function () {
       rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(0);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // can claim now due to expiry passing
@@ -1083,14 +1041,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // warmUpInfo for staker1 should be stakingAmount
@@ -1123,14 +1074,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // should auto claim the current warmup rewards when staking again
@@ -1174,6 +1118,7 @@ describe("Staking", function () {
 
       // able to unstake with warmup & wallet balance
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
 
       let coolDownInfo = await staking.coolDownInfo(staker1);
       expect(coolDownInfo.amount).eq(0);
@@ -1233,6 +1178,7 @@ describe("Staking", function () {
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
@@ -1247,6 +1193,7 @@ describe("Staking", function () {
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // can claim now
@@ -1316,14 +1263,7 @@ describe("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let currentBlock = await ethers.provider.getBlockNumber();
-      const nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // no need to call sendWithdrawalRequests if previously mined to next block
@@ -1603,14 +1543,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
 
       // fast forward to after reward block
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // call rebase - no change still rewards are issued in a 1 period lagging fashion...
       await staking.rebase();
@@ -1618,14 +1551,7 @@ describe("Staking", function () {
 
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
 
-      currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // finally rewards should be issued
       await staking.rebase();
@@ -1699,14 +1625,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
 
       // fast forward to after reward block
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // call rebase - no change still rewards are issued in a 1 period lagging fashion...
       await staking.rebase();
@@ -1716,14 +1635,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
 
-      currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // finally rewards should be issued
       await staking.rebase();
@@ -1792,14 +1704,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
 
       // fast forward to after reward block
-      let currentBlock = await ethers.provider.getBlockNumber();
-      let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       // call rebase - no change still rewards are issued in a 1 period lagging fashion...
       await staking.rebase();
@@ -1808,14 +1713,7 @@ describe("Staking", function () {
       expect(rewardTokenBalanceStaker1).eq(stakingAmount1);
       expect(rewardTokenBalanceStaker2).eq(stakingAmount2);
 
-      currentBlock = await ethers.provider.getBlockNumber();
-      nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-      // mining 256 blocks at a time
-      for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-        await network.provider.send("hardhat_mine", ["0x100"]);
-        currentBlock = await ethers.provider.getBlockNumber();
-      }
+      await mineToNextEpoch();
 
       const newStakingAmount1 = stakingAmount1.add(909);
       const newStakingAmount2 = stakingAmount2.add(90);
@@ -2104,12 +2002,10 @@ describe("Staking", function () {
       await stakingTokenStaker3.approve(staking.address, stakingAmount3);
       await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
       await stakingStaker3.claim(staker3);
-
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount1);
       await stakingStaker1.unstake(stakingAmount1, false);
-
       // initial withdraw request sets lastTokeCycleIndex
       await mineBlocksToNextCycle();
       await stakingStaker1.sendWithdrawalRequests();
@@ -2118,7 +2014,6 @@ describe("Staking", function () {
         stakingStaker1.address
       );
       expect(requestedWithdrawals.amount).eq(stakingAmount1);
-
       await rewardToken
         .connect(staker2Signer as Signer)
         .approve(staking.address, stakingAmount2);
@@ -2128,6 +2023,7 @@ describe("Staking", function () {
         method: "hardhat_impersonateAccount",
         params: [constants.TOKE_OWNER],
       });
+
       const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
@@ -2138,6 +2034,7 @@ describe("Staking", function () {
       requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
       );
+
       expect(requestedWithdrawals.amount).eq(stakingAmount1);
 
       await mineBlocksToNextCycle();
@@ -2705,14 +2602,14 @@ describe("Staking", function () {
       expect(stakingTokenBalance).eq(0);
 
       let epoch = await staking.epoch();
-      // @ts-ignore
-      expect(epoch._length).eq(44800);
 
-      await stakingAdmin.setEpochLength(1000);
+      expect(epoch.duration).eq(constants.EPOCH_DURATION);
+
+      await stakingAdmin.setEpochDuration(1000);
 
       epoch = await staking.epoch();
-      // @ts-ignore
-      expect(epoch._length).eq(1000);
+
+      expect(epoch.duration).eq(1000);
 
       // test unstakAllFromTokemak
 
@@ -2850,6 +2747,7 @@ describe("Staking", function () {
 
       // rebase so staker3 can claim
       await mineBlocksToNextCycle();
+      await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       await stakingStaker3.claimWithdraw(staker3);
