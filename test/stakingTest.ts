@@ -109,7 +109,6 @@ describe("Staking", function () {
     const currentTime = (await ethers.provider.getBlock(currentBlock))
       .timestamp;
     const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
-    const timeLeftToRequestWithdrawal = 43200;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(stakingDeployment, [
@@ -121,10 +120,10 @@ describe("Staking", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
+      constants.CURVE_POOL,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
-      timeLeftToRequestWithdrawal,
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();
@@ -412,7 +411,6 @@ describe("Staking", function () {
       const currentTime = (await ethers.provider.getBlock(currentBlock))
         .timestamp;
       const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
-      const timeLeftToRequestWithdrawal = 43200;
 
       // fail due to bad addresses
       await expect(
@@ -425,10 +423,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -441,10 +439,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -457,10 +455,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -473,10 +471,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -489,10 +487,10 @@ describe("Staking", function () {
           constants.TOKE_REWARD,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
       await expect(
@@ -505,10 +503,10 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           liquidityReserve.address,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
-          timeLeftToRequestWithdrawal,
         ])
       ).to.be.reverted;
     });
@@ -940,7 +938,43 @@ describe("Staking", function () {
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
     });
-    it("Can instant unstake", async () => {
+    it("Can instant unstake with curve", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("1000000000000001");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(transferAmount);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      const estimatedTransferAmount = await staking.estimateInstantCurve(
+        transferAmount
+      );
+      await stakingStaker1.instantUnstake(false);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(0);
+
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(estimatedTransferAmount);
+    });
+    it("Can instant unstake with liquidity reserve", async () => {
       const { staker1 } = await getNamedAccounts();
 
       const transferAmount = BigNumber.from("10000");
@@ -1208,37 +1242,6 @@ describe("Staking", function () {
       // should still have some reward tokens left
       rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(stakingAmount);
-    });
-    it("Can't instant unstake if not enough liquidity reserve", async () => {
-      const { staker1 } = await getNamedAccounts();
-      await staking.setWarmUpPeriod(1);
-
-      const balance = await stakingToken.balanceOf(liquidityReserve.address);
-      const transferAmount = balance.add(1);
-      await stakingToken.transfer(staker1, transferAmount);
-
-      const staker1Signer = accounts.find(
-        (account) => account.address === staker1
-      );
-      const stakingStaker1 = staking.connect(staker1Signer as Signer);
-
-      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
-      await stakingTokenStaker1.approve(staking.address, transferAmount);
-      await stakingStaker1.functions["stake(uint256)"](transferAmount);
-
-      await rewardToken
-        .connect(staker1Signer as Signer)
-        .approve(staking.address, transferAmount);
-
-      const rewardBalance = await rewardToken.balanceOf(staker1);
-      expect(rewardBalance).eq(0);
-
-      const stakingTokenBalance = await stakingToken.balanceOf(staker1);
-      expect(stakingTokenBalance).eq(0);
-
-      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
-        "Not enough funds in reserve"
-      );
     });
     it("when unstaking again without claimWithdraw it auto claims withdraw", async () => {
       const { staker1 } = await getNamedAccounts();

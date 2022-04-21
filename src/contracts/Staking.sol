@@ -13,9 +13,15 @@ import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
+import "../interfaces/ICurvePool.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    enum InstantUnstakeType {
+        RESERVE,
+        CURVE
+    }
 
     function initialize(
         address _stakingToken,
@@ -26,10 +32,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _tokeReward,
         address _liquidityReserve,
         address _affilateAddress,
+        address _curvePool,
         uint256 _epochDuration,
         uint256 _firstEpochNumber,
-        uint256 _firstEpochEndTime,
-        uint256 _timeLeftToRequestWithdrawal
+        uint256 _firstEpochEndTime
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -52,7 +58,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
         AFFILIATE_ADDRESS = _affilateAddress;
-        timeLeftToRequestWithdrawal = _timeLeftToRequestWithdrawal;
+        CURVE_POOL = _curvePool;
+
+        timeLeftToRequestWithdrawal = 43200;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
@@ -63,7 +71,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
-        IERC20Upgradeable(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
+        if (CURVE_POOL != address(0))
+            IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
+
+        IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
             LIQUIDITY_RESERVE,
             type(uint256).max
@@ -529,12 +540,48 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
-        @dev this is in the staking contract due to users having reward tokens (potentially) in the warmup contract
-        @dev this function talks to the instantUnstake function in the liquidity reserve contract
+        @notice figures out which unstake type is needed to instant unstake and then calls instantUnstakeByType
+        @dev checks to see if enough balance exists in liquidity reserve, otherwise uses curve
         @param _trigger bool - should trigger a rebase
      */
     function instantUnstake(bool _trigger) external {
+        // prevent unstaking if override due to vulnerabilities
+        require(
+            !pauseUnstaking && !pauseInstantUnstaking,
+            "Unstaking is paused"
+        );
+
+        Claim memory userWarmInfo = warmUpInfo[msg.sender];
+        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+            msg.sender
+        );
+        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
+            userWarmInfo.gons
+        );
+        uint256 balance = warmUpBalance + walletBalance;
+        uint256 reserveBalance = IERC20(STAKING_TOKEN).balanceOf(
+            LIQUIDITY_RESERVE
+        );
+
+        InstantUnstakeType unstakeType = InstantUnstakeType.RESERVE;
+        if (reserveBalance < balance) {
+            // TODO: make method in LR
+            unstakeType = InstantUnstakeType.CURVE;
+        }
+
+        instantUnstakeByType(_trigger, unstakeType);
+    }
+
+    /**
+        @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
+        @dev this function will claim the FOXy from warmUp/user and then route to the appropriate instant unstake interface
+        @dev the current interfaces to instant unstake are through Curve or our Liquidity Reserve contract
+        @param _trigger bool - should trigger a rebase
+        @param _type InstantUnstakeType - type of instantUnstake that should occur
+     */
+    function instantUnstakeByType(bool _trigger, InstantUnstakeType _type)
+        public
+    {
         // prevent unstaking if override due to vulnerabilities
         require(
             !pauseUnstaking && !pauseInstantUnstaking,
@@ -544,6 +591,16 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             rebase();
         }
 
+        uint256 balance = getBalanceForInstantUnstake();
+
+        if (_type == InstantUnstakeType.CURVE) {
+            instantUnstakeCurve(balance);
+        } else {
+            instantUnstakeReserve(balance);
+        }
+    }
+
+    function getBalanceForInstantUnstake() internal returns (uint256) {
         Claim memory userWarmInfo = warmUpInfo[msg.sender];
 
         uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
@@ -553,15 +610,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             userWarmInfo.gons
         );
         uint256 totalBalance = warmUpBalance + walletBalance;
-        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
-            .balanceOf(LIQUIDITY_RESERVE);
 
         // verify that we have enough stakingTokens
         require(totalBalance != 0, "Must have reward tokens");
-        require(
-            stakingTokenBalance >= totalBalance,
-            "Not enough funds in reserve"
-        );
 
         // claim senders warmup balance
         if (warmUpBalance > 0) {
@@ -577,12 +628,80 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 walletBalance
             );
         }
+        return totalBalance;
+    }
 
-        // instant unstake from LR contract
+    /**
+        @notice instant unstake from liquidity reserve
+        @param _amount uint - amount to instant unstake
+     */
+    function instantUnstakeReserve(uint256 _amount) internal {
+        uint256 reserveBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
+            LIQUIDITY_RESERVE
+        );
+
+        require(reserveBalance >= _amount, "Not enough funds in reserve");
+
         ILiquidityReserve(LIQUIDITY_RESERVE).instantUnstake(
-            totalBalance,
+            _amount,
             msg.sender
         );
+    }
+
+    /**
+        @notice get to and from coin indexes for curve exchange
+     */
+    function getToAndromCurve() internal view returns (int128, int128) {
+        require(CURVE_POOL != address(0), "No Curve address set");
+
+        address address0 = ICurvePool(CURVE_POOL).coins(0);
+        address address1 = ICurvePool(CURVE_POOL).coins(1);
+        int128 from = 0;
+        int128 to = 0;
+
+        if (TOKE_POOL == address0 && STAKING_TOKEN == address1) {
+            to = 1;
+        } else if (TOKE_POOL == address1 && STAKING_TOKEN == address0) {
+            from = 1;
+        }
+        require(from == 1 || to == 1, "Invalid Curve Pool");
+
+        return (from, to);
+    }
+
+    /**
+        @notice estimate received using instant unstake from curve
+        @param _amount uint - amount to instant unstake
+     */
+    function estimateInstantCurve(uint256 _amount)
+        external
+        view
+        returns (uint256)
+    {
+        (int128 from, int128 to) = getToAndromCurve();
+        return ICurvePool(CURVE_POOL).get_dy(from, to, _amount);
+    }
+
+    /**
+        @notice instant unstake from curve
+        @param _amount uint - amount to instant unstake
+     */
+    function instantUnstakeCurve(uint256 _amount) internal returns (uint256) {
+        (int128 from, int128 to) = getToAndromCurve();
+        uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(
+            from,
+            to,
+            _amount
+        );
+
+        return
+            ICurvePool(CURVE_POOL).exchange(
+                from,
+                to,
+                _amount,
+                incomingAmount,
+                msg.sender
+            );
     }
 
     /**

@@ -97,7 +97,6 @@ describe("Integration", function () {
     const currentTime = (await ethers.provider.getBlock(currentBlock))
       .timestamp;
     const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
-    const timeLeftToRequestWithdrawal = 43200;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(stakingDeployment, [
@@ -109,10 +108,10 @@ describe("Integration", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
-      timeLeftToRequestWithdrawal,
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();

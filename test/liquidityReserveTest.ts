@@ -65,7 +65,6 @@ describe("Liquidity Reserve", function () {
     const currentTime = (await ethers.provider.getBlock(currentBlock))
       .timestamp;
     const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
-    const timeLeftToRequestWithdrawal = 43200;
 
     stakingToken = new ethers.Contract(
       constants.STAKING_TOKEN,
@@ -93,10 +92,10 @@ describe("Liquidity Reserve", function () {
       constants.TOKE_REWARD,
       liquidityReserve.address,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
-      timeLeftToRequestWithdrawal,
     ])) as Staking;
 
     await network.provider.request({
@@ -996,7 +995,7 @@ describe("Liquidity Reserve", function () {
       await rewardTokenStaker1.approve(stakingContract.address, stakingAmount);
 
       await expect(
-        stakingContractStaker1.instantUnstake(false)
+        stakingContractStaker1.instantUnstakeByType(false, 0)
       ).to.be.revertedWith("Not enough funds in reserve");
     });
   });
