@@ -93,6 +93,10 @@ describe("Integration", function () {
       yieldy.address,
     ])) as LiquidityReserve;
 
+    const currentBlock = await ethers.provider.getBlockNumber();
+    const currentTime = (await ethers.provider.getBlock(currentBlock))
+      .timestamp;
+    const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
     const timeLeftToRequestWithdrawal = 43200;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
@@ -107,6 +111,7 @@ describe("Integration", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
+      firstEpochEndTime,
       timeLeftToRequestWithdrawal,
     ])) as Staking;
 

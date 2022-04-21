@@ -28,6 +28,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _affilateAddress,
         uint256 _epochDuration,
         uint256 _firstEpochNumber,
+        uint256 _firstEpochEndTime,
         uint256 _timeLeftToRequestWithdrawal
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
@@ -72,7 +73,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             duration: _epochDuration,
             number: _firstEpochNumber,
             timestamp: block.timestamp,
-            endTime: block.timestamp + _epochDuration,
+            endTime: _firstEpochEndTime,
             distribute: 0
         });
     }
@@ -626,7 +627,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function rebase() public {
         if (epoch.endTime <= block.timestamp) {
-            IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.timestamp);
+            IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.number);
 
             epoch.endTime = epoch.endTime + epoch.duration;
             epoch.timestamp = block.timestamp;
