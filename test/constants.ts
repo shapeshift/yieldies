@@ -10,6 +10,7 @@ export const TOKE_OWNER = "0x90b6c61b102ea260131ab48377e143d6eb3a9d4b"; // owner
 export const TOKE_TOKEN = "0x2e9d63788249371f1dfc918a52f8d799f4a38c94";
 export const TOKE_MANAGER = "0xa86e412109f77c45a3bc1c5870b880492fb86a14";
 export const TOKE_REWARD = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5"; // TOKE reward contract address
+export const CURVE_POOL = "0xC250B22d15e43d95fBE27B12d98B6098f8493eaC"; // Curve tFOX -> FOX pool
 export const LATEST_CLAIMABLE_HASH =
   "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
 export const EPOCH_LENGTH = 44800;

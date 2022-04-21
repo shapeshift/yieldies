@@ -942,7 +942,7 @@ describe("Liquidity Reserve", function () {
       ).to.be.revertedWith("Not enough lr tokens");
     });
 
-    it("instantUnstake has required balance", async () => {
+    it.only("instantUnstake has required balance", async () => {
       const { staker1, daoTreasury, liquidityProvider1 } =
         await getNamedAccounts();
 
@@ -993,7 +993,7 @@ describe("Liquidity Reserve", function () {
       await rewardTokenStaker1.approve(stakingContract.address, stakingAmount);
 
       await expect(
-        stakingContractStaker1.instantUnstake(false)
+        stakingContractStaker1.instantUnstakeByType(false, 0)
       ).to.be.revertedWith("Not enough funds in reserve");
     });
   });
