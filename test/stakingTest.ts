@@ -123,7 +123,7 @@ describe("Staking", function () {
       constants.CURVE_POOL,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochEndTime
+      firstEpochEndTime,
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();
@@ -426,7 +426,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
       await expect(
@@ -442,7 +442,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
       await expect(
@@ -458,7 +458,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
       await expect(
@@ -474,7 +474,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
       await expect(
@@ -490,7 +490,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
       await expect(
@@ -506,7 +506,7 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
           constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime
+          firstEpochEndTime,
         ])
       ).to.be.reverted;
     });

@@ -111,7 +111,7 @@ describe("Integration", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochEndTime
+      firstEpochEndTime,
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();

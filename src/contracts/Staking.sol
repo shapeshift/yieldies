@@ -73,7 +73,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         if (CURVE_POOL != address(0))
             IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
-        
+
         IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
             LIQUIDITY_RESERVE,

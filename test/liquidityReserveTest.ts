@@ -95,7 +95,7 @@ describe("Liquidity Reserve", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochEndTime
+      firstEpochEndTime,
     ])) as Staking;
 
     await network.provider.request({
