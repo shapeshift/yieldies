@@ -41,6 +41,13 @@ describe("Integration", function () {
     }
   }
 
+  // skips EVM time equal to epoch duration
+  async function mineToNextEpoch() {
+    const epochLength = (await staking.epoch()).duration.toNumber();
+    await network.provider.send("evm_increaseTime", [epochLength + 10]);
+    await network.provider.send("hardhat_mine");
+  }
+
   beforeEach(async () => {
     const { admin } = await getNamedAccounts();
 
@@ -87,7 +94,9 @@ describe("Integration", function () {
     ])) as LiquidityReserve;
 
     const currentBlock = await ethers.provider.getBlockNumber();
-    const firstEpochBlock = currentBlock + constants.EPOCH_LENGTH;
+    const currentTime = (await ethers.provider.getBlock(currentBlock))
+      .timestamp;
+    const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
 
     const stakingDeployment = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(stakingDeployment, [
@@ -100,9 +109,9 @@ describe("Integration", function () {
       liquidityReserve.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      constants.EPOCH_LENGTH,
+      constants.EPOCH_DURATION,
       constants.FIRST_EPOCH_NUMBER,
-      firstEpochBlock,
+      firstEpochEndTime
     ])) as Staking;
 
     const warmUpAddress = await staking.WARM_UP_CONTRACT();
@@ -283,25 +292,10 @@ describe("Integration", function () {
     await staking.addRewardsForStakers(awardAmount, true);
 
     // rebase
-    let currentBlock = await ethers.provider.getBlockNumber();
-    let nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
-
+    await mineToNextEpoch();
     await staking.rebase();
 
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+    await mineToNextEpoch();
     await staking.rebase();
 
     // instantUnstake with staker1
@@ -348,25 +342,10 @@ describe("Integration", function () {
     expect(cooldownRewardTokenBalance).eq(182222222222221);
 
     // rebase
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
-
+    await mineToNextEpoch();
     await staking.rebase();
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
 
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
-
+    await mineToNextEpoch();
     await staking.rebase();
 
     // complete rollover & send withdraw requests to read withdraw for
@@ -405,23 +384,10 @@ describe("Integration", function () {
     expect(lpStakingBalance).eq(897613444916262);
 
     // rebase
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+    await mineToNextEpoch();
     await staking.rebase();
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
 
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+    await mineToNextEpoch();
     await staking.rebase();
 
     // stake with lp2
@@ -471,24 +437,10 @@ describe("Integration", function () {
     await staking.addRewardsForStakers(awardAmount, false);
 
     // rebase
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+    await mineToNextEpoch();
     await staking.rebase();
 
-    currentBlock = await ethers.provider.getBlockNumber();
-    nextRewardBlock = (await staking.epoch()).endBlock.toNumber();
-
-    // mining 256 blocks at a time
-    for (let i = currentBlock / 256; i <= nextRewardBlock / 256; i++) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      currentBlock = await ethers.provider.getBlockNumber();
-    }
+    await mineToNextEpoch();
     await staking.rebase();
 
     // complete rollover to increase tokeIndex
