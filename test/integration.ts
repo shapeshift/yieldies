@@ -26,19 +26,15 @@ describe("Integration", function () {
   let stakingWarmup: Vesting;
   let stakingCooldown: Vesting;
 
-  // mines blocks to the next TOKE cycle
+  // skips EVM time to the next TOKE and epoch cycle
   async function mineBlocksToNextCycle() {
-    const currentBlock = await ethers.provider.getBlockNumber();
-    let currentTime = (await ethers.provider.getBlock(currentBlock)).timestamp;
+    const epoch = await staking.epoch();
     const cycleDuration = await tokeManager.getCycleDuration();
-    const cycleStart = await tokeManager.getCurrentCycle();
-    const nextCycleTime = cycleStart.toNumber() + cycleDuration.toNumber();
-
-    while (currentTime <= nextCycleTime) {
-      await network.provider.send("hardhat_mine", ["0x100"]);
-      const block = await ethers.provider.getBlockNumber();
-      currentTime = (await ethers.provider.getBlock(block)).timestamp;
-    }
+    const cyceleStart = await tokeManager.getCurrentCycle();
+    const tokeEndTime = BigNumber.from(cyceleStart).add(cycleDuration)
+    const duration = tokeEndTime < epoch.endTime ? epoch.duration : cycleDuration
+    await network.provider.send("evm_increaseTime", [Number(duration) + 10]);
+    await network.provider.send("hardhat_mine");
   }
 
   // skips EVM time equal to epoch duration
@@ -57,7 +53,7 @@ describe("Integration", function () {
         {
           forking: {
             jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: Number(process.env.BLOCK_NUMBER),
+            blockNumber: constants.BLOCK_NUMBER,
           },
         },
       ],

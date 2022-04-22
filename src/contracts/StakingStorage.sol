@@ -14,8 +14,8 @@ contract StakingStorage {
     address public LIQUIDITY_RESERVE;
     address public WARM_UP_CONTRACT;
     address public COOL_DOWN_CONTRACT;
-    address public AFFILIATE_ADDRESS;
-    address public CURVE_POOL;
+    address public AFFILIATE_ADDRESS; // can be address(0)
+    address public CURVE_POOL; // can be address(0)
 
     // owner overrides
     bool public pauseStaking; // pauses staking

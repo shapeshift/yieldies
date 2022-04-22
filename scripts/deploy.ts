@@ -20,23 +20,23 @@ async function main() {
     "LiquidityReserve"
   );
 
-  console.log("Deploying Yieldy...");
+  console.info("Deploying Yieldy...");
   const yieldy = await upgrades.deployProxy(yieldyDeployment, [
     "Fox Yieldy",
     "FOXy",
   ]);
   await yieldy.deployed();
-  console.log("Yieldy deployed to:", yieldy.address);
+  console.info("Yieldy deployed to:", yieldy.address);
 
-  console.log("Deploying Liquidity Reserve...");
+  console.info("Deploying Liquidity Reserve...");
   const liquidityReserve = await upgrades.deployProxy(
     liquidityReserveDeployment,
     ["Liquidity Reserve FOX", "lrFOX", stakingToken, yieldy.address]
   );
   await liquidityReserve.deployed();
-  console.log("Liquidity Reserve deployed to:", liquidityReserve.address);
+  console.info("Liquidity Reserve deployed to:", liquidityReserve.address);
 
-  console.log("Deploying Staking...");
+  console.info("Deploying Staking...");
   const staking = await upgrades.deployProxy(Staking, [
     stakingToken,
     yieldy.address,
@@ -51,8 +51,11 @@ async function main() {
     firstEpochNumber,
     firstEpochBlock,
   ]);
-  console.log("Staking deployed to:", staking.address);
+  console.info("Staking deployed to:", staking.address);
   await staking.deployed();
+
+  await liquidityReserve.enableLiquidityReserve(staking.address)
+  await yieldy.initializeStakingContract(staking.address)
 }
 
 main()

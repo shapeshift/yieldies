@@ -79,11 +79,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             LIQUIDITY_RESERVE,
             type(uint256).max
         );
+        IERC20Upgradeable(REWARD_TOKEN).approve(
+            LIQUIDITY_RESERVE,
+            type(uint256).max
+        );
 
         epoch = Epoch({
             duration: _epochDuration,
             number: _firstEpochNumber,
-            timestamp: block.timestamp,
+            timestamp: block.timestamp, // we know about the issues surrounding block.timestamp, using it here will not cause any problems
             endTime: _firstEpochEndTime,
             distribute: 0
         });
@@ -275,6 +279,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
+
         if (
             requestedWithdrawals.amount > 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex
@@ -292,7 +297,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
-        tokePoolContract.requestWithdrawal(_amount);
+        uint256 balance = ITokePool(TOKE_POOL).balanceOf(address(this));
+        // the only way balance < _amount is when using unstakeAllFromTokemak
+        uint256 amountToRequest = balance < _amount ? balance : _amount; 
+
+        if (amountToRequest > 0) tokePoolContract.requestWithdrawal(_amount);
     }
 
     /**
@@ -732,7 +741,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         });
 
         requestWithdrawalAmount += _amount;
-
         sendWithdrawalRequests();
 
         IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
@@ -745,6 +753,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice trigger rebase if epoch has ended
      */
     function rebase() public {
+        // we know about the issues surrounding block.timestamp, using it here will not cause any problems
         if (epoch.endTime <= block.timestamp) {
             IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.number);
 
@@ -799,4 +808,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             rebase();
         }
     }
+
+    /**
+     * @notice trades rewards generated from claimFromTokemak for staking token, then calls addRewardsForStakers
+     * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
+     */
+    function autoRebase() internal {}
 }

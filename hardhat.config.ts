@@ -10,6 +10,7 @@ import "hardhat-deploy";
 import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
 import { HardhatUserConfig } from "hardhat/types";
+import { BLOCK_NUMBER } from "./test/constants";
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: process.env.MAINNET_URL || "",
-        blockNumber: Number(process.env.BLOCK_NUMBER),
+        blockNumber: BLOCK_NUMBER,
         enabled: true, // Set to false to disable forked mainnet mode
       },
     },
