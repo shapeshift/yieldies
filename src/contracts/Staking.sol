@@ -298,6 +298,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
         uint256 balance = ITokePool(TOKE_POOL).balanceOf(address(this));
+        
         // the only way balance < _amount is when using unstakeAllFromTokemak
         uint256 amountToRequest = balance < _amount ? balance : _amount; 
 
