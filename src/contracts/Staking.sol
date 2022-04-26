@@ -428,6 +428,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 _amount
             );
         }
+
+        sendWithdrawalRequests();
     }
 
     /**
