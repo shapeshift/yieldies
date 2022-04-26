@@ -329,7 +329,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev as well as if the current cycle index is more than the last cycle index
         @return bool - returns true if can batch transactions
      */
-    function _canBatchTransactions() internal view returns (bool) {
+    function canBatchTransactions() public view returns (bool) {
         ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
         uint256 duration = tokeManager.getCycleDuration();
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
@@ -362,7 +362,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function sendWithdrawalRequests() public {
         // check to see if near the end of a TOKE cycle
-        if (_canBatchTransactions()) {
+        if (canBatchTransactions()) {
             // if has withdrawal amount to be claimed then claim
             _withdrawFromTokemak();
 
