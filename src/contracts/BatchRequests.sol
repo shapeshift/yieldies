@@ -47,11 +47,11 @@ contract BatchRequests is Ownable {
         return contracts;
     }
 
-    function addAddress(address _address) external {
+    function addAddress(address _address) external onlyOwner {
         contracts.push(_address);
     }
 
-    function removeAddress(address _address) external {
+    function removeAddress(address _address) external onlyOwner {
         for (uint256 i = 0; i < contracts.length; i++) {
             if (contracts[i] == _address) {
                 delete contracts[i];
