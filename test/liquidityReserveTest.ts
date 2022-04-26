@@ -27,8 +27,9 @@ describe("Liquidity Reserve", function () {
     const epoch = await stakingContract.epoch();
     const cycleDuration = await tokeManager.getCycleDuration();
     const cyceleStart = await tokeManager.getCurrentCycle();
-    const tokeEndTime = BigNumber.from(cyceleStart).add(cycleDuration)
-    const duration = tokeEndTime < epoch.endTime ? epoch.duration : cycleDuration
+    const tokeEndTime = BigNumber.from(cyceleStart).add(cycleDuration);
+    const duration =
+      tokeEndTime < epoch.endTime ? epoch.duration : cycleDuration;
     await network.provider.send("evm_increaseTime", [Number(duration) + 10]);
     await network.provider.send("hardhat_mine");
   }

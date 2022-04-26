@@ -4,6 +4,10 @@ pragma solidity 0.8.9;
 import "../structs/Claim.sol";
 
 interface IStaking {
+    function canBatchTransactions() external view returns (bool);
+
+    function sendWithdrawalRequests() external;
+
     function unstake(uint256 amount_, bool trigger) external;
 
     function claimWithdraw(address _recipient) external;

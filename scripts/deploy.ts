@@ -54,8 +54,8 @@ async function main() {
   console.info("Staking deployed to:", staking.address);
   await staking.deployed();
 
-  await liquidityReserve.enableLiquidityReserve(staking.address)
-  await yieldy.initializeStakingContract(staking.address)
+  await liquidityReserve.enableLiquidityReserve(staking.address);
+  await yieldy.initializeStakingContract(staking.address);
 }
 
 main()

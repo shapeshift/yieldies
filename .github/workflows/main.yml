@@ -1,4 +1,4 @@
-name: Commitlint Lint Test & Build
+name: Lint & Test
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - develop
 
 jobs:
-  commitlint-lint-test-build:
+  lint-test:
     runs-on: ubuntu-latest
     env:
       MAINNET_URL: https://eth-mainnet.alchemyapi.io/v2/CDf_84N-bbVsyODpzmL_ahJwyrZvsTb7
