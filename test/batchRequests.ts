@@ -229,7 +229,6 @@ describe("BatchRequests", function () {
     await stakingStaker3.unstake(stakingAmount3, false);
 
     await mineToNextEpoch();
-    await mineToNextEpoch();
 
     const canBatchContracts = await batchRequests.canBatchContracts();
 
