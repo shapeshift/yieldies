@@ -20,6 +20,7 @@ import {
   StakingV2Test,
 } from "../typechain-types";
 import * as constants from "./constants";
+import axios from "axios";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -2175,6 +2176,65 @@ describe("Staking", function () {
   });
 
   describe("tokemak", function () {
+    it.only("Trades TOKE to stakingToken on CoW Protocol", async () => {
+      const { staker1, staker2 } = await getNamedAccounts();
+      const cowSettlement = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
+      const cowRelayer = "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110";
+
+      const transferAmount = "100000000000000000000";
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_TOKEN_WHALE],
+      });
+
+      const whaleSigner = await ethers.getSigner(constants.TOKE_TOKEN_WHALE);
+      const tokeTokenWhale = tokeToken.connect(whaleSigner);
+      await tokeTokenWhale.transfer(staking.address, transferAmount);
+
+      let tokeTokenBalance = await tokeToken.balanceOf(staking.address);
+      expect(BigNumber.from(tokeTokenBalance)).gte(
+        BigNumber.from(transferAmount)
+      );
+
+      try {
+        const response = await axios.post(
+          "https://api.cow.fi/mainnet/api/v1/quote",
+          {
+            sellToken: constants.TOKE_TOKEN, // address of token sold
+            buyToken: constants.STAKING_TOKEN, // address of token bought
+            receiver: staking.address, // address that receives proceedings of trade, if zero then user who signed
+            validTo: 2281625458, // timestamp until order is valid
+            appData:
+              "0x0000000000000000000000000000000000000000000000000000000000000000", // extra information
+            partiallyFillable: false,
+            sellTokenBalance: "erc20",
+            buyTokenBalance: "erc20",
+            from: staking.address,
+            kind: "sell", // sell or buy
+            sellAmountBeforeFee: transferAmount, // amount before fee
+          }
+        );
+        console.log(response.data);
+
+        const orderUid = await axios.post(
+          "https://api.cow.fi/mainnet/api/v1/orders",
+          {
+            ...response.data.quote,
+            signingScheme: "presign",
+            signature: staking.address,
+            from: staking.address,
+          }
+        );
+        console.log(orderUid.data);
+
+        await staking.preSign(orderUid.data);
+
+
+      } catch (e) {
+        console.error("Cow Quote Error:", e);
+      }
+    });
     it("Fails when incorrectly claims/transfer TOKE", async () => {
       const { staker1 } = await getNamedAccounts();
 

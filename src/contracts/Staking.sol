@@ -14,6 +14,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 import "../interfaces/ICurvePool.sol";
+import "../interfaces/ICowSettlement.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -81,6 +82,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         );
         IERC20Upgradeable(REWARD_TOKEN).approve(
             LIQUIDITY_RESERVE,
+            type(uint256).max
+        );
+        IERC20Upgradeable(TOKE_TOKEN).approve(
+            0xC92E8bdf79f0507f65a392b0ab4667716BFE0110,
             type(uint256).max
         );
 
@@ -298,9 +303,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function _requestWithdrawalFromTokemak(uint256 _amount) internal {
         ITokePool tokePoolContract = ITokePool(TOKE_POOL);
         uint256 balance = ITokePool(TOKE_POOL).balanceOf(address(this));
-        
+
         // the only way balance < _amount is when using unstakeAllFromTokemak
-        uint256 amountToRequest = balance < _amount ? balance : _amount; 
+        uint256 amountToRequest = balance < _amount ? balance : _amount;
 
         if (amountToRequest > 0) tokePoolContract.requestWithdrawal(_amount);
     }
@@ -816,5 +821,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice trades rewards generated from claimFromTokemak for staking token, then calls addRewardsForStakers
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
-    function autoRebase() internal {}
+    function preSign(bytes calldata orderUid) external onlyOwner {
+        ICowSettlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41)
+            .setPreSignature(orderUid, true);
+    }
 }
