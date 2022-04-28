@@ -2172,7 +2172,7 @@ describe("Staking", function () {
   describe("tokemak", function () {
     it("Trades TOKE to stakingToken on CoW Protocol", async () => {
       const cowSettlement = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
-      const transferAmount = "77000000000000000000000";
+      const transferAmount = "76000000000000000000000";
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -2188,48 +2188,48 @@ describe("Staking", function () {
         BigNumber.from(transferAmount)
       );
 
-      try {
-        const response = await axios.post(
-          "https://api.cow.fi/mainnet/api/v1/quote",
-          {
-            sellToken: constants.TOKE_TOKEN, // constants.TOKE_TOKEN, // address of token sold
-            buyToken: constants.STAKING_TOKEN, // constants.STAKING_TOKEN, // address of token bought
-            receiver: staking.address, // address that receives proceedings of trade, if zero then user who signed
-            validTo: 2281625458, // timestamp until order is valid
-            appData:
-              "0x0000000000000000000000000000000000000000000000000000000000000000", // extra information
-            partiallyFillable: false,
-            sellTokenBalance: "erc20",
-            buyTokenBalance: "erc20",
-            from: staking.address,
-            kind: "sell", // sell or buy
-            sellAmountBeforeFee: transferAmount, // amount before fee
-          }
-        );
-        expect(response.status).eq(200);
+      const response = await axios.post(
+        "https://api.cow.fi/mainnet/api/v1/quote",
+        {
+          sellToken: constants.TOKE_TOKEN, // constants.TOKE_TOKEN, // address of token sold
+          buyToken: constants.STAKING_TOKEN, // constants.STAKING_TOKEN, // address of token bought
+          receiver: staking.address, // address that receives proceedings of trade, if zero then user who signed
+          validTo: 2281625458, // timestamp until order is valid
+          appData:
+            "0x0000000000000000000000000000000000000000000000000000000000000000", // extra information
+          partiallyFillable: false,
+          sellTokenBalance: "erc20",
+          buyTokenBalance: "erc20",
+          from: staking.address,
+          kind: "sell", // sell or buy
+          sellAmountBeforeFee: transferAmount, // amount before fee
+        }
+      );
+      expect(response.status).eq(200);
 
-        const orderUid = await axios.post(
-          "https://api.cow.fi/mainnet/api/v1/orders",
-          {
-            ...response.data.quote,
-            signingScheme: "presign",
-            signature: staking.address,
-            from: staking.address,
-          }
-        );
-        expect(orderUid.status).eq(201);
+      const orderUid =
+        "0x497f2db4d50371e7041446c8ef3c5cf2b1b750d5dd8fbc8e7f0dc4d705372dfe10b3bb74bb7f3fd351e753b379c3cf596a2b94ec87fed772";
 
-        const cowSettlementContract = new ethers.Contract(
-          cowSettlement,
-          cowSettlementAbi,
-          accounts[0]
-        );
-        await expect(staking.preSign(orderUid.data))
-          .to.emit(cowSettlementContract, "PreSignature")
-          .withArgs(staking.address, orderUid.data, true);
-      } catch (e) {
-        console.error("Cow Quote Error:", e);
-      }
+      // actual implementation.  Can't use in tests due to failing when orderUid already exists
+
+      // await axios.post(
+      //   "https://api.cow.fi/mainnet/api/v1/orders",
+      //   {
+      //     ...response.data.quote,
+      //     signingScheme: "presign",
+      //     signature: staking.address,
+      //     from: staking.address,
+      //   }
+      // );
+
+      const cowSettlementContract = new ethers.Contract(
+        cowSettlement,
+        cowSettlementAbi,
+        accounts[0]
+      );
+      await expect(staking.preSign(orderUid))
+        .to.emit(cowSettlementContract, "PreSignature")
+        .withArgs(staking.address, orderUid, true);
     });
     it("Fails when incorrectly claims/transfer TOKE", async () => {
       const { staker1 } = await getNamedAccounts();
