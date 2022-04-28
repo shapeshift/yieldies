@@ -4,7 +4,6 @@ import {
   getNamedAccounts,
   network,
   upgrades,
-  artifacts,
 } from "hardhat";
 import { expect } from "chai";
 import { Yieldy } from "../typechain-types/Yieldy";
@@ -2184,11 +2183,11 @@ describe("Staking", function () {
       const tokeTokenWhale = tokeToken.connect(whaleSigner);
       await tokeTokenWhale.transfer(staking.address, transferAmount);
 
-      let tokeTokenBalance = await tokeToken.balanceOf(staking.address);
+      const tokeTokenBalance = await tokeToken.balanceOf(staking.address);
       expect(BigNumber.from(tokeTokenBalance)).gte(
         BigNumber.from(transferAmount)
       );
-      accounts = await ethers.getSigners();
+
       try {
         const response = await axios.post(
           "https://api.cow.fi/mainnet/api/v1/quote",

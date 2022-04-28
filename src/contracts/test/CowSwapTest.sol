@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract CowSwapTest {
     constructor() {
         // approve rinkeby dai
-        IERC20(0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa).approve( 
+        IERC20(0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa).approve(
             0xC92E8bdf79f0507f65a392b0ab4667716BFE0110,
             type(uint256).max
         );
