@@ -584,7 +584,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         InstantUnstakeType unstakeType = InstantUnstakeType.RESERVE;
         if (reserveBalance < balance) {
-            // TODO: make method in LR
+            // TODO: make method in LR - MrNerdHair
             unstakeType = InstantUnstakeType.CURVE;
         }
 
