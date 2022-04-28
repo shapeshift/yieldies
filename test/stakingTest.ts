@@ -4,6 +4,7 @@ import {
   getNamedAccounts,
   network,
   upgrades,
+  artifacts,
 } from "hardhat";
 import { expect } from "chai";
 import { Yieldy } from "../typechain-types/Yieldy";
@@ -11,6 +12,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
+import { cowSettlementAbi } from "../src/abis/cowSettlementAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import {
@@ -2169,12 +2171,9 @@ describe("Staking", function () {
   });
 
   describe("tokemak", function () {
-    it.only("Trades TOKE to stakingToken on CoW Protocol", async () => {
-      const { staker1, staker2 } = await getNamedAccounts();
+    it("Trades TOKE to stakingToken on CoW Protocol", async () => {
       const cowSettlement = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
-      const cowRelayer = "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110";
-
-      const transferAmount = "100000000000000000000";
+      const transferAmount = "77000000000000000000000";
 
       await network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -2189,13 +2188,13 @@ describe("Staking", function () {
       expect(BigNumber.from(tokeTokenBalance)).gte(
         BigNumber.from(transferAmount)
       );
-
+      accounts = await ethers.getSigners();
       try {
         const response = await axios.post(
           "https://api.cow.fi/mainnet/api/v1/quote",
           {
-            sellToken: constants.TOKE_TOKEN, // address of token sold
-            buyToken: constants.STAKING_TOKEN, // address of token bought
+            sellToken: constants.TOKE_TOKEN, // constants.TOKE_TOKEN, // address of token sold
+            buyToken: constants.STAKING_TOKEN, // constants.STAKING_TOKEN, // address of token bought
             receiver: staking.address, // address that receives proceedings of trade, if zero then user who signed
             validTo: 2281625458, // timestamp until order is valid
             appData:
@@ -2208,7 +2207,7 @@ describe("Staking", function () {
             sellAmountBeforeFee: transferAmount, // amount before fee
           }
         );
-        console.log(response.data);
+        expect(response.status).eq(200);
 
         const orderUid = await axios.post(
           "https://api.cow.fi/mainnet/api/v1/orders",
@@ -2219,9 +2218,16 @@ describe("Staking", function () {
             from: staking.address,
           }
         );
-        console.log(orderUid.data);
+        expect(orderUid.status).eq(201);
 
-        await staking.preSign(orderUid.data);
+        const cowSettlementContract = new ethers.Contract(
+          cowSettlement,
+          cowSettlementAbi,
+          accounts[0]
+        );
+        await expect(staking.preSign(orderUid.data))
+          .to.emit(cowSettlementContract, "PreSignature")
+          .withArgs(staking.address, orderUid.data, true);
       } catch (e) {
         console.error("Cow Quote Error:", e);
       }
