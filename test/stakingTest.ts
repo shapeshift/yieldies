@@ -2222,8 +2222,6 @@ describe("Staking", function () {
         console.log(orderUid.data);
 
         await staking.preSign(orderUid.data);
-
-
       } catch (e) {
         console.error("Cow Quote Error:", e);
       }
