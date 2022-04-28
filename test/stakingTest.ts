@@ -2170,6 +2170,8 @@ describe("Staking", function () {
   });
 
   describe("tokemak", function () {
+    // skipping due to order failing sometimes when called in succession
+    // tests cow swap order & presign
     it("Trades TOKE to stakingToken on CoW Protocol", async () => {
       const cowSettlement = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
       const transferAmount = "76000000000000000000000";
@@ -2207,29 +2209,24 @@ describe("Staking", function () {
       );
       expect(response.status).eq(200);
 
-      const orderUid =
-        "0x497f2db4d50371e7041446c8ef3c5cf2b1b750d5dd8fbc8e7f0dc4d705372dfe10b3bb74bb7f3fd351e753b379c3cf596a2b94ec87fed772";
-
-      // actual implementation.  Can't use in tests due to failing when orderUid already exists
-
-      // await axios.post(
-      //   "https://api.cow.fi/mainnet/api/v1/orders",
-      //   {
-      //     ...response.data.quote,
-      //     signingScheme: "presign",
-      //     signature: staking.address,
-      //     from: staking.address,
-      //   }
-      // );
+      const orderUid = await axios.post(
+        "https://api.cow.fi/mainnet/api/v1/orders",
+        {
+          ...response.data.quote,
+          signingScheme: "presign",
+          signature: staking.address,
+          from: staking.address,
+        }
+      );
 
       const cowSettlementContract = new ethers.Contract(
         cowSettlement,
         cowSettlementAbi,
         accounts[0]
       );
-      await expect(staking.preSign(orderUid))
+      await expect(staking.preSign(orderUid.data))
         .to.emit(cowSettlementContract, "PreSignature")
-        .withArgs(staking.address, orderUid, true);
+        .withArgs(staking.address, orderUid.data, true);
     });
     it("Fails when incorrectly claims/transfer TOKE", async () => {
       const { staker1 } = await getNamedAccounts();
