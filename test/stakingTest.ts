@@ -18,6 +18,7 @@ import {
   Vesting,
   Staking,
   StakingV2Test,
+  YieldyV2Test,
 } from "../typechain-types";
 import * as constants from "./constants";
 import axios from "axios";
@@ -340,24 +341,16 @@ describe("Staking", function () {
 
       // upgrade contracts
 
-      let index = await rewardToken.getIndex();
-      expect(index).eq("1000000000000000000");
-      let circulatingSupply = await rewardToken.circulatingSupply();
-      expect(circulatingSupply).eq("10000000");
-
       const rewardTokenDeployment = await ethers.getContractFactory(
         "YieldyV2Test"
       );
-      (await upgrades.upgradeProxy(
+      const rewardTokenV2 = (await upgrades.upgradeProxy(
         rewardToken.address,
         rewardTokenDeployment
-      )) as Yieldy;
+      )) as YieldyV2Test;
 
-      // YieldyV2 has hardcoded index/circulatingSupply
-      index = await rewardToken.getIndex();
-      expect(index).eq(123456);
-      circulatingSupply = await rewardToken.circulatingSupply();
-      expect(circulatingSupply).eq(7777777);
+      const newFunction = await rewardTokenV2.newFunction();
+      expect(newFunction).eq(7777777);
 
       const stakingDeployment = await ethers.getContractFactory(
         "StakingV2Test"
@@ -2272,7 +2265,7 @@ describe("Staking", function () {
       await staking.transferToke(staker1);
     });
     it("Sends correct amount to affiliate", async () => {
-      const { staker1, staker2 } = await getNamedAccounts();
+      const { staker2 } = await getNamedAccounts();
       const transferAmount = BigNumber.from("1000000");
 
       await network.provider.request({
@@ -2292,13 +2285,16 @@ describe("Staking", function () {
       await staking.setAffiliateAddress(staker2);
       await staking.setAffiliateFee(1000);
 
-      // tries to transfer toke, but to staker1 but none exists
-      await staking.transferToke(staker1);
-      const fee = transferAmount.mul(await staking.affiliateFee()).div(10000);
+      const stakingDeployment = await ethers.getContractFactory(
+        "StakingV2Test"
+      );
+      const stakingV2 = (await upgrades.upgradeProxy(
+        staking.address,
+        stakingDeployment
+      )) as StakingV2Test;
 
-      // staker1 balance
-      tokeTokenBalance = await tokeToken.balanceOf(staker1);
-      expect(tokeTokenBalance).eq(transferAmount.sub(fee));
+      await stakingV2.sendAffiliateFee(transferAmount);
+      const fee = transferAmount.mul(await staking.affiliateFee()).div(10000);
 
       // affiliate balance
       tokeTokenBalance = await tokeToken.balanceOf(staker2);

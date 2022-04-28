@@ -8,6 +8,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract BatchRequests is Ownable {
     address[] public contracts;
 
+    /**
+        @notice sendWithdrawalRequests on all addresses in contracts
+     */
     function sendWithdrawalRequests() external {
         for (uint256 i = 0; i < contracts.length; i++) {
             if (
@@ -19,6 +22,10 @@ contract BatchRequests is Ownable {
         }
     }
 
+    /**
+        @notice shows which contracts can batch
+        @return (address, bool)[]
+     */
     function canBatchContracts() external view returns (Batch[] memory) {
         Batch[] memory batch = new Batch[](contracts.length);
         for (uint256 i = 0; i < contracts.length; i++) {
@@ -28,6 +35,10 @@ contract BatchRequests is Ownable {
         return batch;
     }
 
+    /**
+        @notice shows if contracts can batch by index
+        @return (address, bool)
+     */
     function canBatchContractByIndex(uint256 _index)
         external
         view
@@ -39,18 +50,34 @@ contract BatchRequests is Ownable {
         );
     }
 
+    /**
+        @notice get address in contracts by index
+        @return address
+     */
     function getAddressByIndex(uint256 _index) external view returns (address) {
         return contracts[_index];
     }
 
+    /**
+        @notice get addresses in contracts
+        @return address[]
+     */
     function getAddresses() external view returns (address[] memory) {
         return contracts;
     }
 
+    /**
+        @notice add address to contracts array
+        @param _address - address to add
+     */
     function addAddress(address _address) external onlyOwner {
         contracts.push(_address);
     }
 
+    /**
+        @notice remove address to contracts array
+        @param _address - address to remove
+     */
     function removeAddress(address _address) external onlyOwner {
         for (uint256 i = 0; i < contracts.length; i++) {
             if (contracts[i] == _address) {

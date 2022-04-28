@@ -117,6 +117,24 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         ITokeReward tokeRewardContract = ITokeReward(TOKE_REWARD);
         tokeRewardContract.claim(_recipient, _v, _r, _s);
+        _sendAffiliateFee(_recipient.amount);
+    }
+
+    /**
+        @notice send affiliate fee
+        @param _amount uint - total amount to deduct fee from
+     */
+    function _sendAffiliateFee(uint256 _amount) internal {
+        if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
+            uint256 amountMinusFee = _amount -
+                ((_amount * affiliateFee) / BASIS_POINTS);
+            uint256 feeAmount = _amount - amountMinusFee;
+
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+                AFFILIATE_ADDRESS,
+                feeAmount
+            );
+        }
     }
 
     /**
@@ -130,25 +148,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 totalTokeAmount = IERC20Upgradeable(TOKE_TOKEN).balanceOf(
             address(this)
         );
-        if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
-            uint256 amountMinusFee = totalTokeAmount -
-                ((totalTokeAmount * affiliateFee) / BASIS_POINTS);
-            uint256 feeAmount = totalTokeAmount - amountMinusFee;
-
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                _claimAddress,
-                amountMinusFee
-            );
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                AFFILIATE_ADDRESS,
-                feeAmount
-            );
-        } else {
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                _claimAddress,
-                totalTokeAmount
-            );
-        }
+        IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
+            _claimAddress,
+            totalTokeAmount
+        );
     }
 
     /**
