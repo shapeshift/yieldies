@@ -60,6 +60,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         LIQUIDITY_RESERVE = _liquidityReserve;
         AFFILIATE_ADDRESS = _affilateAddress;
         CURVE_POOL = _curvePool;
+        COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+        COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
         timeLeftToRequestWithdrawal = 43200;
 
@@ -84,10 +86,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             LIQUIDITY_RESERVE,
             type(uint256).max
         );
-        IERC20Upgradeable(TOKE_TOKEN).approve(
-            0xC92E8bdf79f0507f65a392b0ab4667716BFE0110,
-            type(uint256).max
-        );
+        IERC20Upgradeable(TOKE_TOKEN).approve(COW_RELAYER, type(uint256).max);
 
         epoch = Epoch({
             duration: _epochDuration,
@@ -825,7 +824,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
     function preSign(bytes calldata orderUid) external onlyOwner {
-        ICowSettlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41)
-            .setPreSignature(orderUid, true);
+        ICowSettlement(COW_SETTLEMENT).setPreSignature(orderUid, true);
     }
 }
