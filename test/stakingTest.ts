@@ -11,6 +11,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
+import { cowSettlementAbi } from "../src/abis/cowSettlementAbi";
 import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import {
@@ -21,6 +22,7 @@ import {
   YieldyV2Test,
 } from "../typechain-types";
 import * as constants from "./constants";
+import axios from "axios";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -2168,6 +2170,64 @@ describe("Staking", function () {
   });
 
   describe("tokemak", function () {
+    // skipping due to order failing sometimes when called in succession
+    // tests cow swap order & presign
+    it.skip("Trades TOKE to stakingToken on CoW Protocol", async () => {
+      const cowSettlement = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
+      const transferAmount = "76000000000000000000000";
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_TOKEN_WHALE],
+      });
+
+      const whaleSigner = await ethers.getSigner(constants.TOKE_TOKEN_WHALE);
+      const tokeTokenWhale = tokeToken.connect(whaleSigner);
+      await tokeTokenWhale.transfer(staking.address, transferAmount);
+
+      const tokeTokenBalance = await tokeToken.balanceOf(staking.address);
+      expect(BigNumber.from(tokeTokenBalance)).gte(
+        BigNumber.from(transferAmount)
+      );
+
+      const response = await axios.post(
+        "https://api.cow.fi/mainnet/api/v1/quote",
+        {
+          sellToken: constants.TOKE_TOKEN, // constants.TOKE_TOKEN, // address of token sold
+          buyToken: constants.STAKING_TOKEN, // constants.STAKING_TOKEN, // address of token bought
+          receiver: staking.address, // address that receives proceedings of trade, if zero then user who signed
+          validTo: 2281625458, // timestamp until order is valid
+          appData:
+            "0x0000000000000000000000000000000000000000000000000000000000000000", // extra information
+          partiallyFillable: false,
+          sellTokenBalance: "erc20",
+          buyTokenBalance: "erc20",
+          from: staking.address,
+          kind: "sell", // sell or buy
+          sellAmountBeforeFee: transferAmount, // amount before fee
+        }
+      );
+      expect(response.status).eq(200);
+
+      const orderUid = await axios.post(
+        "https://api.cow.fi/mainnet/api/v1/orders",
+        {
+          ...response.data.quote,
+          signingScheme: "presign",
+          signature: staking.address,
+          from: staking.address,
+        }
+      );
+
+      const cowSettlementContract = new ethers.Contract(
+        cowSettlement,
+        cowSettlementAbi,
+        accounts[0]
+      );
+      await expect(staking.preSign(orderUid.data))
+        .to.emit(cowSettlementContract, "PreSignature")
+        .withArgs(staking.address, orderUid.data, true);
+    });
     it("Fails when incorrectly claims/transfer TOKE", async () => {
       const { staker1 } = await getNamedAccounts();
 

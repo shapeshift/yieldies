@@ -14,6 +14,7 @@ import "../interfaces/ITokePool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 import "../interfaces/ICurvePool.sol";
+import "../interfaces/ICowSettlement.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -59,6 +60,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         LIQUIDITY_RESERVE = _liquidityReserve;
         AFFILIATE_ADDRESS = _affilateAddress;
         CURVE_POOL = _curvePool;
+        COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+        COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
         timeLeftToRequestWithdrawal = 43200;
 
@@ -83,6 +86,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             LIQUIDITY_RESERVE,
             type(uint256).max
         );
+        IERC20Upgradeable(TOKE_TOKEN).approve(COW_RELAYER, type(uint256).max);
 
         epoch = Epoch({
             duration: _epochDuration,
@@ -580,7 +584,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         InstantUnstakeType unstakeType = InstantUnstakeType.RESERVE;
         if (reserveBalance < balance) {
-            // TODO: make method in LR
+            // TODO: make method in LR - MrNerdHair
             unstakeType = InstantUnstakeType.CURVE;
         }
 
@@ -819,5 +823,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice trades rewards generated from claimFromTokemak for staking token, then calls addRewardsForStakers
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
-    function autoRebase() internal {}
+    function preSign(bytes calldata orderUid) external onlyOwner {
+        ICowSettlement(COW_SETTLEMENT).setPreSignature(orderUid, true);
+    }
 }
