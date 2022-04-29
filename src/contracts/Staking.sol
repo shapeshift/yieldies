@@ -799,14 +799,21 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice adds staking tokens for rebase rewards
      * @dev this is the function that gives rewards so the rebase function can distrubute profits to reward token holders
      * @param _amount uint - amount of tokens to add to rewards
+     * @param _transferTokens bool - should transfer rewards from callers address
      * @param _trigger bool - should trigger rebase
      */
-    function addRewardsForStakers(uint256 _amount, bool _trigger) external {
-        IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amount
-        );
+    function addRewardsForStakers(
+        uint256 _amount,
+        bool _transferTokens,
+        bool _trigger
+    ) external {
+        if (_transferTokens) {
+            IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+        }
 
         // deposit all staking tokens held in contract to Tokemak minus tokens waiting for claimWithdraw
         uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
