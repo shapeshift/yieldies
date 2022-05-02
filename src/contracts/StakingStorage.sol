@@ -18,9 +18,9 @@ contract StakingStorage {
     address public CURVE_POOL; // can be address(0)
 
     // owner overrides
-    bool public pauseStaking; // pauses staking
-    bool public pauseUnstaking; // pauses unstaking & instantUnstake
-    bool public pauseInstantUnstaking; // pauses instantUnstake
+    bool public isStakingPaused; // pauses staking
+    bool public isUnstakingPaused; // pauses unstaking & instantUnstake
+    bool public isInstantUnstakingPaused; // pauses instantUnstake
 
     Epoch public epoch;
 

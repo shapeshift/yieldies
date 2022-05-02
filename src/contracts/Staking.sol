@@ -18,6 +18,21 @@ import "../interfaces/ICurvePool.sol";
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
+    event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
+    event LogSetCoolDownPeriod(uint256 indexed blockNumber, uint256 period);
+    event LogSetPauseStaking(uint256 indexed blockNumber, bool shouldPause);
+    event LogSetPauseUnstaking(uint256 indexed blockNumber, bool shouldPause);
+    event LogSetPauseInstantUnstaking(
+        uint256 indexed blockNumber,
+        bool shouldPause
+    );
+    event LogSetAffiliateAddress(
+        uint256 indexed blockNumber,
+        address affilateAddress
+    );
+    event LogSetAffiliateFee(uint256 indexed blockNumber, uint256 fee);
+
     enum InstantUnstakeType {
         RESERVE,
         CURVE
@@ -60,7 +75,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         AFFILIATE_ADDRESS = _affilateAddress;
         CURVE_POOL = _curvePool;
 
-        timeLeftToRequestWithdrawal = 43200;
+        timeLeftToRequestWithdrawal = 43200; // 43200 = 12 hours
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
@@ -156,6 +171,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateFee(uint256 _affiliateFee) public onlyOwner {
         affiliateFee = _affiliateFee;
+        emit LogSetAffiliateFee(block.number, _affiliateFee);
     }
 
     /**
@@ -165,6 +181,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
         AFFILIATE_ADDRESS = _affiliateAddress;
+        emit LogSetAffiliateAddress(block.number, _affiliateAddress);
     }
 
     /**
@@ -173,7 +190,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _shouldPause bool
      */
     function shouldPauseStaking(bool _shouldPause) public onlyOwner {
-        pauseStaking = _shouldPause;
+        isStakingPaused = _shouldPause;
+        emit LogSetPauseStaking(block.number, _shouldPause);
     }
 
     /**
@@ -182,7 +200,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _shouldPause bool
      */
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
-        pauseUnstaking = _shouldPause;
+        isUnstakingPaused = _shouldPause;
+        emit LogSetPauseUnstaking(block.number, _shouldPause);
     }
 
     /**
@@ -191,7 +210,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _shouldPause bool
      */
     function shouldPauseInstantUnstaking(bool _shouldPause) external onlyOwner {
-        pauseInstantUnstaking = _shouldPause;
+        isInstantUnstakingPaused = _shouldPause;
+        emit LogSetPauseInstantUnstaking(block.number, _shouldPause);
     }
 
     /**
@@ -201,6 +221,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setEpochDuration(uint256 duration) external onlyOwner {
         epoch.duration = duration;
+        emit LogSetEpochDuration(block.number, duration);
     }
 
     /**
@@ -209,6 +230,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
         warmUpPeriod = _vestingPeriod;
+        emit LogSetWarmUpPeriod(block.number, _vestingPeriod);
     }
 
     /**
@@ -217,6 +239,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setCoolDownPeriod(uint256 _vestingPeriod) public onlyOwner {
         coolDownPeriod = _vestingPeriod;
+        emit LogSetCoolDownPeriod(block.number, _vestingPeriod);
     }
 
     /**
@@ -387,7 +410,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function stake(uint256 _amount, address _recipient) public {
         // if override staking, then don't allow stake
-        require(!pauseStaking, "Staking is paused");
+        require(!isStakingPaused, "Staking is paused");
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
@@ -562,7 +585,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function instantUnstake(bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities
         require(
-            !pauseUnstaking && !pauseInstantUnstaking,
+            !isUnstakingPaused && !isInstantUnstakingPaused,
             "Unstaking is paused"
         );
 
@@ -589,7 +612,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     /**
         @notice redeem reward tokens for staking tokens instantly with fee.  Must use entire amount
-        @dev this function will claim the FOXy from warmUp/user and then route to the appropriate instant unstake interface
+        @dev this function will claim the Yieldy from warmUp/user and then route to the appropriate instant unstake interface
         @dev the current interfaces to instant unstake are through Curve or our Liquidity Reserve contract
         @param _trigger bool - should trigger a rebase
         @param _type InstantUnstakeType - type of instantUnstake that should occur
@@ -599,7 +622,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     {
         // prevent unstaking if override due to vulnerabilities
         require(
-            !pauseUnstaking && !pauseInstantUnstaking,
+            !isUnstakingPaused && !isInstantUnstakingPaused,
             "Unstaking is paused"
         );
         if (_trigger) {
@@ -666,7 +689,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     /**
         @notice get to and from coin indexes for curve exchange
      */
-    function getToAndromCurve() internal view returns (int128, int128) {
+    function getToAndFromCurve() internal view returns (int128, int128) {
         require(CURVE_POOL != address(0), "No Curve address set");
 
         address address0 = ICurvePool(CURVE_POOL).coins(0);
@@ -693,7 +716,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         view
         returns (uint256)
     {
-        (int128 from, int128 to) = getToAndromCurve();
+        (int128 from, int128 to) = getToAndFromCurve();
         return ICurvePool(CURVE_POOL).get_dy(from, to, _amount);
     }
 
@@ -702,7 +725,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to instant unstake
      */
     function instantUnstakeCurve(uint256 _amount) internal returns (uint256) {
-        (int128 from, int128 to) = getToAndromCurve();
+        (int128 from, int128 to) = getToAndFromCurve();
         uint256 incomingAmount = ICurvePool(CURVE_POOL).get_dy(
             from,
             to,
@@ -728,7 +751,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function unstake(uint256 _amount, bool _trigger) external {
         // prevent unstaking if override due to vulnerabilities asdf
-        require(!pauseUnstaking, "Unstaking is paused");
+        require(!isUnstakingPaused, "Unstaking is paused");
         if (_trigger) {
             rebase();
         }
