@@ -17,6 +17,9 @@ contract StakingStorage {
     address public AFFILIATE_ADDRESS; // can be address(0)
     address public CURVE_POOL; // can be address(0)
 
+    address public COW_SETTLEMENT;
+    address public COW_RELAYER;
+
     // owner overrides
     bool public isStakingPaused; // pauses staking
     bool public isUnstakingPaused; // pauses unstaking & instantUnstake
