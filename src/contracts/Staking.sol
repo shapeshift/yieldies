@@ -602,6 +602,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             "Unstaking is paused"
         );
 
+        rebase();
         _retrieveBalanceFromUser(_amount, msg.sender);
 
         uint256 reserveBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
@@ -637,6 +638,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             !isUnstakingPaused && !isInstantUnstakingPaused,
             "Unstaking is paused"
         );
+
+        rebase();
         _retrieveBalanceFromUser(_amount, msg.sender);
 
         return
