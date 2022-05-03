@@ -630,7 +630,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             );
     }
 
-
     /**
         @notice get to and from coin indexes for curve exchange
      */

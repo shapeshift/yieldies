@@ -1029,10 +1029,10 @@ describe("Staking", function () {
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
       // can't instantUnstake without reward tokens
-      let walletBalance = await rewardToken.balanceOf(staker1);
-      let warmUpInfo = await staking.warmUpInfo(staker1);
-      let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
-      let totalBalance = walletBalance.add(warmUpBalance);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await staking.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
       await stakingStaker1.instantUnstakeReserve(totalBalance);
 
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
