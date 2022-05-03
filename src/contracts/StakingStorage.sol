@@ -17,8 +17,8 @@ contract StakingStorage {
     address public AFFILIATE_ADDRESS; // can be address(0)
     address public CURVE_POOL; // can be address(0)
 
-    int128 public curvePoolFrom; // can be address(0)
-    int128 public curvePoolTo; // can be address(0)
+    int128 public curvePoolFrom;
+    int128 public curvePoolTo;
 
     address public COW_SETTLEMENT;
     address public COW_RELAYER;
