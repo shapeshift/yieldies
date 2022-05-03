@@ -1033,7 +1033,9 @@ describe("Staking", function () {
       const warmUpInfo = await staking.warmUpInfo(staker1);
       const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
       const totalBalance = walletBalance.add(warmUpBalance);
-      await stakingStaker1.instantUnstakeReserve(totalBalance);
+      await expect(
+        stakingStaker1.instantUnstakeReserve(totalBalance)
+      ).to.be.revertedWith("Invalid amount");
 
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
@@ -1076,7 +1078,9 @@ describe("Staking", function () {
       let warmUpInfo = await staking.warmUpInfo(staker1);
       let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
       let totalBalance = walletBalance.add(warmUpBalance);
-      await stakingStaker1.instantUnstakeReserve(totalBalance);
+      await expect(
+        stakingStaker1.instantUnstakeReserve(totalBalance)
+      ).to.be.revertedWith("Invalid amount");
 
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);

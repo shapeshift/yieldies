@@ -595,6 +595,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - amount to instant unstake
      */
     function instantUnstakeReserve(uint256 _amount) external {
+        require(_amount > 0, "Invalid amount");
         // prevent unstaking if override due to vulnerabilities
         require(
             !isUnstakingPaused && !isInstantUnstakingPaused,
@@ -625,8 +626,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         external
         returns (uint256)
     {
-         require(
-            CURVE_POOL != address(0) && (curvePoolFrom == 1 || curvePoolTo == 1),
+        require(_amount > 0, "Invalid amount");
+        require(
+            CURVE_POOL != address(0) &&
+                (curvePoolFrom == 1 || curvePoolTo == 1),
             "Invalid Curve Pool"
         );
         // prevent unstaking if override due to vulnerabilities
