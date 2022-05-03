@@ -299,7 +299,12 @@ describe("Integration", function () {
     await yieldy
       .connect(staker1Signer as Signer)
       .approve(staking.address, ethers.constants.MaxUint256);
-    await stakingStaker1.instantUnstake(true);
+    let walletBalance = await yieldy.balanceOf(staker1);
+    warmUpInfo = await staking.warmUpInfo(staker1);
+    let warmUpBalance = await yieldy.balanceForGons(warmUpInfo.gons);
+    let totalBalance = walletBalance.add(warmUpBalance);
+
+    await stakingStaker1.instantUnstakeReserve(totalBalance);
     const rewardBalanceStaker1 = await yieldy.balanceOf(staker1);
     expect(rewardBalanceStaker1).eq(0);
     const stakingBalanceStaker1 = await stakingToken.balanceOf(staker1);
@@ -451,7 +456,11 @@ describe("Integration", function () {
     await staking.claimWithdraw(liquidityReserve.address);
 
     // instantUnstake with liquidityProvider2
-    await stakingLiquidityProvider2.instantUnstake(true);
+    walletBalance = await yieldy.balanceOf(liquidityProvider2);
+    warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
+    warmUpBalance = await yieldy.balanceForGons(warmUpInfo.gons);
+    totalBalance = walletBalance.add(warmUpBalance);
+    await stakingLiquidityProvider2.instantUnstakeReserve(totalBalance);
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
     warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
     expect(warmUpLP2Reward).eq(0);

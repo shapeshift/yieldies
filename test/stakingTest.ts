@@ -930,10 +930,51 @@ describe("Staking", function () {
       // has no requestedWithdrawals
       expect(requestedWithdrawals.amount).eq(stakingAmount);
     });
-    it("Can instant unstake with curve", async () => {
+    it("Can instant unstake partial amount with curve", async () => {
       const { staker1 } = await getNamedAccounts();
 
-      const transferAmount = BigNumber.from("1000000000000001");
+      const transferAmount = BigNumber.from("1000000000000002");
+      const unstakeAmount = transferAmount.div(2);
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(transferAmount);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      const estimatedTransferAmount = await staking.estimateInstantCurve(
+        unstakeAmount
+      );
+
+      const slippage = 50; // in bps
+      const slippageDiff = unstakeAmount.mul(slippage).div(10000);
+      const slippageAmount = unstakeAmount.sub(slippageDiff);
+      await stakingStaker1.instantUnstakeCurve(unstakeAmount, slippageAmount);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(unstakeAmount);
+
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(estimatedTransferAmount);
+    });
+    it("Can instant unstake full amount with curve", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = "1000000000000001";
       await stakingToken.transfer(staker1, transferAmount);
 
       const staker1Signer = accounts.find(
@@ -958,7 +999,16 @@ describe("Staking", function () {
       const estimatedTransferAmount = await staking.estimateInstantCurve(
         transferAmount
       );
-      await stakingStaker1.instantUnstake(false);
+
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await staking.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+
+      const slippage = 50; // in bps
+      const slippageDiff = totalBalance.mul(slippage).div(10000);
+      const slippageAmount = totalBalance.sub(slippageDiff);
+      await stakingStaker1.instantUnstakeCurve(totalBalance, slippageAmount);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -966,10 +1016,11 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(estimatedTransferAmount);
     });
-    it("Can instant unstake with liquidity reserve", async () => {
+    it("Can instant unstake partial amount with liquidity reserve", async () => {
       const { staker1 } = await getNamedAccounts();
 
-      const transferAmount = BigNumber.from("10000");
+      const transferAmount = BigNumber.from("100000000");
+      const unstakeAmount = transferAmount.div(2);
       await stakingToken.transfer(staker1, transferAmount);
 
       const staker1Signer = accounts.find(
@@ -978,7 +1029,11 @@ describe("Staking", function () {
       const stakingStaker1 = staking.connect(staker1Signer as Signer);
 
       // can't instantUnstake without reward tokens
-      await expect(stakingStaker1.instantUnstake(false)).to.be.reverted;
+      let walletBalance = await rewardToken.balanceOf(staker1);
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      let totalBalance = walletBalance.add(warmUpBalance);
+      await stakingStaker1.instantUnstakeReserve(totalBalance);
 
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
@@ -994,7 +1049,54 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(false);
+      await stakingStaker1.instantUnstakeReserve(unstakeAmount);
+
+      rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(unstakeAmount);
+
+      const amountMinusFee = unstakeAmount.sub(
+        unstakeAmount.mul(constants.INSTANT_UNSTAKE_FEE).div(10000)
+      );
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(amountMinusFee);
+    });
+    it("Can instant unstake full amount with liquidity reserve", async () => {
+      const { staker1 } = await getNamedAccounts();
+
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      // can't instantUnstake without reward tokens
+      let walletBalance = await rewardToken.balanceOf(staker1);
+      let warmUpInfo = await staking.warmUpInfo(staker1);
+      let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      let totalBalance = walletBalance.add(warmUpBalance);
+      await stakingStaker1.instantUnstakeReserve(totalBalance);
+
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, transferAmount);
+      await stakingStaker1.functions["stake(uint256)"](transferAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, transferAmount);
+
+      let rewardBalance = await rewardToken.balanceOf(staker1);
+      expect(rewardBalance).eq(transferAmount);
+
+      let stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(0);
+
+      walletBalance = await rewardToken.balanceOf(staker1);
+      warmUpInfo = await staking.warmUpInfo(staker1);
+      warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      totalBalance = walletBalance.add(warmUpBalance);
+      await stakingStaker1.instantUnstakeReserve(totalBalance);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -1031,7 +1133,11 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.instantUnstake(true);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await staking.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+      await stakingStaker1.instantUnstakeReserve(totalBalance);
 
       rewardBalance = await rewardToken.balanceOf(staker1);
       expect(rewardBalance).eq(0);
@@ -2628,16 +2734,22 @@ describe("Staking", function () {
       await expect(
         stakingStaker1.unstake(stakingAmount, true)
       ).to.be.revertedWith("Unstaking is paused");
-      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
-        "Unstaking is paused"
-      );
+
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await staking.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+
+      await expect(
+        stakingStaker1.instantUnstakeReserve(totalBalance)
+      ).to.be.revertedWith("Unstaking is paused");
 
       await stakingAdmin.shouldPauseInstantUnstaking(true);
       await stakingAdmin.shouldPauseUnstaking(false);
 
-      await expect(stakingStaker1.instantUnstake(true)).to.be.revertedWith(
-        "Unstaking is paused"
-      );
+      await expect(
+        stakingStaker1.instantUnstakeReserve(totalBalance)
+      ).to.be.revertedWith("Unstaking is paused");
       await stakingStaker1.unstake(stakingAmount, true);
 
       await mineBlocksToNextCycle();
