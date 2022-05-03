@@ -34,6 +34,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     );
     event LogSetAffiliateFee(uint256 indexed blockNumber, uint256 fee);
 
+    event LogSetCurvePool(address indexed curvePool, int128 to, int128 from);
+
     function initialize(
         address _stakingToken,
         address _rewardToken,
@@ -84,8 +86,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
         COOL_DOWN_CONTRACT = address(coolDown);
 
-        if (CURVE_POOL != address(0))
+        if (CURVE_POOL != address(0)) {
             IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
+            setToAndFromCurve();
+        }
 
         IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
         IERC20Upgradeable(REWARD_TOKEN).approve(
@@ -161,6 +165,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             _claimAddress,
             totalTokeAmount
         );
+    }
+
+    /**
+        @notice sets the curve pool address
+        @param _curvePool uint
+     */
+    function setCurvePool(address _curvePool) public onlyOwner {
+        CURVE_POOL = _curvePool;
+        setToAndFromCurve();
     }
 
     /**
@@ -618,12 +631,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             "Unstaking is paused"
         );
         _retrieveBalanceFromUser(_amount, msg.sender);
-        (int128 from, int128 to) = getToAndFromCurve();
 
         return
             ICurvePool(CURVE_POOL).exchange(
-                from,
-                to,
+                curvePoolFrom,
+                curvePoolTo,
                 _amount,
                 _minAmount,
                 msg.sender
@@ -631,24 +643,27 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice get to and from coin indexes for curve exchange
+        @notice sets to and from coin indexes for curve exchange
      */
-    function getToAndFromCurve() internal view returns (int128, int128) {
-        require(CURVE_POOL != address(0), "No Curve address set");
+    function setToAndFromCurve() internal {
+        if (CURVE_POOL != address(0)) {
+            address address0 = ICurvePool(CURVE_POOL).coins(0);
+            address address1 = ICurvePool(CURVE_POOL).coins(1);
+            int128 from = 0;
+            int128 to = 0;
 
-        address address0 = ICurvePool(CURVE_POOL).coins(0);
-        address address1 = ICurvePool(CURVE_POOL).coins(1);
-        int128 from = 0;
-        int128 to = 0;
+            if (TOKE_POOL == address0 && STAKING_TOKEN == address1) {
+                to = 1;
+            } else if (TOKE_POOL == address1 && STAKING_TOKEN == address0) {
+                from = 1;
+            }
+            require(from == 1 || to == 1, "Invalid Curve Pool");
 
-        if (TOKE_POOL == address0 && STAKING_TOKEN == address1) {
-            to = 1;
-        } else if (TOKE_POOL == address1 && STAKING_TOKEN == address0) {
-            from = 1;
+            curvePoolFrom = from;
+            curvePoolTo = to;
+
+            emit LogSetCurvePool(CURVE_POOL, curvePoolTo, curvePoolFrom);
         }
-        require(from == 1 || to == 1, "Invalid Curve Pool");
-
-        return (from, to);
     }
 
     /**
@@ -661,8 +676,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         view
         returns (uint256)
     {
-        (int128 from, int128 to) = getToAndFromCurve();
-        return ICurvePool(CURVE_POOL).get_dy(from, to, _amount);
+        return
+            ICurvePool(CURVE_POOL).get_dy(curvePoolFrom, curvePoolTo, _amount);
     }
 
     /**
