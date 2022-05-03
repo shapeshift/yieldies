@@ -17,9 +17,6 @@ contract StakingStorage {
     address public AFFILIATE_ADDRESS; // can be address(0)
     address public CURVE_POOL; // can be address(0)
 
-    int128 public curvePoolFrom;
-    int128 public curvePoolTo;
-
     address public COW_SETTLEMENT;
     address public COW_RELAYER;
 
@@ -42,4 +39,7 @@ contract StakingStorage {
     uint256 public affiliateFee; // fee to send TOKE rewards
 
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
+
+    int128 public curvePoolFrom;
+    int128 public curvePoolTo;
 }
