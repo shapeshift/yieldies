@@ -21,5 +21,6 @@ interface IStaking {
     function claimWithdraw(address _recipient) external;
 
     function warmUpInfo(address) external view returns (Claim memory);
+    
     function coolDownInfo(address) external view returns (Claim memory);
 }
