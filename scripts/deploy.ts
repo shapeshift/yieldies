@@ -8,11 +8,12 @@ async function main() {
   const tokeReward = "0x79dD22579112d8a5F7347c5ED7E609e60da713C5";
   const curvePool = "0xC250B22d15e43d95fBE27B12d98B6098f8493eaC";
 
-  const epochLength = 44800;
+  const epochLength = 604800;
 
   const firstEpochNumber = 1;
-  const currentBlock = await ethers.provider.getBlockNumber();
-  const firstEpochBlock = currentBlock + epochLength;
+  const currentBlockNumber = await ethers.provider.getBlockNumber();
+  const currentBlock = await ethers.provider.getBlock(currentBlockNumber);
+  const firstEpochEndTime = currentBlock.timestamp + epochLength;
 
   const Staking = await ethers.getContractFactory("Staking");
   const yieldyDeployment = await ethers.getContractFactory("Yieldy");
@@ -49,7 +50,7 @@ async function main() {
     curvePool,
     epochLength,
     firstEpochNumber,
-    firstEpochBlock,
+    firstEpochEndTime,
   ]);
   console.info("Staking deployed to:", staking.address);
   await staking.deployed();
