@@ -5,6 +5,7 @@ import "../structs/Claim.sol";
 
 interface IStaking {
     function STAKING_TOKEN() external view returns (address);
+    
     function REWARD_TOKEN() external view returns (address);
 
     function canBatchTransactions() external view returns (bool);
