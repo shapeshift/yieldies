@@ -549,7 +549,7 @@ describe("Migration", function () {
       );
       const stakingV2Staker1 = stakingV2.connect(staker1Signer as Signer);
       await rewardTokenV2Staker1.approve(stakingV2.address, transferAmount);
-      await stakingV2Staker1.instantUnstake(false);
+      await stakingV2Staker1.instantUnstakeReserve(transferAmount);
 
       const unstakingFee = await liquidityReserveV2.fee();
       const balanceMinusFee = transferAmount.sub(

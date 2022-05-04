@@ -12,9 +12,7 @@ contract Migration {
 
     address public immutable OLD_CONTRACT;
     address public immutable NEW_CONTRACT;
-
     address public immutable OLD_REWARD_TOKEN;
-    address public immutable STAKING_TOKEN;
 
     constructor(address _oldContract, address _newContract) {
         // addresses can't be 0x0
@@ -27,10 +25,10 @@ contract Migration {
         NEW_CONTRACT = _newContract;
 
         OLD_REWARD_TOKEN = IStaking(_oldContract).REWARD_TOKEN();
-        STAKING_TOKEN = IStaking(_newContract).STAKING_TOKEN();
+        address stakingToken = IStaking(_newContract).STAKING_TOKEN();
 
         IRewardToken(OLD_REWARD_TOKEN).approve(_oldContract, type(uint256).max);
-        IERC20Upgradeable(STAKING_TOKEN).approve(_newContract, type(uint256).max);
+        IERC20Upgradeable(stakingToken).approve(_newContract, type(uint256).max);
     }
 
     /**
