@@ -15,4 +15,8 @@ interface IRewardToken {
     function balanceForGons(uint256 gons) external view returns (uint256);
 
     function index() external view returns (uint256);
+
+    function transferFrom(address from, address to, uint256 value) external returns (bool);
+
+    function approve(address spender, uint256 value) external returns (bool);
 }
