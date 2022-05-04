@@ -242,7 +242,11 @@ describe("Liquidity Reserve", function () {
       );
       await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await stakingContractStaker1.instantUnstake(false);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
@@ -388,7 +392,11 @@ describe("Liquidity Reserve", function () {
       );
       await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await stakingContractStaker1.instantUnstake(false);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
@@ -564,7 +572,12 @@ describe("Liquidity Reserve", function () {
       // instant unstake with staker1
       const rewardTokenStaker1 = rewardToken.connect(staking1Signer as Signer);
       await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
-      await stakingContractStaker1.instantUnstake(false);
+
+      let walletBalance = await rewardToken.balanceOf(staker1);
+      let warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      let totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
       let coolDownInfo = await stakingContract.coolDownInfo(
         liquidityReserve.address
@@ -575,7 +588,12 @@ describe("Liquidity Reserve", function () {
       // not unstaked through tokemak yet
       const rewardTokenStaker2 = rewardToken.connect(staking2Signer as Signer);
       await rewardTokenStaker2.approve(stakingContract.address, transferAmount);
-      await stakingContractStaker2.instantUnstake(false);
+
+      walletBalance = await rewardToken.balanceOf(staker2);
+      warmUpInfo = await stakingContract.warmUpInfo(staker2);
+      warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker2.instantUnstakeReserve(totalBalance);
 
       coolDownInfo = await stakingContract.coolDownInfo(
         liquidityReserve.address
@@ -602,7 +620,12 @@ describe("Liquidity Reserve", function () {
       // instant unstake with staker3 and all reward tokens are unstaked
       const rewardTokenStaker3 = rewardToken.connect(staking3Signer as Signer);
       await rewardTokenStaker3.approve(stakingContract.address, transferAmount);
-      await stakingContractStaker3.instantUnstake(false);
+
+      walletBalance = await rewardToken.balanceOf(staker3);
+      warmUpInfo = await stakingContract.warmUpInfo(staker3);
+      warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker3.instantUnstakeReserve(totalBalance);
 
       coolDownInfo = await stakingContract.coolDownInfo(
         liquidityReserve.address
@@ -676,7 +699,11 @@ describe("Liquidity Reserve", function () {
       await rewardTokenStaker1.approve(liquidityReserve.address, stakingAmount);
       await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await stakingContractStaker1.instantUnstake(false);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
       const feeAmount = stakingAmount.mul(fee).div(10000);
       const amountMinusFee = stakingAmount.sub(feeAmount);
@@ -818,7 +845,11 @@ describe("Liquidity Reserve", function () {
       );
       await rewardTokenStaker1.approve(stakingContract.address, transferAmount);
 
-      await stakingContractStaker1.instantUnstake(false);
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
+      await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
       const feeAmount = transferAmount.mul(fee).div(10000);
       const amountMinusFee = transferAmount.sub(feeAmount);
@@ -992,8 +1023,8 @@ describe("Liquidity Reserve", function () {
       await rewardTokenStaker1.approve(stakingContract.address, stakingAmount);
 
       await expect(
-        stakingContractStaker1.instantUnstakeByType(false, 0)
-      ).to.be.revertedWith("Not enough funds in reserve");
+        stakingContractStaker1.instantUnstakeReserve("90000000000001000")
+      ).to.be.revertedWith("Insufficient Balance");
     });
   });
 
@@ -1064,9 +1095,14 @@ describe("Liquidity Reserve", function () {
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(stakingContract.address, transferAmount);
+
+      const walletBalance = await rewardToken.balanceOf(staker1);
+      const warmUpInfo = await stakingContract.warmUpInfo(staker1);
+      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContract
         .connect(staker1Signer as Signer)
-        .instantUnstake(false);
+        .instantUnstakeReserve(totalBalance);
 
       expect(await stakingToken.balanceOf(staker1)).eq(
         stakingAmount.mul(1000).div(10000)

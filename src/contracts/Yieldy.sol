@@ -39,7 +39,7 @@ contract Yieldy is
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
-        _setIndex(WAD);
+        _setIndex(WAD); // TODO: update to be set
     }
 
     /**
@@ -62,47 +62,42 @@ contract Yieldy is
     /**
         @notice sets index to get the value of rebases from the beginning of the contract
         @param _index uint - initial index
-        @return bool
      */
-    function _setIndex(uint256 _index) internal returns (bool) {
+    function _setIndex(uint256 _index) internal {
         index = gonsForBalance(_index);
-        return true;
     }
 
     /**
-        @notice increases FOXy supply to increase staking balances relative to profit_
+        @notice increases Yieldy supply to increase staking balances relative to profit_
         @param _profit uint256 - amount of rewards to distribute
         @param _epoch uint256 - epoch number
-        @return uint256
      */
     function rebase(uint256 _profit, uint256 _epoch)
         public
         onlyStakingContract
-        returns (uint256)
     {
-        uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
         require(circulatingSupply_ > 0, "Can't rebase if not circulating");
 
+        uint256 rebaseAmount;
+        uint256 currentTotalSupply = _totalSupply;
+
         if (_profit == 0) {
-            emit LogSupply(_epoch, block.timestamp, _totalSupply);
+            emit LogSupply(_epoch, block.timestamp, currentTotalSupply);
             emit LogRebase(_epoch, 0, getIndex());
-            return _totalSupply;
         } else {
-            rebaseAmount = (_profit * _totalSupply) / circulatingSupply_;
+            rebaseAmount = (_profit * currentTotalSupply) / circulatingSupply_;
+            uint256 updatedTotalSupply = currentTotalSupply + rebaseAmount;
+
+            if (updatedTotalSupply > MAX_SUPPLY) {
+                updatedTotalSupply = MAX_SUPPLY;
+            }
+
+            gonsPerFragment = TOTAL_GONS / updatedTotalSupply;
+            _totalSupply = updatedTotalSupply;
+
+            _storeRebase(circulatingSupply_, _profit, _epoch);
         }
-
-        _totalSupply = _totalSupply + rebaseAmount;
-
-        if (_totalSupply > MAX_SUPPLY) {
-            _totalSupply = MAX_SUPPLY;
-        }
-
-        gonsPerFragment = TOTAL_GONS / _totalSupply;
-
-        _storeRebase(circulatingSupply_, _profit, _epoch);
-
-        return _totalSupply;
     }
 
     /**
@@ -135,7 +130,7 @@ contract Yieldy is
     }
 
     /**
-        @notice gets balanceOf FOXy
+        @notice gets balanceOf Yieldy
         @param _wallet address
         @return uint
      */
@@ -166,12 +161,12 @@ contract Yieldy is
         @return uint - circulation supply minus balance of staking contract
      */
     function circulatingSupply() public view returns (uint256) {
-        // Staking contract holds excess FOXy
+        // Staking contract holds excess Yieldy
         return _totalSupply - balanceOf(stakingContract);
     }
 
     /**
-        @notice get current index to show what how much FOXy the user would have gained if staked from the beginning
+        @notice get current index to show what how much Yieldy the user would have gained if staked from the beginning
         @return uint - current index
      */
     function getIndex() public view returns (uint256) {

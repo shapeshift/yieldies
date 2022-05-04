@@ -2,9 +2,7 @@
 pragma solidity 0.8.9;
 
 interface IRewardToken {
-    function rebase(uint256 ohmProfit_, uint256 epoch_)
-        external
-        returns (uint256);
+    function rebase(uint256 ohmProfit_, uint256 epoch_) external;
 
     function circulatingSupply() external view returns (uint256);
 

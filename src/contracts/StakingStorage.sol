@@ -21,9 +21,9 @@ contract StakingStorage {
     address public COW_RELAYER;
 
     // owner overrides
-    bool public pauseStaking; // pauses staking
-    bool public pauseUnstaking; // pauses unstaking & instantUnstake
-    bool public pauseInstantUnstaking; // pauses instantUnstake
+    bool public isStakingPaused; // pauses staking
+    bool public isUnstakingPaused; // pauses unstaking & instantUnstake
+    bool public isInstantUnstakingPaused; // pauses instantUnstake
 
     Epoch public epoch;
 
@@ -39,4 +39,7 @@ contract StakingStorage {
     uint256 public affiliateFee; // fee to send TOKE rewards
 
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
+
+    int128 public curvePoolFrom;
+    int128 public curvePoolTo;
 }

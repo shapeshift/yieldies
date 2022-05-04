@@ -5,7 +5,6 @@ import "../Yieldy.sol";
 
 contract YieldyV2Test is Yieldy {
     function newFunction() public pure returns (uint256) {
-        // Staking contract holds excess FOXy
         return 7777777;
     }
 }
