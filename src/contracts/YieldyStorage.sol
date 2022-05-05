@@ -11,7 +11,7 @@ contract YieldyStorage {
 
     uint256 internal WAD;
     uint256 internal INITIAL_FRAGMENTS_SUPPLY;
-    
+
     uint256 internal constant MAX_UINT256 = ~uint256(0);
 
     // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.

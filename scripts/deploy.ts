@@ -26,7 +26,7 @@ async function main() {
     "Fox Yieldy",
     "FOXy",
     18,
-    500000000
+    500000000,
   ]);
   await yieldy.deployed();
   console.info("Yieldy deployed to:", yieldy.address);

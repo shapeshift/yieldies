@@ -58,6 +58,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "ethereum-waffle": "^3.4.0",
+    "ethereumjs-util": "^7.1.4",
     "ethers": "^5.5.2",
     "hardhat": "^2.9.1",
     "hardhat-contract-sizer": "^2.3.0",
