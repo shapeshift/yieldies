@@ -23,5 +23,4 @@ contract YieldyStorage {
     uint256 internal gonsPerFragment;
 
     mapping(address => uint256) internal gonBalances;
-    mapping(address => mapping(address => uint256)) internal allowedValue;
 }

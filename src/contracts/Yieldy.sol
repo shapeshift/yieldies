@@ -196,21 +196,6 @@ contract Yieldy is
     }
 
     /**
-        @notice gets allowance amount based on owner and spender
-        @param _owner address
-        @param _spender address
-        @return uint
-     */
-    function allowance(address _owner, address _spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return allowedValue[_owner][_spender];
-    }
-
-    /**
         @notice transfer from address to address with amount
         @param _from address
         @param _to address
@@ -222,10 +207,10 @@ contract Yieldy is
         address _to,
         uint256 _value
     ) public override returns (bool) {
-        require(allowedValue[_from][msg.sender] >= _value, "Allowance too low");
+        require(_allowances[_from][msg.sender] >= _value, "Allowance too low");
 
-        uint256 newValue = allowedValue[_from][msg.sender] - _value;
-        allowedValue[_from][msg.sender] = newValue;
+        uint256 newValue = _allowances[_from][msg.sender] - _value;
+        _allowances[_from][msg.sender] = newValue;
         emit Approval(_from, msg.sender, newValue);
 
         uint256 gonValue = gonsForBalance(_value);
@@ -233,62 +218,6 @@ contract Yieldy is
         gonBalances[_to] = gonBalances[_to] + gonValue;
         emit Transfer(_from, _to, _value);
 
-        return true;
-    }
-
-    /**
-        @notice approve spender for amount
-        @param _spender address
-        @param _value uint
-        @return bool
-     */
-    function approve(address _spender, uint256 _value)
-        public
-        override
-        returns (bool)
-    {
-        allowedValue[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-    }
-
-    /**
-        @notice increase allowance by amount
-        @param _spender address
-        @param _addedValue uint
-        @return bool
-     */
-    function increaseAllowance(address _spender, uint256 _addedValue)
-        public
-        override
-        returns (bool)
-    {
-        uint256 newValue = allowedValue[msg.sender][_spender] + _addedValue;
-        allowedValue[msg.sender][_spender] = newValue;
-        emit Approval(msg.sender, _spender, newValue);
-        return true;
-    }
-
-    /**
-        @notice decrease allowance by amount
-        @param _spender address
-        @param _subtractedValue uint
-        @return bool
-     */
-    function decreaseAllowance(address _spender, uint256 _subtractedValue)
-        public
-        override
-        returns (bool)
-    {
-        require(
-            allowedValue[msg.sender][_spender] >= _subtractedValue,
-            "Not enough allowance"
-        );
-        uint256 oldValue = allowedValue[msg.sender][_spender];
-        uint256 newValue = oldValue - _subtractedValue;
-
-        allowedValue[msg.sender][_spender] = newValue;
-        emit Approval(msg.sender, _spender, newValue);
         return true;
     }
 }

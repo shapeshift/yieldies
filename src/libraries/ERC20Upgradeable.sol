@@ -34,9 +34,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 contract ERC20Upgradeable is ContextUpgradeable, IERC20MetadataUpgradeable {
     mapping(address => uint256) private _balances;
 
-    mapping(address => mapping(address => uint256)) private _allowances;
-
-    // only line different from OpenZeppelin ERC20.sol
+    // only two lines different from OpenZeppelin ERC20.sol
+    mapping(address => mapping(address => uint256)) internal _allowances;
     uint256 internal _totalSupply;
 
     string private _name;

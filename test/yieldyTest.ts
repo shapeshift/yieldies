@@ -2,7 +2,61 @@ import { ethers, getNamedAccounts, upgrades } from "hardhat";
 import { expect } from "chai";
 import { Yieldy } from "../typechain-types/Yieldy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BigNumber, ContractFactory, Signer } from "ethers";
+import { BigNumber, Contract, ContractFactory, Signer } from "ethers";
+import { MockProvider } from "ethereum-waffle";
+import { keccak256, toUtf8Bytes, defaultAbiCoder, solidityPack, hexlify } from "ethers/lib/utils";
+import { ecsign } from 'ethereumjs-util'
+
+const PERMIT_TYPEHASH = keccak256(
+  toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
+)
+
+function getDomainSeparator(name: string, tokenAddress: string) {
+  return keccak256(
+    defaultAbiCoder.encode(
+      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
+      [
+        keccak256(toUtf8Bytes('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')),
+        keccak256(toUtf8Bytes(name)),
+        keccak256(toUtf8Bytes('1')),
+        1,
+        tokenAddress
+      ]
+    )
+  )
+}
+
+export async function getApprovalDigest(
+  token: Contract,
+  approve: {
+    owner: string
+    spender: string
+    value: BigNumber
+  },
+  nonce: BigNumber,
+  deadline: BigNumber
+): Promise<string> {
+  const name = await token.name()
+  const DOMAIN_SEPARATOR = getDomainSeparator(name, token.address)
+  return keccak256(
+    solidityPack(
+      ['bytes1', 'bytes1', 'bytes32', 'bytes32'],
+      [
+        '0x19',
+        '0x01',
+        DOMAIN_SEPARATOR,
+        keccak256(
+          defaultAbiCoder.encode(
+            ['bytes32', 'address', 'address', 'uint256', 'uint256', 'uint256'],
+            [PERMIT_TYPEHASH, approve.owner, approve.spender, approve.value, nonce, deadline]
+          )
+        )
+      ]
+    )
+  )
+}
+
+
 
 describe("Yieldy", function () {
   let accounts: SignerWithAddress[];
@@ -205,6 +259,52 @@ describe("Yieldy", function () {
         .withArgs(staker1, stakingContractMock, 10);
     });
   });
+  describe("permit", () => {
+    const provider = new MockProvider({
+      ganacheOptions: {
+        hardfork: "istanbul",
+        mnemonic: "horn horn horn horn horn horn horn horn horn horn horn horn",
+        gasLimit: 9999999,
+      },
+    });
+    const [wallet, other] = provider.getWallets();
+    it("Allows permit", async () => {
+      const nonce = await yieldy.nonces(wallet.address);
+      const deadline = BigNumber.from(9999999999999);
+      const testAmount = BigNumber.from(100000)
+      const digest = await getApprovalDigest(
+        yieldy,
+        { owner: wallet.address, spender: other.address, value: testAmount },
+        nonce,
+        deadline
+      );
+
+      const { v, r, s } = ecsign(
+        Buffer.from(digest.slice(2), "hex"),
+        Buffer.from(wallet.privateKey.slice(2), "hex")
+      );
+
+      await expect(
+        yieldy.permit(
+          wallet.address,
+          other.address,
+          testAmount,
+          deadline,
+          v,
+          hexlify(r),
+          hexlify(s)
+        )
+      )
+        .to.emit(yieldy, "Approval")
+        .withArgs(wallet.address, other.address, testAmount);
+        
+
+      expect(await yieldy.nonces(wallet.address)).to.eq(BigNumber.from(1));
+      expect(await yieldy.allowance(wallet.address, other.address)).to.eq(
+        testAmount
+      );
+    });
+  });
   describe("increaseAllowance", () => {
     it("Increases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -258,7 +358,7 @@ describe("Yieldy", function () {
       await yieldy.connect(staker1Signer).approve(stakingContractMock, 10);
       await expect(
         yieldy.connect(staker1Signer).decreaseAllowance(stakingContractMock, 11)
-      ).to.be.revertedWith("Not enough allowance");
+      ).to.be.revertedWith("ERC20: decreased allowance below zero");
     });
     it("Emits an Approval event", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
