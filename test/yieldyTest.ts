@@ -4,59 +4,76 @@ import { Yieldy } from "../typechain-types/Yieldy";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, ContractFactory, Signer } from "ethers";
 import { MockProvider } from "ethereum-waffle";
-import { keccak256, toUtf8Bytes, defaultAbiCoder, solidityPack, hexlify } from "ethers/lib/utils";
-import { ecsign } from 'ethereumjs-util'
+import {
+  keccak256,
+  toUtf8Bytes,
+  defaultAbiCoder,
+  solidityPack,
+  hexlify,
+} from "ethers/lib/utils";
+import { ecsign } from "ethereumjs-util";
 
 const PERMIT_TYPEHASH = keccak256(
-  toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
-)
+  toUtf8Bytes(
+    "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+  )
+);
 
 function getDomainSeparator(name: string, tokenAddress: string) {
   return keccak256(
     defaultAbiCoder.encode(
-      ['bytes32', 'bytes32', 'bytes32', 'uint256', 'address'],
+      ["bytes32", "bytes32", "bytes32", "uint256", "address"],
       [
-        keccak256(toUtf8Bytes('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')),
+        keccak256(
+          toUtf8Bytes(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+          )
+        ),
         keccak256(toUtf8Bytes(name)),
-        keccak256(toUtf8Bytes('1')),
+        keccak256(toUtf8Bytes("1")),
         1,
-        tokenAddress
+        tokenAddress,
       ]
     )
-  )
+  );
 }
 
 export async function getApprovalDigest(
   token: Contract,
   approve: {
-    owner: string
-    spender: string
-    value: BigNumber
+    owner: string;
+    spender: string;
+    value: BigNumber;
   },
   nonce: BigNumber,
   deadline: BigNumber
 ): Promise<string> {
-  const name = await token.name()
-  const DOMAIN_SEPARATOR = getDomainSeparator(name, token.address)
+  const name = await token.name();
+  const DOMAIN_SEPARATOR = getDomainSeparator(name, token.address);
   return keccak256(
     solidityPack(
-      ['bytes1', 'bytes1', 'bytes32', 'bytes32'],
+      ["bytes1", "bytes1", "bytes32", "bytes32"],
       [
-        '0x19',
-        '0x01',
+        "0x19",
+        "0x01",
         DOMAIN_SEPARATOR,
         keccak256(
           defaultAbiCoder.encode(
-            ['bytes32', 'address', 'address', 'uint256', 'uint256', 'uint256'],
-            [PERMIT_TYPEHASH, approve.owner, approve.spender, approve.value, nonce, deadline]
+            ["bytes32", "address", "address", "uint256", "uint256", "uint256"],
+            [
+              PERMIT_TYPEHASH,
+              approve.owner,
+              approve.spender,
+              approve.value,
+              nonce,
+              deadline,
+            ]
           )
-        )
+        ),
       ]
     )
-  )
+  );
 }
-
-
 
 describe("Yieldy", function () {
   let accounts: SignerWithAddress[];
@@ -72,7 +89,8 @@ describe("Yieldy", function () {
     yieldy = (await upgrades.deployProxy(Yieldy, [
       "Fox Yieldy",
       "FOXy",
-      // stakingContractMock,
+      18,
+      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 
@@ -94,6 +112,8 @@ describe("Yieldy", function () {
       const yieldy1 = (await upgrades.deployProxy(Yieldy, [
         "Fox Yieldy",
         "FOXy",
+        18,
+        500000000,
       ])) as Yieldy;
 
       await expect(
@@ -110,6 +130,8 @@ describe("Yieldy", function () {
       const yieldy1 = (await upgrades.deployProxy(Yieldy, [
         "Fox Yieldy",
         "FOXy",
+        18,
+        500000000,
       ])) as Yieldy;
       await expect(
         yieldy1.initializeStakingContract(ethers.constants.AddressZero)
@@ -121,6 +143,8 @@ describe("Yieldy", function () {
       const yieldy1 = (await upgrades.deployProxy(Yieldy, [
         "Fox Yieldy",
         "FOXy",
+        18,
+        500000000,
       ])) as Yieldy;
       await yieldy1.initializeStakingContract(accounts[1].address);
       await expect(
@@ -271,7 +295,7 @@ describe("Yieldy", function () {
     it("Allows permit", async () => {
       const nonce = await yieldy.nonces(wallet.address);
       const deadline = BigNumber.from(9999999999999);
-      const testAmount = BigNumber.from(100000)
+      const testAmount = BigNumber.from(100000);
       const digest = await getApprovalDigest(
         yieldy,
         { owner: wallet.address, spender: other.address, value: testAmount },
@@ -297,7 +321,6 @@ describe("Yieldy", function () {
       )
         .to.emit(yieldy, "Approval")
         .withArgs(wallet.address, other.address, testAmount);
-        
 
       expect(await yieldy.nonces(wallet.address)).to.eq(BigNumber.from(1));
       expect(await yieldy.allowance(wallet.address, other.address)).to.eq(

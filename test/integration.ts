@@ -77,6 +77,8 @@ describe("Integration", function () {
     yieldy = (await upgrades.deployProxy(rewardTokenDeployment, [
       "Fox Yieldy",
       "FOXy",
+      18,
+      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 

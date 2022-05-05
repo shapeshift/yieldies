@@ -55,6 +55,8 @@ describe("Liquidity Reserve", function () {
     rewardToken = (await upgrades.deployProxy(rewardTokenDeployment, [
       "Fox Yieldy",
       "FOXy",
+      18,
+      500000000,
     ])) as Yieldy;
     await rewardToken.deployed();
 

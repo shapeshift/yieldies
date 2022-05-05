@@ -128,6 +128,8 @@ describe("Migration", function () {
     rewardTokenV2 = (await upgrades.deployProxy(rewardTokenDeployment, [
       "Fox Yieldy",
       "FOXy",
+      18,
+      500000000,
     ])) as Yieldy;
     await rewardTokenV2.deployed();
 

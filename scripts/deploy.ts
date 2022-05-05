@@ -25,6 +25,8 @@ async function main() {
   const yieldy = await upgrades.deployProxy(yieldyDeployment, [
     "Fox Yieldy",
     "FOXy",
+    18,
+    500000000
   ]);
   await yieldy.deployed();
   console.info("Yieldy deployed to:", yieldy.address);

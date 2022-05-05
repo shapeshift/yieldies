@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./YieldyStorage.sol";
 import "../libraries/ERC20PermitUpgradeable.sol";
+import "hardhat/console.sol";
 
 contract Yieldy is
     YieldyStorage,
@@ -26,10 +27,19 @@ contract Yieldy is
 
     event LogRebase(uint256 indexed epoch, uint256 rebase, uint256 index);
 
-    function initialize(string memory _tokenName, string memory _tokenSymbol)
-        external
-        initializer
-    {
+    /**
+        @notice initialize function
+        @param _tokenName erc20 token name
+        @param _tokenSymbol erc20 token symbol
+        @param _decimal decimal amount
+        @param _initialFragments initial fragments to set as total supply
+     */
+    function initialize(
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        uint8 _decimal,
+        uint256 _initialFragments
+    ) external initializer {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
@@ -37,9 +47,14 @@ contract Yieldy is
         _setupRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
 
+        decimal = _decimal;
+        WAD = 10**decimal;
+        INITIAL_FRAGMENTS_SUPPLY = _initialFragments * WAD;
+        TOTAL_GONS = MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
+
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
-        _setIndex(WAD); // TODO: update to be set
+        _setIndex(WAD);
     }
 
     /**
@@ -219,5 +234,12 @@ contract Yieldy is
         emit Transfer(_from, _to, _value);
 
         return true;
+    }
+
+    /**
+        @notice should be same as yield decimal
+     */
+    function decimals() public view override returns (uint8) {
+        return decimal;
     }
 }
