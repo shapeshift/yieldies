@@ -79,8 +79,8 @@ describe("BatchRequests", function () {
     await rewardToken2.deployed();
 
     rewardToken3 = (await upgrades.deployProxy(rewardTokenDeployment, [
-      "DOGE Yieldy",
-      "DOGEy",
+      "ALX Yieldy",
+      "ALXy",
       18,
       500000000,
     ])) as Yieldy;
