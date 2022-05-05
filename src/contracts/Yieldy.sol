@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./YieldyStorage.sol";
 import "../libraries/ERC20PermitUpgradeable.sol";
-import "hardhat/console.sol";
 
 contract Yieldy is
     YieldyStorage,
