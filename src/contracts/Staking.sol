@@ -47,7 +47,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _affilateAddress,
         address _curvePool,
         uint256 _epochDuration,
-        uint256 _firstEpochNumber,
         uint256 _firstEpochEndTime
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
@@ -104,7 +103,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         epoch = Epoch({
             duration: _epochDuration,
-            number: _firstEpochNumber,
+            number: 1,
             timestamp: block.timestamp, // we know about the issues surrounding block.timestamp, using it here will not cause any problems
             endTime: _firstEpochEndTime,
             distribute: 0

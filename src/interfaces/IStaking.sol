@@ -5,13 +5,13 @@ import "../structs/Claim.sol";
 
 interface IStaking {
     function STAKING_TOKEN() external view returns (address);
-    
+
     function REWARD_TOKEN() external view returns (address);
 
     function canBatchTransactions() external view returns (bool);
 
     function sendWithdrawalRequests() external;
-    
+
     function stake(uint256 _amount, address _recipient) external;
 
     function instantUnstake(bool _trigger) external;
@@ -21,6 +21,6 @@ interface IStaking {
     function claimWithdraw(address _recipient) external;
 
     function warmUpInfo(address) external view returns (Claim memory);
-    
+
     function coolDownInfo(address) external view returns (Claim memory);
 }

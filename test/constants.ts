@@ -16,6 +16,5 @@ export const CURVE_POOL = "0xC250B22d15e43d95fBE27B12d98B6098f8493eaC"; // Curve
 export const LATEST_CLAIMABLE_HASH =
   "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
 export const EPOCH_DURATION = 604800; // 1 week
-export const FIRST_EPOCH_NUMBER = 1;
 
 export const BLOCK_NUMBER = 14630292;

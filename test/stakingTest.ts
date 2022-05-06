@@ -124,7 +124,6 @@ describe("Staking", function () {
       ethers.constants.AddressZero,
       constants.CURVE_POOL,
       constants.EPOCH_DURATION,
-      constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
     ])) as Staking;
 
@@ -419,87 +418,6 @@ describe("Staking", function () {
           ethers.constants.AddressZero,
           ethers.constants.AddressZero,
           constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          ethers.constants.AddressZero,
-          constants.TOKE_TOKEN,
-          constants.TOKE_ADDRESS,
-          constants.TOKE_MANAGER,
-          constants.TOKE_REWARD,
-          liquidityReserve.address,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          rewardToken.address,
-          ethers.constants.AddressZero,
-          constants.TOKE_ADDRESS,
-          constants.TOKE_MANAGER,
-          constants.TOKE_REWARD,
-          liquidityReserve.address,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          rewardToken.address,
-          constants.TOKE_TOKEN,
-          ethers.constants.AddressZero,
-          constants.TOKE_MANAGER,
-          constants.TOKE_REWARD,
-          liquidityReserve.address,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          rewardToken.address,
-          constants.TOKE_TOKEN,
-          constants.TOKE_ADDRESS,
-          ethers.constants.AddressZero,
-          constants.TOKE_REWARD,
-          liquidityReserve.address,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
-          firstEpochEndTime,
-        ])
-      ).to.be.reverted;
-      await expect(
-        upgrades.deployProxy(stakingFactory, [
-          stakingToken.address,
-          rewardToken.address,
-          constants.TOKE_TOKEN,
-          constants.TOKE_ADDRESS,
-          constants.TOKE_MANAGER,
-          ethers.constants.AddressZero,
-          liquidityReserve.address,
-          ethers.constants.AddressZero,
-          ethers.constants.AddressZero,
-          constants.EPOCH_DURATION,
-          constants.FIRST_EPOCH_NUMBER,
           firstEpochEndTime,
         ])
       ).to.be.reverted;

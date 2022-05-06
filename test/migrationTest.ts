@@ -169,7 +169,6 @@ describe("Migration", function () {
       ethers.constants.AddressZero,
       constants.CURVE_POOL,
       constants.EPOCH_DURATION,
-      constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
     ])) as StakingV2Test;
 

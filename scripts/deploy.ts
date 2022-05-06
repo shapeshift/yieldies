@@ -10,7 +10,6 @@ async function main() {
 
   const epochLength = 604800;
 
-  const firstEpochNumber = 1;
   const currentBlockNumber = await ethers.provider.getBlockNumber();
   const currentBlock = await ethers.provider.getBlock(currentBlockNumber);
   const firstEpochEndTime = currentBlock.timestamp + epochLength;
@@ -51,7 +50,6 @@ async function main() {
     ethers.constants.AddressZero,
     curvePool,
     epochLength,
-    firstEpochNumber,
     firstEpochEndTime,
   ]);
   console.info("Staking deployed to:", staking.address);

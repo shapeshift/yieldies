@@ -28,7 +28,10 @@ contract Migration {
         address stakingToken = IStaking(_newContract).STAKING_TOKEN();
 
         IRewardToken(OLD_REWARD_TOKEN).approve(_oldContract, type(uint256).max);
-        IERC20Upgradeable(stakingToken).approve(_newContract, type(uint256).max);
+        IERC20Upgradeable(stakingToken).approve(
+            _newContract,
+            type(uint256).max
+        );
     }
 
     /**

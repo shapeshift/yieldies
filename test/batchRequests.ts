@@ -104,7 +104,6 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
-      constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
     ])) as Staking;
 
@@ -119,7 +118,6 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
-      constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
     ])) as Staking;
 
@@ -134,7 +132,6 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
-      constants.FIRST_EPOCH_NUMBER,
       firstEpochEndTime,
     ])) as Staking;
 

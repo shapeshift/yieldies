@@ -14,7 +14,11 @@ interface IRewardToken {
 
     function index() external view returns (uint256);
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
 
     function approve(address spender, uint256 value) external returns (bool);
 }
