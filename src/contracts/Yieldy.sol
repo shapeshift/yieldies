@@ -26,10 +26,19 @@ contract Yieldy is
 
     event LogRebase(uint256 indexed epoch, uint256 rebase, uint256 index);
 
-    function initialize(string memory _tokenName, string memory _tokenSymbol)
-        external
-        initializer
-    {
+    /**
+        @notice initialize function
+        @param _tokenName erc20 token name
+        @param _tokenSymbol erc20 token symbol
+        @param _decimal decimal amount
+        @param _initialFragments initial fragments to set as total supply
+     */
+    function initialize(
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        uint8 _decimal,
+        uint256 _initialFragments
+    ) external initializer {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
@@ -37,9 +46,14 @@ contract Yieldy is
         _setupRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
 
+        decimal = _decimal;
+        WAD = 10**decimal;
+        INITIAL_FRAGMENTS_SUPPLY = _initialFragments * WAD;
+        TOTAL_GONS = MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
+
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
         gonsPerFragment = TOTAL_GONS / _totalSupply;
-        _setIndex(WAD); // TODO: update to be set
+        _setIndex(WAD);
     }
 
     /**
@@ -196,21 +210,6 @@ contract Yieldy is
     }
 
     /**
-        @notice gets allowance amount based on owner and spender
-        @param _owner address
-        @param _spender address
-        @return uint
-     */
-    function allowance(address _owner, address _spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return allowedValue[_owner][_spender];
-    }
-
-    /**
         @notice transfer from address to address with amount
         @param _from address
         @param _to address
@@ -222,10 +221,10 @@ contract Yieldy is
         address _to,
         uint256 _value
     ) public override returns (bool) {
-        require(allowedValue[_from][msg.sender] >= _value, "Allowance too low");
+        require(_allowances[_from][msg.sender] >= _value, "Allowance too low");
 
-        uint256 newValue = allowedValue[_from][msg.sender] - _value;
-        allowedValue[_from][msg.sender] = newValue;
+        uint256 newValue = _allowances[_from][msg.sender] - _value;
+        _allowances[_from][msg.sender] = newValue;
         emit Approval(_from, msg.sender, newValue);
 
         uint256 gonValue = gonsForBalance(_value);
@@ -237,58 +236,9 @@ contract Yieldy is
     }
 
     /**
-        @notice approve spender for amount
-        @param _spender address
-        @param _value uint
-        @return bool
+        @notice should be same as yield decimal
      */
-    function approve(address _spender, uint256 _value)
-        public
-        override
-        returns (bool)
-    {
-        allowedValue[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
-    }
-
-    /**
-        @notice increase allowance by amount
-        @param _spender address
-        @param _addedValue uint
-        @return bool
-     */
-    function increaseAllowance(address _spender, uint256 _addedValue)
-        public
-        override
-        returns (bool)
-    {
-        uint256 newValue = allowedValue[msg.sender][_spender] + _addedValue;
-        allowedValue[msg.sender][_spender] = newValue;
-        emit Approval(msg.sender, _spender, newValue);
-        return true;
-    }
-
-    /**
-        @notice decrease allowance by amount
-        @param _spender address
-        @param _subtractedValue uint
-        @return bool
-     */
-    function decreaseAllowance(address _spender, uint256 _subtractedValue)
-        public
-        override
-        returns (bool)
-    {
-        require(
-            allowedValue[msg.sender][_spender] >= _subtractedValue,
-            "Not enough allowance"
-        );
-        uint256 oldValue = allowedValue[msg.sender][_spender];
-        uint256 newValue = oldValue - _subtractedValue;
-
-        allowedValue[msg.sender][_spender] = newValue;
-        emit Approval(msg.sender, _spender, newValue);
-        return true;
+    function decimals() public view override returns (uint8) {
+        return decimal;
     }
 }

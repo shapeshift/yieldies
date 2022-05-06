@@ -63,20 +63,26 @@ describe("BatchRequests", function () {
 
     const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
     rewardToken = (await upgrades.deployProxy(rewardTokenDeployment, [
-      "Fox Yieldy",
-      "FOXy",
+      "USDC Yieldy",
+      "USDCy",
+      18,
+      500000000,
     ])) as Yieldy;
     await rewardToken.deployed();
 
     rewardToken2 = (await upgrades.deployProxy(rewardTokenDeployment, [
       "Fox Yieldy",
       "FOXy",
+      18,
+      500000000,
     ])) as Yieldy;
     await rewardToken2.deployed();
 
     rewardToken3 = (await upgrades.deployProxy(rewardTokenDeployment, [
-      "Fox Yieldy",
-      "FOXy",
+      "ALX Yieldy",
+      "ALXy",
+      18,
+      500000000,
     ])) as Yieldy;
     await rewardToken3.deployed();
 
