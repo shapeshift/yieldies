@@ -156,6 +156,20 @@ describe("Integration", function () {
     await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
 
     await liquidityReserve.enableLiquidityReserve(staking.address);
+
+    // add liquidity with lp1
+    const reserveAmount = "999999999999000";
+    const adminSigner = accounts.find((account) => account.address === admin);
+
+    await stakingToken
+      .connect(adminSigner as Signer)
+      .approve(liquidityReserve.address, ethers.constants.MaxUint256);
+
+    await liquidityReserve
+      .connect(adminSigner as Signer)
+      .addLiquidity(reserveAmount);
+    expect(await liquidityReserve.balanceOf(admin)).eq(reserveAmount);
+
     await yieldy.initializeStakingContract(staking.address); // initialize reward contract
   });
 
