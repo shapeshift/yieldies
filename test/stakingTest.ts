@@ -163,13 +163,27 @@ describe("Staking", function () {
       transferAmount.toNumber()
     );
 
+    const reserveAmount = "1000000000000000";
+
     await rewardToken.initializeStakingContract(staking.address); // initialize reward contract
     await stakingToken.approve(
       liquidityReserve.address,
-      BigNumber.from("1000000000000000")
+      BigNumber.from(reserveAmount)
     ); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(staking.address);
     await liquidityReserve.setFee(constants.INSTANT_UNSTAKE_FEE);
+
+    const adminSigner = accounts.find((account) => account.address === admin);
+
+    // add liquidity with lp1
+    await stakingToken
+      .connect(adminSigner as Signer)
+      .approve(liquidityReserve.address, ethers.constants.MaxUint256);
+
+    await liquidityReserve
+      .connect(adminSigner as Signer)
+      .addLiquidity(reserveAmount);
+    expect(await liquidityReserve.balanceOf(admin)).eq(reserveAmount);
   });
 
   describe("initialize", function () {

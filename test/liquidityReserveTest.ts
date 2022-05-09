@@ -119,6 +119,21 @@ describe("Liquidity Reserve", function () {
       constants.INITIAL_LR_BALANCE
     ); // approve initial liquidity amount
     await liquidityReserve.enableLiquidityReserve(stakingContract.address);
+
+    const adminSigner = accounts.find((account) => account.address === admin);
+
+    // add liquidity with lp1
+    const reserveAmount = "999999999999000";
+
+    await stakingToken
+      .connect(adminSigner as Signer)
+      .approve(liquidityReserve.address, ethers.constants.MaxUint256);
+
+    await liquidityReserve
+      .connect(adminSigner as Signer)
+      .addLiquidity(reserveAmount);
+    expect(await liquidityReserve.balanceOf(admin)).eq(reserveAmount);
+
     tokePool = new ethers.Contract(
       constants.TOKE_ADDRESS,
       tokePoolAbi,
@@ -969,7 +984,7 @@ describe("Liquidity Reserve", function () {
 
     it("Withdraw has required balance", async () => {
       await expect(
-        liquidityReserve.removeLiquidity(BigNumber.from("10000000000"))
+        liquidityReserve.removeLiquidity("1000000000000000000000")
       ).to.be.revertedWith("Not enough lr tokens");
     });
 

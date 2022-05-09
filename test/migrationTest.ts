@@ -196,6 +196,26 @@ describe("Migration", function () {
     await liquidityReserveV2.enableLiquidityReserve(stakingV2.address);
     await liquidityReserveV2.setFee(constants.INSTANT_UNSTAKE_FEE);
 
+    // add liquidity with lp1
+    const reserveAmount = "999999999999000";
+    const adminSigner = accounts.find((account) => account.address === admin);
+
+    await stakingToken
+      .connect(adminSigner as Signer)
+      .approve(liquidityReserve.address, ethers.constants.MaxUint256);
+
+    await liquidityReserve
+      .connect(adminSigner as Signer)
+      .addLiquidity(reserveAmount);
+
+    await stakingToken
+      .connect(adminSigner as Signer)
+      .approve(liquidityReserveV2.address, ethers.constants.MaxUint256);
+
+    await liquidityReserveV2
+      .connect(adminSigner as Signer)
+      .addLiquidity(reserveAmount);
+
     // Deploy Migration
     const migrationFactory = await ethers.getContractFactory("Migration");
     migration = await migrationFactory.deploy(
