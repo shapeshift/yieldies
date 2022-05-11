@@ -74,7 +74,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
         COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
-        timeLeftToRequestWithdrawal = 43200; // 43200 = 12 hours
+        timeLeftToRequestWithdrawal = 12 hours;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
