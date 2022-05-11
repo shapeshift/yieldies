@@ -589,8 +589,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice figures out which unstake type is needed to instant unstake and then calls instantUnstakeByType
-        @dev checks to see if enough balance exists in liquidity reserve, otherwise uses curve
+        @notice instant unstakes by liquidity reserve
         @param _amount uint - amount to instant unstake
      */
     function instantUnstakeReserve(uint256 _amount) external {

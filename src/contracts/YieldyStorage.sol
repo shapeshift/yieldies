@@ -24,5 +24,5 @@ contract YieldyStorage {
 
     mapping(address => uint256) internal gonBalances;
 
-    uint8 decimal;
+    uint256 decimal;
 }
