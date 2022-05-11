@@ -138,10 +138,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _sendAffiliateFee(uint256 _amount) internal {
         if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
-            uint256 amountMinusFee = _amount -
-                ((_amount * affiliateFee) / BASIS_POINTS);
-            uint256 feeAmount = _amount - amountMinusFee;
-
+            
+            uint256 feeAmount = (_amount * affiliateFee) / BASIS_POINTS;
             IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
                 AFFILIATE_ADDRESS,
                 feeAmount
