@@ -586,7 +586,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice instant unstakes by liquidity reserve
+        @notice instant unstakes from liquidity reserve
         @param _amount uint - amount to instant unstake
      */
     function instantUnstakeReserve(uint256 _amount) external {
