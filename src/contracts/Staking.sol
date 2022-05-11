@@ -74,7 +74,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
         COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
-        timeLeftToRequestWithdrawal = 43200; // 43200 = 12 hours
+        timeLeftToRequestWithdrawal = 12 hours;
 
         // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
         // create vesting contract to hold newly staked rewardTokens based on warmup period
@@ -138,10 +138,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _sendAffiliateFee(uint256 _amount) internal {
         if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
-            uint256 amountMinusFee = _amount -
-                ((_amount * affiliateFee) / BASIS_POINTS);
-            uint256 feeAmount = _amount - amountMinusFee;
-
+            
+            uint256 feeAmount = (_amount * affiliateFee) / BASIS_POINTS;
             IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
                 AFFILIATE_ADDRESS,
                 feeAmount
