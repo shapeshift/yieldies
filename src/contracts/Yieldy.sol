@@ -228,6 +228,11 @@ contract Yieldy is
         return decimal;
     }
 
+    /**
+        @notice called from the staking contract co create Yieldy tokens
+        @param _address to receive tokens
+        @param _amount to mint to _address
+     */
     function mint(address _address, uint256 _amount)
         external
         onlyRole(MINTER_BURNER_ROLE)
@@ -244,6 +249,11 @@ contract Yieldy is
         emit Transfer(address(0), _address, _amount);
     }
 
+    /**
+        @notice called from the staking contract co burn Yieldy tokens
+        @param _address to burns tokens from
+        @param _amount to burn from _address
+     */
     function burn(address _address, uint256 _amount)
         external
         onlyRole(MINTER_BURNER_ROLE)
