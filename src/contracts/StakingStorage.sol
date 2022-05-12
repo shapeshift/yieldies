@@ -12,8 +12,6 @@ contract StakingStorage {
     address public YIELDY_TOKEN;
     address public TOKE_TOKEN;
     address public LIQUIDITY_RESERVE;
-    address public WARM_UP_CONTRACT;
-    address public COOL_DOWN_CONTRACT;
     address public FEE_ADDRESS; // can be address(0)
     address public CURVE_POOL; // can be address(0)
 

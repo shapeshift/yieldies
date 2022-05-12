@@ -77,15 +77,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         timeLeftToRequestWithdrawal = 12 hours;
 
-        // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
-        // create vesting contract to hold newly staked rewardTokens based on warmup period
-        Vesting warmUp = new Vesting(address(this), YIELDY_TOKEN);
-        WARM_UP_CONTRACT = address(warmUp);
-
-        // create vesting contract to hold newly unstaked rewardTokens based on cooldown period
-        Vesting coolDown = new Vesting(address(this), YIELDY_TOKEN);
-        COOL_DOWN_CONTRACT = address(coolDown);
-
         if (CURVE_POOL != address(0)) {
             IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
             setToAndFromCurve();
@@ -446,7 +437,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (warmUpPeriod == 0) {
             IYieldy(YIELDY_TOKEN).mint(_recipient, _amount);
         } else {
-            // create a claim and send tokens to the warmup contract
+            // create a claim and mint tokens so a user can claim them once warm up has passed
             warmUpInfo[_recipient] = Claim({
                 amount: info.amount + _amount,
                 credits: info.credits +
@@ -454,7 +445,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 expiry: epoch.number + warmUpPeriod
             });
 
-            IYieldy(YIELDY_TOKEN).mint(WARM_UP_CONTRACT, _amount);
+            IYieldy(YIELDY_TOKEN).mint(address(this), _amount);
         }
 
         sendWithdrawalRequests();
@@ -478,10 +469,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
-            IVesting(WARM_UP_CONTRACT).retrieve(
-                _recipient,
-                IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(info.credits)
-            );
+            if (info.credits > 0) {
+                IYieldy(YIELDY_TOKEN).transfer(
+                    _recipient,
+                    IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(info.credits)
+                );
+            }
         }
     }
 
@@ -509,9 +502,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             );
 
             IYieldy(YIELDY_TOKEN).burn(
-                COOL_DOWN_CONTRACT,
+                address(this),
                 totalAmountIncludingRewards
             );
+
             withdrawalAmount -= info.amount;
         }
     }
@@ -546,16 +540,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 unchecked {
                     amountLeft -= warmUpBalance;
                 }
-
-                IVesting(WARM_UP_CONTRACT).retrieve(
-                    address(this),
-                    warmUpBalance
-                );
                 delete warmUpInfo[_user];
             } else {
                 // partially consume warmup balance
                 amountLeft = 0;
-                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
                 uint256 remainingCreditsAmount = userWarmInfo.credits -
                     IYieldy(YIELDY_TOKEN).creditsForTokenBalance(_amount);
                 uint256 remainingAmount = IYieldy(YIELDY_TOKEN)
@@ -708,11 +696,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         requestWithdrawalAmount += _amount;
         sendWithdrawalRequests();
-
-        IERC20Upgradeable(YIELDY_TOKEN).safeTransfer(
-            COOL_DOWN_CONTRACT,
-            _amount
-        );
     }
 
     /**
