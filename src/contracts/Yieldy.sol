@@ -12,12 +12,6 @@ contract Yieldy is
     ERC20PermitUpgradeable,
     AccessControlUpgradeable
 {
-    // check if sender is the stakingContract
-    modifier onlyStakingContract() {
-        require(msg.sender == stakingContract, "Not staking contract");
-        _;
-    }
-
     event LogSupply(
         uint256 indexed epoch,
         uint256 timestamp,
@@ -45,14 +39,12 @@ contract Yieldy is
 
         _setupRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(MINTER_BURNER_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(REBASE_ROLE, ADMIN_ROLE);
 
         decimal = _decimal;
         WAD = 10**decimal;
-        INITIAL_FRAGMENTS_SUPPLY = _initialFragments * WAD;
-        TOTAL_GONS = MAX_UINT256 - (MAX_UINT256 % INITIAL_FRAGMENTS_SUPPLY);
-
-        _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
-        gonsPerFragment = TOTAL_GONS / _totalSupply;
+        rebasingCreditsPerToken = WAD;
         _setIndex(WAD);
     }
 
@@ -67,10 +59,9 @@ contract Yieldy is
     {
         require(stakingContract == address(0), "Already Initialized");
         require(_stakingContract != address(0), "Invalid address");
-        // TODO: staking contract can just have the minter role soon....
+        _setupRole(MINTER_BURNER_ROLE, stakingContract);
+        _setupRole(REBASE_ROLE, stakingContract);
         stakingContract = _stakingContract;
-        gonBalances[stakingContract] = TOTAL_GONS;
-        emit Transfer(address(0x0), stakingContract, _totalSupply);
     }
 
     /**
@@ -78,7 +69,7 @@ contract Yieldy is
         @param _index uint - initial index
      */
     function _setIndex(uint256 _index) internal {
-        index = gonsForBalance(_index);
+        index = creditsForTokenBalance(_index);
     }
 
     /**
@@ -88,29 +79,27 @@ contract Yieldy is
      */
     function rebase(uint256 _profit, uint256 _epoch)
         public
-        onlyStakingContract
+        onlyRole(REBASE_ROLE)
     {
-        uint256 circulatingSupply_ = circulatingSupply();
-        require(circulatingSupply_ > 0, "Can't rebase if not circulating");
-
-        uint256 rebaseAmount;
         uint256 currentTotalSupply = _totalSupply;
+        require(_totalSupply > 0, "Can't rebase if not circulating");
 
         if (_profit == 0) {
             emit LogSupply(_epoch, block.timestamp, currentTotalSupply);
             emit LogRebase(_epoch, 0, getIndex());
         } else {
-            rebaseAmount = (_profit * currentTotalSupply) / circulatingSupply_;
-            uint256 updatedTotalSupply = currentTotalSupply + rebaseAmount;
+            uint256 updatedTotalSupply = currentTotalSupply + _profit;
 
             if (updatedTotalSupply > MAX_SUPPLY) {
                 updatedTotalSupply = MAX_SUPPLY;
             }
 
-            gonsPerFragment = TOTAL_GONS / updatedTotalSupply;
+            rebasingCreditsPerToken = rebasingCredits / updatedTotalSupply;          
+            require(rebasingCreditsPerToken > 0, "Invalid change in supply");
+
             _totalSupply = updatedTotalSupply;
 
-            _storeRebase(circulatingSupply_, _profit, _epoch);
+            _storeRebase(updatedTotalSupply, _profit, _epoch);
         }
     }
 
@@ -132,7 +121,7 @@ contract Yieldy is
                 epoch: _epoch,
                 rebase: rebasePercent,
                 totalStakedBefore: _previousCirculating,
-                totalStakedAfter: circulatingSupply(),
+                totalStakedAfter: _totalSupply,
                 amountRebased: _profit,
                 index: getIndex(),
                 blockNumberOccurred: block.number
@@ -149,34 +138,25 @@ contract Yieldy is
         @return uint
      */
     function balanceOf(address _wallet) public view override returns (uint256) {
-        return gonBalances[_wallet] / gonsPerFragment;
+        return creditBalances[_wallet] / rebasingCreditsPerToken;
     }
 
     /**
-        @notice calculate gons based on balance amount
+        @notice calculate credits based on balance amount
         @param _amount uint
         @return uint
      */
-    function gonsForBalance(uint256 _amount) public view returns (uint256) {
-        return _amount * gonsPerFragment;
+    function creditsForTokenBalance(uint256 _amount) public view returns (uint256) {
+        return _amount * rebasingCreditsPerToken;
     }
 
     /**
-        @notice calculate balance based on gons amount
-        @param _gons uint
+        @notice calculate balance based on _credits amount
+        @param _credits uint
         @return uint
      */
-    function balanceForGons(uint256 _gons) public view returns (uint256) {
-        return _gons / gonsPerFragment;
-    }
-
-    /**
-        @notice get circulating supply of tokens
-        @return uint - circulation supply minus balance of staking contract
-     */
-    function circulatingSupply() public view returns (uint256) {
-        // Staking contract holds excess Yieldy
-        return _totalSupply - balanceOf(stakingContract);
+    function tokenBalanceForCredits(uint256 _credits) public view returns (uint256) {
+        return _credits / rebasingCreditsPerToken;
     }
 
     /**
@@ -184,7 +164,7 @@ contract Yieldy is
         @return uint - current index
      */
     function getIndex() public view returns (uint256) {
-        return balanceForGons(index);
+        return tokenBalanceForCredits(index);
     }
 
     /**
@@ -200,11 +180,11 @@ contract Yieldy is
     {
         require(_to != address(0), "Invalid address");
 
-        uint256 gonValue = _value * gonsPerFragment;
-        require(gonValue <= gonBalances[msg.sender], "Not enough funds");
+        uint256 creditValue = _value * rebasingCreditsPerToken;
+        require(creditValue <= creditBalances[msg.sender], "Not enough funds");
 
-        gonBalances[msg.sender] = gonBalances[msg.sender] - gonValue;
-        gonBalances[_to] = gonBalances[_to] + gonValue;
+        creditBalances[msg.sender] = creditBalances[msg.sender] - creditValue;
+        creditBalances[_to] = creditBalances[_to] + creditValue;
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
@@ -227,9 +207,9 @@ contract Yieldy is
         _allowances[_from][msg.sender] = newValue;
         emit Approval(_from, msg.sender, newValue);
 
-        uint256 gonValue = gonsForBalance(_value);
-        gonBalances[_from] = gonBalances[_from] - gonValue;
-        gonBalances[_to] = gonBalances[_to] + gonValue;
+        uint256 creditValue = creditsForTokenBalance(_value);
+        creditBalances[_from] = creditBalances[_from] - creditValue;
+        creditBalances[_to] = creditBalances[_to] + creditValue;
         emit Transfer(_from, _to, _value);
 
         return true;

@@ -8,21 +8,18 @@ contract YieldyStorage {
     Rebase[] public rebases;
     uint256 public index;
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
+    bytes32 public constant MINTER_BURNER_ROLE = keccak256("MINTER_BURNER_ROLE");
+    bytes32 public constant REBASE_ROLE = keccak256("REBASE_ROLE");
 
     uint256 internal WAD;
-    uint256 internal INITIAL_FRAGMENTS_SUPPLY;
-
     uint256 internal constant MAX_UINT256 = ~uint256(0);
-
-    // TOTAL_GONS is a multiple of INITIAL_FRAGMENTS_SUPPLY so that gonsPerFragment is an integer.
-    // Use the highest value that fits in a uint256 for max granularity.
-    uint256 internal TOTAL_GONS;
 
     // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
     uint256 internal constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
-    uint256 internal gonsPerFragment;
+    uint256 internal rebasingCreditsPerToken; // gonsPerFragment (fragment == 1 token)
+    uint256 internal rebasingCredits;         // total credits in system
 
-    mapping(address => uint256) internal gonBalances;
+    mapping(address => uint256) internal creditBalances; // gonBalances (gon == credit)
 
     uint8 internal decimal;
 }
