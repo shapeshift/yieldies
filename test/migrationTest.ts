@@ -10,7 +10,7 @@ import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve, Migration, StakingV2Test } from "../typechain-types";
 import * as constants from "./constants";
 
-describe.only("Migration", function () {
+describe("Migration", function () {
   let accounts: SignerWithAddress[];
 
   // Version-independent contracts
