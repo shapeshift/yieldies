@@ -412,6 +412,7 @@ describe("Staking", function () {
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
+      expect(await rewardToken.totalSupply()).eq(stakingAmount);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -423,8 +424,11 @@ describe("Staking", function () {
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
+
+      
       const coolDownInfo = await staking.coolDownInfo(staker1);
       expect(coolDownInfo.amount).to.equal(stakingAmount);
+      expect(await rewardToken.totalSupply()).eq(stakingAmount);
     });
     it("Users have to wait for warmup period to claim and cooldown period to withdraw", async () => {
       const { staker1 } = await getNamedAccounts();
@@ -504,8 +508,8 @@ describe("Staking", function () {
 
       // has stakingBalance after withdrawal
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
-
       expect(stakingTokenBalance).eq(stakingAmount);
+      expect(await rewardToken.totalSupply()).eq(0);
     });
 
     it("Fails to unstake when calling more than what user has in wallet or warmup contract", async () => {
@@ -651,6 +655,7 @@ describe("Staking", function () {
         staking.address
       );
       expect(stakingRewardTokenBalance).eq(stakingAmount);
+      expect(await rewardToken.totalSupply()).eq(stakingAmount;
     });
 
     it("User can stake and unstake full amount without claiming", async () => {
