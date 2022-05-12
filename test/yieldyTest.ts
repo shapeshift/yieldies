@@ -103,6 +103,7 @@ describe("Yieldy", function () {
         await yieldy.MINTER_BURNER_ROLE(),
         stakingContractMock
       );
+      // eslint-disable-next-line no-unused-expressions
       expect(hasRole).to.be.true;
     });
 
