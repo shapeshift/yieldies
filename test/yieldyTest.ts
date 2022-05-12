@@ -402,12 +402,12 @@ describe("Yieldy", function () {
 
   describe("mint", () => {
     it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
       await expect(
         yieldy.mint(accounts[1].address, ethers.utils.parseUnits("100", 18))
       ).to.be.revertedWith(
-        "AccessControl: account 0x4f25239d7799274183fac29451875831ba06d06a is missing role 0xcfd53186d792f1ec9d0679afc2dc3ffc86fc31fe1e0f342b838eb6c3eade62b3"
+        `AccessControl: account ${accounts[0].address.toLowerCase()} is missing role ${minterRole}`
       );
-      const minterRole = await yieldy.MINTER_BURNER_ROLE();
       yieldy.grantRole(minterRole, accounts[0].address);
       const mintAmount = ethers.utils.parseUnits("100", 18);
       yieldy.mint(accounts[1].address, mintAmount);
@@ -419,13 +419,12 @@ describe("Yieldy", function () {
 
   describe("burn", () => {
     it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
       await expect(
         yieldy.burn(accounts[1].address, ethers.utils.parseUnits("100", 18))
       ).to.be.revertedWith(
-        "AccessControl: account 0x4f25239d7799274183fac29451875831ba06d06a is missing role 0xcfd53186d792f1ec9d0679afc2dc3ffc86fc31fe1e0f342b838eb6c3eade62b3"
+        `AccessControl: account ${accounts[0].address.toLowerCase()} is missing role ${minterRole}`
       );
-
-      const minterRole = await yieldy.MINTER_BURNER_ROLE();
       yieldy.grantRole(minterRole, accounts[0].address);
       const mintAmount = ethers.utils.parseUnits("100", 18);
       yieldy.mint(accounts[1].address, mintAmount);
