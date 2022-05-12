@@ -518,7 +518,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     /**
         @notice gets reward tokens either from the warmup contract or user's wallet or both
-        @dev when transfering reward tokens the user could have their balance still in the warmup contract
+        @dev when transferring reward tokens the user could have their balance still in the warmup contract
         @dev this function abstracts the logic to find the correct amount of tokens to use them
         @param _amount uint
         @param _user address to pull funds from 
@@ -546,30 +546,36 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 unchecked {
                     amountLeft -= warmUpBalance;
                 }
-                IYieldy(YIELDY_TOKEN).burn(WARM_UP_CONTRACT, warmUpBalance);
+
+                IVesting(WARM_UP_CONTRACT).retrieve(
+                    address(this),
+                    warmUpBalance
+                );
                 delete warmUpInfo[_user];
             } else {
                 // partially consume warmup balance
                 amountLeft = 0;
-                IYieldy(YIELDY_TOKEN).burn(WARM_UP_CONTRACT, _amount);
-
-                uint256 remainingCreditAmount = userWarmInfo.credits -
-                    IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(_amount);
-
+                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
+                uint256 remainingCreditsAmount = userWarmInfo.credits -
+                    IYieldy(YIELDY_TOKEN).creditsForTokenBalance(_amount);
                 uint256 remainingAmount = IYieldy(YIELDY_TOKEN)
-                    .tokenBalanceForCredits(remainingCreditAmount);
+                    .tokenBalanceForCredits(remainingCreditsAmount);
 
                 warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
-                    credits: remainingCreditAmount,
+                    credits: remainingCreditsAmount,
                     expiry: userWarmInfo.expiry
                 });
             }
         }
 
         if (amountLeft != 0) {
-            // burn the rest from the users address
-            IYieldy(YIELDY_TOKEN).burn(_user, amountLeft);
+            // transfer the rest from the users address
+            IERC20Upgradeable(YIELDY_TOKEN).safeTransferFrom(
+                _user,
+                address(this),
+                amountLeft
+            );
         }
     }
 

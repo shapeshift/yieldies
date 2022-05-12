@@ -75,7 +75,7 @@ export async function getApprovalDigest(
   );
 }
 
-describe.only("Yieldy", function () {
+describe("Yieldy", function () {
   let accounts: SignerWithAddress[];
   let Yieldy: ContractFactory;
   let yieldy: Yieldy;
