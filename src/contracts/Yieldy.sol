@@ -94,7 +94,7 @@ contract Yieldy is
                 updatedTotalSupply = MAX_SUPPLY;
             }
 
-            rebasingCreditsPerToken = rebasingCredits / updatedTotalSupply;          
+            rebasingCreditsPerToken = rebasingCredits / updatedTotalSupply;
             require(rebasingCreditsPerToken > 0, "Invalid change in supply");
 
             _totalSupply = updatedTotalSupply;
@@ -146,7 +146,11 @@ contract Yieldy is
         @param _amount uint
         @return uint
      */
-    function creditsForTokenBalance(uint256 _amount) public view returns (uint256) {
+    function creditsForTokenBalance(uint256 _amount)
+        public
+        view
+        returns (uint256)
+    {
         return _amount * rebasingCreditsPerToken;
     }
 
@@ -155,7 +159,11 @@ contract Yieldy is
         @param _credits uint
         @return uint
      */
-    function tokenBalanceForCredits(uint256 _credits) public view returns (uint256) {
+    function tokenBalanceForCredits(uint256 _credits)
+        public
+        view
+        returns (uint256)
+    {
         return _credits / rebasingCreditsPerToken;
     }
 
@@ -222,7 +230,10 @@ contract Yieldy is
         return decimal;
     }
 
-    function mint(address _address, uint256 _amount) external onlyRole(MINTER_BURNER_ROLE) {
+    function mint(address _address, uint256 _amount)
+        external
+        onlyRole(MINTER_BURNER_ROLE)
+    {
         require(_address != address(0), "Mint to the zero address");
 
         uint256 creditAmount = _amount * rebasingCreditsPerToken;
@@ -235,7 +246,10 @@ contract Yieldy is
         emit Transfer(address(0), _address, _amount);
     }
 
-    function burn(address _address, uint256 _amount) external onlyRole(MINTER_BURNER_ROLE) {
+    function burn(address _address, uint256 _amount)
+        external
+        onlyRole(MINTER_BURNER_ROLE)
+    {
         require(_address != address(0), "Burn from the zero address");
         if (_amount == 0) {
             return;

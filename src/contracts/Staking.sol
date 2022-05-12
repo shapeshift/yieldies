@@ -140,10 +140,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function _sendAffiliateFee(uint256 _amount) internal {
         if (affiliateFee != 0 && FEE_ADDRESS != address(0)) {
             uint256 feeAmount = (_amount * affiliateFee) / BASIS_POINTS;
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                FEE_ADDRESS,
-                feeAmount
-            );
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(FEE_ADDRESS, feeAmount);
         }
     }
 
@@ -423,8 +420,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
-        uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN)
-            .totalSupply();
+        uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
         if (yieldyTotalSupply > 0) {
@@ -512,7 +508,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 info.amount
             );
 
-            IYieldy(YIELDY_TOKEN).burn(COOL_DOWN_CONTRACT,totalAmountIncludingRewards);
+            IYieldy(YIELDY_TOKEN).burn(
+                COOL_DOWN_CONTRACT,
+                totalAmountIncludingRewards
+            );
             withdrawalAmount -= info.amount;
         }
     }
@@ -553,10 +552,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 // partially consume warmup balance
                 amountLeft = 0;
                 IYieldy(YIELDY_TOKEN).burn(WARM_UP_CONTRACT, _amount);
-                
+
                 uint256 remainingCreditAmount = userWarmInfo.credits -
                     IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(_amount);
-                
+
                 uint256 remainingAmount = IYieldy(YIELDY_TOKEN)
                     .tokenBalanceForCredits(remainingCreditAmount);
 
@@ -748,7 +747,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     /**
      * @notice adds staking tokens for rebase rewards
-     * @dev this is the function that gives rewards so the rebase function can distrubute profits to reward token holders
+     * @dev this is the function that gives rewards so the rebase function can distribute profits to reward token holders
      * @param _amount uint - amount of tokens to add to rewards
      * @param _trigger bool - should trigger rebase
      */
