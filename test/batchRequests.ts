@@ -66,7 +66,6 @@ describe("BatchRequests", function () {
       "USDC Yieldy",
       "USDCy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardToken.deployed();
 
@@ -74,7 +73,6 @@ describe("BatchRequests", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardToken2.deployed();
 
@@ -82,7 +80,6 @@ describe("BatchRequests", function () {
       "ALX Yieldy",
       "ALXy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardToken3.deployed();
 

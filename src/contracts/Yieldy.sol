@@ -25,13 +25,11 @@ contract Yieldy is
         @param _tokenName erc20 token name
         @param _tokenSymbol erc20 token symbol
         @param _decimal decimal amount
-        @param _initialFragments initial fragments to set as total supply
      */
     function initialize(
         string memory _tokenName,
         string memory _tokenSymbol,
-        uint8 _decimal,
-        uint256 _initialFragments
+        uint8 _decimal
     ) external initializer {
         ERC20Upgradeable.__ERC20_init(_tokenName, _tokenSymbol);
         ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);

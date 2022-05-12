@@ -75,7 +75,6 @@ describe("Integration", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 

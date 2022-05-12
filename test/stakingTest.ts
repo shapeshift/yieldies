@@ -89,7 +89,6 @@ describe("Staking", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardToken.deployed();
 
@@ -1786,34 +1785,6 @@ describe("Staking", function () {
 
       const epoch = await staking.epoch();
       expect(epoch.distribute).eq(awardAmount);
-    });
-  });
-
-  describe("vesting", function () {
-    it("Fails when no staking contract or reward token is passed in", async () => {
-      const { staker1 } = await getNamedAccounts();
-      const vestingFactory = await ethers.getContractFactory("Vesting");
-
-      await expect(
-        vestingFactory.deploy(staking.address, ethers.constants.AddressZero)
-      ).to.be.reverted;
-      await expect(
-        vestingFactory.deploy(ethers.constants.AddressZero, rewardToken.address)
-      ).to.be.reverted;
-
-      const vestingContract = await vestingFactory.deploy(
-        staking.address,
-        rewardToken.address
-      );
-      const staker1Signer = accounts.find(
-        (account) => account.address === staker1
-      );
-      const staker1Vesting = await vestingContract.connect(
-        staker1Signer as Signer
-      );
-
-      await expect(staker1Vesting.retrieve(staker1, BigNumber.from("10000"))).to
-        .be.reverted;
     });
   });
 

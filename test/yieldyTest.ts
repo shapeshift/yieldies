@@ -90,7 +90,6 @@ describe("Yieldy", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 
@@ -112,7 +111,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
 
       await expect(
@@ -130,7 +128,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
       await expect(
         yieldy1.initializeStakingContract(ethers.constants.AddressZero)
@@ -143,7 +140,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
       await yieldy1.initializeStakingContract(accounts[1].address);
       await expect(
