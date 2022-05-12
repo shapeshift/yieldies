@@ -14,7 +14,6 @@ contract YieldyStorage {
     uint256 internal WAD;
     uint256 internal constant MAX_UINT256 = ~uint256(0);
 
-    // MAX_SUPPLY = maximum integer < (sqrt(4*TOTAL_GONS + 1) - 1) / 2
     uint256 internal constant MAX_SUPPLY = ~uint128(0); // (2^128) - 1
     uint256 internal rebasingCreditsPerToken; // gonsPerFragment (fragment == 1 token)
     uint256 internal rebasingCredits;         // total credits in system

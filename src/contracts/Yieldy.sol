@@ -78,7 +78,7 @@ contract Yieldy is
         @param _epoch uint256 - epoch number
      */
     function rebase(uint256 _profit, uint256 _epoch)
-        public
+        external
         onlyRole(REBASE_ROLE)
     {
         uint256 currentTotalSupply = _totalSupply;
@@ -180,11 +180,11 @@ contract Yieldy is
     {
         require(_to != address(0), "Invalid address");
 
-        uint256 creditValue = _value * rebasingCreditsPerToken;
-        require(creditValue <= creditBalances[msg.sender], "Not enough funds");
+        uint256 creditAmount = _value * rebasingCreditsPerToken;
+        require(creditAmount <= creditBalances[msg.sender], "Not enough funds");
 
-        creditBalances[msg.sender] = creditBalances[msg.sender] - creditValue;
-        creditBalances[_to] = creditBalances[_to] + creditValue;
+        creditBalances[msg.sender] = creditBalances[msg.sender] - creditAmount;
+        creditBalances[_to] = creditBalances[_to] + creditAmount;
         emit Transfer(msg.sender, _to, _value);
         return true;
     }
@@ -207,9 +207,9 @@ contract Yieldy is
         _allowances[_from][msg.sender] = newValue;
         emit Approval(_from, msg.sender, newValue);
 
-        uint256 creditValue = creditsForTokenBalance(_value);
-        creditBalances[_from] = creditBalances[_from] - creditValue;
-        creditBalances[_to] = creditBalances[_to] + creditValue;
+        uint256 creditAmount = creditsForTokenBalance(_value);
+        creditBalances[_from] = creditBalances[_from] - creditAmount;
+        creditBalances[_to] = creditBalances[_to] + creditAmount;
         emit Transfer(_from, _to, _value);
 
         return true;
@@ -220,5 +220,35 @@ contract Yieldy is
      */
     function decimals() public view override returns (uint8) {
         return decimal;
+    }
+
+    function mint(address _address, uint256 _amount) external onlyRole(MINTER_BURNER_ROLE) {
+        require(_address != address(0), "Mint to the zero address");
+
+        uint256 creditAmount = _amount * rebasingCreditsPerToken;
+        creditBalances[_address] = creditBalances[_address] + creditAmount;
+        rebasingCredits = rebasingCredits + creditAmount;
+
+        _totalSupply = _totalSupply + _amount;
+
+        require(_totalSupply < MAX_SUPPLY, "Max supply");
+        emit Transfer(address(0), _address, _amount);
+    }
+
+    function burn(address _address, uint256 _amount) external onlyRole(MINTER_BURNER_ROLE) {
+        require(_address != address(0), "Burn from the zero address");
+        if (_amount == 0) {
+            return;
+        }
+
+        uint256 creditAmount = _amount * rebasingCreditsPerToken;
+        uint256 currentCredits = creditBalances[_address];
+        require(currentCredits >= creditAmount, "Not enough balance");
+
+        creditBalances[_address] = creditBalances[_address] - creditAmount;
+        rebasingCredits = rebasingCredits - creditAmount;
+        _totalSupply = _totalSupply - _amount;
+
+        emit Transfer(_address, address(0), _amount);
     }
 }
