@@ -59,9 +59,9 @@ contract Yieldy is
     {
         require(stakingContract == address(0), "Already Initialized");
         require(_stakingContract != address(0), "Invalid address");
-        _setupRole(MINTER_BURNER_ROLE, stakingContract);
-        _setupRole(REBASE_ROLE, stakingContract);
         stakingContract = _stakingContract;
+        _setupRole(MINTER_BURNER_ROLE, _stakingContract);
+        _setupRole(REBASE_ROLE, _stakingContract);
     }
 
     /**
