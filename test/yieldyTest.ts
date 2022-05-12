@@ -161,15 +161,15 @@ describe.only("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       expect(staker1InitialBalance).eq(initialHoldings);
 
-      // const profit = BigNumber.from("1000");
-      // await yieldyStakingContractSigner.rebase(profit, BigNumber.from(1));
+      const profit = BigNumber.from("1000");
+      await yieldyStakingContractSigner.rebase(profit, BigNumber.from(1));
 
-      // const staker1BalanceAfterRebase = await yieldy.balanceOf(staker1);
-      // expect(staker1BalanceAfterRebase).eq(initialHoldings.add(profit));
+      const staker1BalanceAfterRebase = await yieldy.balanceOf(staker1);
+      expect(staker1BalanceAfterRebase).eq(initialHoldings.add(profit));
     });
     it("Should distribute profits with two token holders", async () => {
       const { staker1, staker2, stakingContractMock } =
@@ -183,8 +183,8 @@ describe.only("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
-      await yieldyStakingContractSigner.transfer(staker2, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker2, initialHoldings);
 
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       const staker2InitialBalance = await yieldy.balanceOf(staker2);
@@ -230,7 +230,7 @@ describe.only("Yieldy", function () {
         yieldyStakingContractSigner.rebase(profit, BigNumber.from(1))
       ).to.be.reverted;
     });
-    it("If profit = 0 then no additonal funds should be received", async () => {
+    it("If profit = 0 then no additional funds should be received", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const stakingContractSigner = accounts.find(
         (account) => account.address === stakingContractMock
@@ -241,7 +241,7 @@ describe.only("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       expect(staker1InitialBalance).eq(initialHoldings);
 
