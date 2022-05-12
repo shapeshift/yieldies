@@ -400,7 +400,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice stake staking tokens to receive reward tokens
+        @notice stake staking tokens to receive Yieldy tokens
         @param _amount uint
         @param _recipient address
      */
@@ -509,8 +509,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice gets reward tokens either from the warmup contract or user's wallet or both
-        @dev when transferring reward tokens the user could have their balance still in the warmup contract
+        @notice gets reward tokens either from the warmup pool or user's wallet or both
+        @dev when transferring reward tokens the user could have their balance still in the warmup pool
         @dev this function abstracts the logic to find the correct amount of tokens to use them
         @param _amount uint
         @param _user address to pull funds from 
@@ -666,8 +666,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice redeem reward tokens for staking tokens with a vesting period based on coolDownPeriod
-        @dev this function will retrieve the _amount of reward tokens from the user and transfer them to the cooldown contract.
+        @notice redeem Yieldy tokens for staking tokens with a vesting period based on coolDownPeriod
+        @dev this function will retrieve the _amount of Yieldy tokens from the user and transfer them to the cooldown contract.
         @dev once the period has expired the user will be able to withdraw their staking tokens
         @param _amount uint - amount of tokens to unstake
         @param _trigger bool - should trigger a rebase
