@@ -246,33 +246,8 @@
       "kind": "transparent"
     },
     {
-      "address": "0x3d5152DcD7882Ffc3f248903168e2ef79737F56b",
-      "txHash": "0x669b7972b993e79d5b61f5d1e98342d93d125862269a7756ea618edd013cc922",
-      "kind": "transparent"
-    },
-    {
-      "address": "0x893874944de5e304B8B6c327791aE17F9A465F7e",
-      "txHash": "0x122bd0d66e25ec716a00718de640ab61b32221fa7e773613579cf72b746de351",
-      "kind": "transparent"
-    },
-    {
-      "address": "0x8b6D8A44de36994321ba5712D73d60e7a3C9e9a1",
-      "txHash": "0x2f1718abb8170620d4bb22d573e85de014481c0cea4caeca7df253956d8036a0",
-      "kind": "transparent"
-    },
-    {
       "address": "0x4D177b773ff95c07907fAc71A85E4Bc18093e86A",
       "txHash": "0xa89a2376b05a9509143299d446cc30293cacd2059c3f2289ff56fe9b2f380534",
-      "kind": "transparent"
-    },
-    {
-      "address": "0x2d6f13fD05067f59Bf9a2BeA974Ea2409cbDCd3B",
-      "txHash": "0xfd7c20b2c8a5528f41d965c06f86b851ca4e2f86a108be551a4c874d6fe1b06e",
-      "kind": "transparent"
-    },
-    {
-      "address": "0x7D93929A45a3e71020A93684E5e21354a43344Bd",
-      "txHash": "0xeca6c8fa3fc002022bac82fe2a1edbe61053b0f016874357c9f90f1de9fe7461",
       "kind": "transparent"
     },
     {
@@ -382,7 +357,32 @@
     },
     {
       "address": "0x44446E79113eeac51744e4916C6485CE850931A6",
-      "txHash": "0xa0c59d0d176b2dafefdb6fdb7f9f99ff696f37301089215b22fb26cea6f47423",
+      "txHash": "0xc82bb962c928443615609df5b72538385c672d085cbba174e5bf17cddaaf8201",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x3d5152DcD7882Ffc3f248903168e2ef79737F56b",
+      "txHash": "0xa99eb609c6f8d84dc9113610fdd691ed4302d4122c8979fcadd3c706b3bf34e0",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x2d6f13fD05067f59Bf9a2BeA974Ea2409cbDCd3B",
+      "txHash": "0x402af78db15be5009e09060de2bc62d14072a3f2aae73727727ef8c842bb6f45",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x7D93929A45a3e71020A93684E5e21354a43344Bd",
+      "txHash": "0x77a0e3da80d9fcfc7c470d4f7c624eab46859dd61f29e1354206ddfda070c93b",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x893874944de5e304B8B6c327791aE17F9A465F7e",
+      "txHash": "0x7bcf75d9bf0a94945e38ee7ed096a56617497cc46697e2795815e49e6e446a6e",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x8b6D8A44de36994321ba5712D73d60e7a3C9e9a1",
+      "txHash": "0x2004f9f571fc87979211d33c1f96df9b4672edddc0f348de56b12411502bda01",
       "kind": "transparent"
     }
   ],
@@ -1959,352 +1959,6 @@
         }
       }
     },
-    "88b58016a6a12b5803990986974122d716ed9351cbe495d62ce0d942e11b57d5": {
-      "address": "0xff41c3F243373d6F2d50B46aA3A893EB0661239C",
-      "txHash": "0xf03078229daa53cb685ef95f6b5ca44f786fce87f56468f3f008ac3505ebde41",
-      "layout": {
-        "storage": [
-          {
-            "label": "_initialized",
-            "offset": 0,
-            "slot": "0",
-            "type": "t_bool",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
-          },
-          {
-            "label": "_initializing",
-            "offset": 1,
-            "slot": "0",
-            "type": "t_bool",
-            "contract": "Initializable",
-            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "1",
-            "type": "t_array(t_uint256)50_storage",
-            "contract": "ContextUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
-          },
-          {
-            "label": "_owner",
-            "offset": 0,
-            "slot": "51",
-            "type": "t_address",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "52",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "OwnableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:87"
-          },
-          {
-            "label": "TOKE_POOL",
-            "offset": 0,
-            "slot": "101",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:8"
-          },
-          {
-            "label": "TOKE_MANAGER",
-            "offset": 0,
-            "slot": "102",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:9"
-          },
-          {
-            "label": "TOKE_REWARD",
-            "offset": 0,
-            "slot": "103",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:10"
-          },
-          {
-            "label": "STAKING_TOKEN",
-            "offset": 0,
-            "slot": "104",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:11"
-          },
-          {
-            "label": "YIELDY_TOKEN",
-            "offset": 0,
-            "slot": "105",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:12"
-          },
-          {
-            "label": "TOKE_TOKEN",
-            "offset": 0,
-            "slot": "106",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:13"
-          },
-          {
-            "label": "LIQUIDITY_RESERVE",
-            "offset": 0,
-            "slot": "107",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:14"
-          },
-          {
-            "label": "FEE_ADDRESS",
-            "offset": 0,
-            "slot": "108",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:15"
-          },
-          {
-            "label": "CURVE_POOL",
-            "offset": 0,
-            "slot": "109",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:16"
-          },
-          {
-            "label": "COW_SETTLEMENT",
-            "offset": 0,
-            "slot": "110",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:18"
-          },
-          {
-            "label": "COW_RELAYER",
-            "offset": 0,
-            "slot": "111",
-            "type": "t_address",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:19"
-          },
-          {
-            "label": "isStakingPaused",
-            "offset": 20,
-            "slot": "111",
-            "type": "t_bool",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:22"
-          },
-          {
-            "label": "isUnstakingPaused",
-            "offset": 21,
-            "slot": "111",
-            "type": "t_bool",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:23"
-          },
-          {
-            "label": "isInstantUnstakingPaused",
-            "offset": 22,
-            "slot": "111",
-            "type": "t_bool",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:24"
-          },
-          {
-            "label": "epoch",
-            "offset": 0,
-            "slot": "112",
-            "type": "t_struct(Epoch)7656_storage",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:26"
-          },
-          {
-            "label": "warmUpInfo",
-            "offset": 0,
-            "slot": "117",
-            "type": "t_mapping(t_address,t_struct(Claim)7643_storage)",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:28"
-          },
-          {
-            "label": "coolDownInfo",
-            "offset": 0,
-            "slot": "118",
-            "type": "t_mapping(t_address,t_struct(Claim)7643_storage)",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:29"
-          },
-          {
-            "label": "timeLeftToRequestWithdrawal",
-            "offset": 0,
-            "slot": "119",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:31"
-          },
-          {
-            "label": "warmUpPeriod",
-            "offset": 0,
-            "slot": "120",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:32"
-          },
-          {
-            "label": "coolDownPeriod",
-            "offset": 0,
-            "slot": "121",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:33"
-          },
-          {
-            "label": "requestWithdrawalAmount",
-            "offset": 0,
-            "slot": "122",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:34"
-          },
-          {
-            "label": "withdrawalAmount",
-            "offset": 0,
-            "slot": "123",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:35"
-          },
-          {
-            "label": "lastTokeCycleIndex",
-            "offset": 0,
-            "slot": "124",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:36"
-          },
-          {
-            "label": "affiliateFee",
-            "offset": 0,
-            "slot": "125",
-            "type": "t_uint256",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:37"
-          },
-          {
-            "label": "curvePoolFrom",
-            "offset": 0,
-            "slot": "126",
-            "type": "t_int128",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:41"
-          },
-          {
-            "label": "curvePoolTo",
-            "offset": 16,
-            "slot": "126",
-            "type": "t_int128",
-            "contract": "StakingStorage",
-            "src": "src/contracts/StakingStorage.sol:42"
-          }
-        ],
-        "types": {
-          "t_address": {
-            "label": "address",
-            "numberOfBytes": "20"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]",
-            "numberOfBytes": "1568"
-          },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]",
-            "numberOfBytes": "1600"
-          },
-          "t_bool": {
-            "label": "bool",
-            "numberOfBytes": "1"
-          },
-          "t_int128": {
-            "label": "int128",
-            "numberOfBytes": "16"
-          },
-          "t_mapping(t_address,t_struct(Claim)7643_storage)": {
-            "label": "mapping(address => struct Claim)",
-            "numberOfBytes": "32"
-          },
-          "t_struct(Claim)7643_storage": {
-            "label": "struct Claim",
-            "members": [
-              {
-                "label": "amount",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "credits",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "expiry",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              }
-            ],
-            "numberOfBytes": "96"
-          },
-          "t_struct(Epoch)7656_storage": {
-            "label": "struct Epoch",
-            "members": [
-              {
-                "label": "duration",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "0"
-              },
-              {
-                "label": "number",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "1"
-              },
-              {
-                "label": "timestamp",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "2"
-              },
-              {
-                "label": "endTime",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "3"
-              },
-              {
-                "label": "distribute",
-                "type": "t_uint256",
-                "offset": 0,
-                "slot": "4"
-              }
-            ],
-            "numberOfBytes": "160"
-          },
-          "t_uint256": {
-            "label": "uint256",
-            "numberOfBytes": "32"
-          }
-        }
-      }
-    },
     "e38e9a7ed907d16561d5134819fada856ff8516a60c8f7a8f7362a40d88e3774": {
       "address": "0x139BE3BBD3938788eb0ed34E7Dd8808DFb1C8e5D",
       "txHash": "0xf6642fb1cd65184fa170c4b37f835ba58faf579d5f6fad850b4df71a02daa113",
@@ -3335,6 +2989,352 @@
           "t_uint8": {
             "label": "uint8",
             "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "0fec1f21d17136a2ff0de5ff274b114bbd3b2d1b8e109bdd9088ff894347614d": {
+      "address": "0xff41c3F243373d6F2d50B46aA3A893EB0661239C",
+      "txHash": "0x2275ff650932bcd2dfe50aa9ae63089e1cc3367c28ca734266be8f034de80bce",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:87"
+          },
+          {
+            "label": "TOKE_POOL",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:8"
+          },
+          {
+            "label": "TOKE_MANAGER",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:9"
+          },
+          {
+            "label": "TOKE_REWARD",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:10"
+          },
+          {
+            "label": "STAKING_TOKEN",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:11"
+          },
+          {
+            "label": "YIELDY_TOKEN",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:12"
+          },
+          {
+            "label": "TOKE_TOKEN",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:13"
+          },
+          {
+            "label": "LIQUIDITY_RESERVE",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:14"
+          },
+          {
+            "label": "FEE_ADDRESS",
+            "offset": 0,
+            "slot": "108",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:15"
+          },
+          {
+            "label": "CURVE_POOL",
+            "offset": 0,
+            "slot": "109",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:16"
+          },
+          {
+            "label": "COW_SETTLEMENT",
+            "offset": 0,
+            "slot": "110",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:18"
+          },
+          {
+            "label": "COW_RELAYER",
+            "offset": 0,
+            "slot": "111",
+            "type": "t_address",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:19"
+          },
+          {
+            "label": "isStakingPaused",
+            "offset": 20,
+            "slot": "111",
+            "type": "t_bool",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:22"
+          },
+          {
+            "label": "isUnstakingPaused",
+            "offset": 21,
+            "slot": "111",
+            "type": "t_bool",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:23"
+          },
+          {
+            "label": "isInstantUnstakingPaused",
+            "offset": 22,
+            "slot": "111",
+            "type": "t_bool",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:24"
+          },
+          {
+            "label": "epoch",
+            "offset": 0,
+            "slot": "112",
+            "type": "t_struct(Epoch)7658_storage",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:26"
+          },
+          {
+            "label": "warmUpInfo",
+            "offset": 0,
+            "slot": "117",
+            "type": "t_mapping(t_address,t_struct(Claim)7645_storage)",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:28"
+          },
+          {
+            "label": "coolDownInfo",
+            "offset": 0,
+            "slot": "118",
+            "type": "t_mapping(t_address,t_struct(Claim)7645_storage)",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:29"
+          },
+          {
+            "label": "timeLeftToRequestWithdrawal",
+            "offset": 0,
+            "slot": "119",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:31"
+          },
+          {
+            "label": "warmUpPeriod",
+            "offset": 0,
+            "slot": "120",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:32"
+          },
+          {
+            "label": "coolDownPeriod",
+            "offset": 0,
+            "slot": "121",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:33"
+          },
+          {
+            "label": "requestWithdrawalAmount",
+            "offset": 0,
+            "slot": "122",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:34"
+          },
+          {
+            "label": "withdrawalAmount",
+            "offset": 0,
+            "slot": "123",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:35"
+          },
+          {
+            "label": "lastTokeCycleIndex",
+            "offset": 0,
+            "slot": "124",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:36"
+          },
+          {
+            "label": "affiliateFee",
+            "offset": 0,
+            "slot": "125",
+            "type": "t_uint256",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:37"
+          },
+          {
+            "label": "curvePoolFrom",
+            "offset": 0,
+            "slot": "126",
+            "type": "t_int128",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:41"
+          },
+          {
+            "label": "curvePoolTo",
+            "offset": 16,
+            "slot": "126",
+            "type": "t_int128",
+            "contract": "StakingStorage",
+            "src": "src/contracts/StakingStorage.sol:42"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_int128": {
+            "label": "int128",
+            "numberOfBytes": "16"
+          },
+          "t_mapping(t_address,t_struct(Claim)7645_storage)": {
+            "label": "mapping(address => struct Claim)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Claim)7645_storage": {
+            "label": "struct Claim",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "credits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "expiry",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_struct(Epoch)7658_storage": {
+            "label": "struct Epoch",
+            "members": [
+              {
+                "label": "duration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "number",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "endTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "distribute",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
           }
         }
       }
