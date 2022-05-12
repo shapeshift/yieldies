@@ -10,7 +10,7 @@ import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import { LiquidityReserve, Migration, StakingV2Test } from "../typechain-types";
 import * as constants from "./constants";
 
-describe("Migration", function () {
+describe.only("Migration", function () {
   let accounts: SignerWithAddress[];
 
   // Version-independent contracts
@@ -117,6 +117,7 @@ describe("Migration", function () {
       yieldyAbi,
       stakingOwnerSigner
     );
+
     liquidityReserve = new ethers.Contract(
       await staking.LIQUIDITY_RESERVE(),
       liquidityReserveAbi,

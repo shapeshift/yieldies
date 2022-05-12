@@ -22,7 +22,7 @@ import {
 import * as constants from "./constants";
 import axios from "axios";
 
-describe.only("Staking", function () {
+describe("Staking", function () {
   let accounts: SignerWithAddress[];
   let rewardToken: Yieldy;
   let staking: Staking;
@@ -212,9 +212,7 @@ describe.only("Staking", function () {
       let rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(stakingAmount);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(0);
 
       // stake again after claiming
@@ -223,26 +221,20 @@ describe.only("Staking", function () {
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(stakingAmount);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // should auto claim the current warmup rewards when staking again
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // warmup reward token balance stays same due to previous staking amount being claimed
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       // staker1 reward balance doubles due to being claimed
@@ -257,9 +249,7 @@ describe.only("Staking", function () {
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // warmup reward token balance should double
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount.mul(2));
 
       // staker1 reward balance should stay the same
@@ -481,7 +471,7 @@ describe.only("Staking", function () {
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
-      
+
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).to.equal(0);
 
@@ -536,9 +526,11 @@ describe.only("Staking", function () {
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
-      let warmUpInfo = await staking.warmUpInfo(staker1);
+      const warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).to.equal(stakingAmount);
-      expect(await rewardToken.balanceOf(staking.address)).to.equal(stakingAmount);
+      expect(await rewardToken.balanceOf(staking.address)).to.equal(
+        stakingAmount
+      );
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -569,7 +561,9 @@ describe.only("Staking", function () {
 
       let warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).to.equal(stakingAmount);
-      expect(await rewardToken.balanceOf(staking.address)).to.equal(stakingAmount);
+      expect(await rewardToken.balanceOf(staking.address)).to.equal(
+        stakingAmount
+      );
 
       let staker1RewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardTokenBalance).eq(0);
@@ -633,7 +627,7 @@ describe.only("Staking", function () {
       let warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(stakingAmount);
 
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+      const warmupRewardTokenBalance = await rewardToken.balanceOf(
         staking.address
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
@@ -651,7 +645,7 @@ describe.only("Staking", function () {
       expect(warmUpInfo.amount).eq(stakingAmount.div(2));
 
       // coolDownInfo for staker1 should be 2500
-      let coolDownInfo = await staking.coolDownInfo(staker1);
+      const coolDownInfo = await staking.coolDownInfo(staker1);
       expect(coolDownInfo.amount).eq(stakingAmount.div(2));
 
       const stakingRewardTokenBalance = await rewardToken.balanceOf(
@@ -690,7 +684,7 @@ describe.only("Staking", function () {
       let warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(stakingAmount);
 
-      let warmupRewardTokenBalance = await rewardToken.balanceOf(
+      const warmupRewardTokenBalance = await rewardToken.balanceOf(
         staking.address
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
@@ -710,9 +704,7 @@ describe.only("Staking", function () {
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(0);
 
-      const stakingTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      const stakingTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(stakingTokenBalance).eq(stakingAmount);
     });
 
@@ -875,7 +867,9 @@ describe.only("Staking", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await staking.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
 
       const slippage = 50; // in bps
@@ -905,7 +899,9 @@ describe.only("Staking", function () {
       // can't instantUnstake without reward tokens
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await staking.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await expect(
         stakingStaker1.instantUnstakeReserve(totalBalance)
@@ -951,7 +947,9 @@ describe.only("Staking", function () {
       // can't instantUnstake without reward tokens
       let walletBalance = await rewardToken.balanceOf(staker1);
       let warmUpInfo = await staking.warmUpInfo(staker1);
-      let warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      let warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       let totalBalance = walletBalance.add(warmUpBalance);
       await expect(
         stakingStaker1.instantUnstakeReserve(totalBalance)
@@ -973,7 +971,9 @@ describe.only("Staking", function () {
 
       walletBalance = await rewardToken.balanceOf(staker1);
       warmUpInfo = await staking.warmUpInfo(staker1);
-      warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       totalBalance = walletBalance.add(warmUpBalance);
       await stakingStaker1.instantUnstakeReserve(totalBalance);
 
@@ -1015,7 +1015,9 @@ describe.only("Staking", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await staking.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingStaker1.instantUnstakeReserve(totalBalance);
 
@@ -1071,9 +1073,7 @@ describe.only("Staking", function () {
       let rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(stakingAmount);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(0);
 
       // stake again after claiming
@@ -1082,26 +1082,20 @@ describe.only("Staking", function () {
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(stakingAmount);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       await mineToNextEpoch();
       await stakingStaker1.rebase();
 
       // should auto claim the current warmup rewards when staking again
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // warmup reward token balance stays same due to previous staking amount being claimed
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
       // staker1 reward balance doubles due to being claimed
@@ -1116,9 +1110,7 @@ describe.only("Staking", function () {
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // warmup reward token balance should double
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(stakingAmount.mul(2));
 
       // staker1 reward balance should stay the same
@@ -1172,9 +1164,7 @@ describe.only("Staking", function () {
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).eq(0);
 
-      warmupRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      warmupRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(warmupRewardTokenBalance).eq(coolDownInfo.amount);
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
@@ -1270,9 +1260,7 @@ describe.only("Staking", function () {
       await stakingStaker1.unstake(unStakingAmount, false);
 
       // rest of unstaking reward goes into cooldown
-      cooldownRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      cooldownRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(cooldownRewardTokenBalance).eq(unStakingAmount);
 
       // automatically claims previous cooldown rewards
@@ -1333,9 +1321,7 @@ describe.only("Staking", function () {
 
       await stakingStaker1.claimWithdraw(staker1);
 
-      cooldownRewardTokenBalance = await rewardToken.balanceOf(
-        staking.address
-      );
+      cooldownRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(cooldownRewardTokenBalance).eq(0);
 
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2614,7 +2600,9 @@ describe.only("Staking", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await staking.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.tokenBalanceForCredits(warmUpInfo.credits);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
 
       await expect(

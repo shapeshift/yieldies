@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
+import "../interfaces/IStakingV1.sol";
 import "../interfaces/IStaking.sol";
 import "../interfaces/IYieldy.sol";
 
@@ -24,7 +25,7 @@ contract Migration {
         OLD_CONTRACT = _oldContract;
         NEW_CONTRACT = _newContract;
 
-        OLD_YIELDY_TOKEN = IStaking(_oldContract).YIELDY_TOKEN();
+        OLD_YIELDY_TOKEN = IStakingV1(_oldContract).REWARD_TOKEN();
         address stakingToken = IStaking(_newContract).STAKING_TOKEN();
 
         IYieldy(OLD_YIELDY_TOKEN).approve(_oldContract, type(uint256).max);

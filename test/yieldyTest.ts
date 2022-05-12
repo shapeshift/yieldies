@@ -100,7 +100,10 @@ describe("Yieldy", function () {
   describe("initializeStakingContract", function () {
     it("Should assign the MINTER_BURNER_ROLE to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
-      const hasRole = await yieldy.hasRole(await yieldy.MINTER_BURNER_ROLE(), stakingContractMock);
+      const hasRole = await yieldy.hasRole(
+        await yieldy.MINTER_BURNER_ROLE(),
+        stakingContractMock
+      );
       expect(hasRole).to.be.true;
     });
 
