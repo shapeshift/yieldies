@@ -54,7 +54,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // must have valid initial addresses
         require(
             _stakingToken != address(0) &&
-                _rewardToken != address(0) &&
+                _yieldyToken != address(0) &&
                 _tokeToken != address(0) &&
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
