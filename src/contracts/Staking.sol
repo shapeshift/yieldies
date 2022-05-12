@@ -38,7 +38,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     function initialize(
         address _stakingToken,
-        address _rewardToken,
+        address _yieldyToken,
         address _tokeToken,
         address _tokePool,
         address _tokeManager,
@@ -63,7 +63,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             "Invalid address"
         );
         STAKING_TOKEN = _stakingToken;
-        YIELDY_TOKEN = _rewardToken;
+        YIELDY_TOKEN = _yieldyToken;
         TOKE_TOKEN = _tokeToken;
         TOKE_POOL = _tokePool;
         TOKE_MANAGER = _tokeManager;
@@ -155,7 +155,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice sets the curve pool address
         @param _curvePool uint
      */
-    function setCurvePool(address _curvePool) public onlyOwner {
+    function setCurvePool(address _curvePool) external onlyOwner {
         CURVE_POOL = _curvePool;
         setToAndFromCurve();
     }
@@ -165,7 +165,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev fee is set in basis points
         @param _affiliateFee uint
      */
-    function setAffiliateFee(uint256 _affiliateFee) public onlyOwner {
+    function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
         affiliateFee = _affiliateFee;
         emit LogSetAffiliateFee(block.number, _affiliateFee);
     }
@@ -175,7 +175,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev if set to 0x000.. then no affiliate will be sent
         @param _affiliateAddress address
      */
-    function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
+    function setAffiliateAddress(address _affiliateAddress) external onlyOwner {
         FEE_ADDRESS = _affiliateAddress;
         emit LogSetAffiliateAddress(block.number, _affiliateAddress);
     }
@@ -233,7 +233,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice set cooldown period for stakers
      * @param _vestingPeriod uint
      */
-    function setCoolDownPeriod(uint256 _vestingPeriod) public onlyOwner {
+    function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
         coolDownPeriod = _vestingPeriod;
         emit LogSetCoolDownPeriod(block.number, _vestingPeriod);
     }
@@ -490,8 +490,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
             _withdrawFromTokemak();
-
             delete coolDownInfo[_recipient];
+
+            withdrawalAmount -= info.amount;
 
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
@@ -504,8 +505,6 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 address(this),
                 totalAmountIncludingRewards
             );
-
-            withdrawalAmount -= info.amount;
         }
     }
 
