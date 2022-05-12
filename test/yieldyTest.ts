@@ -251,6 +251,7 @@ describe("Yieldy", function () {
       expect(staker1BalanceAfterRebase).eq(initialHoldings);
     });
   });
+
   describe("approve", () => {
     it("Sets the allowed value between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -278,6 +279,7 @@ describe("Yieldy", function () {
         .withArgs(staker1, stakingContractMock, 10);
     });
   });
+
   describe("permit", () => {
     const provider = new MockProvider({
       ganacheOptions: {
@@ -323,6 +325,7 @@ describe("Yieldy", function () {
       );
     });
   });
+
   describe("increaseAllowance", () => {
     it("Increases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -353,6 +356,7 @@ describe("Yieldy", function () {
         .withArgs(staker1, stakingContractMock, 14);
     });
   });
+
   describe("decreaseAllowance", () => {
     it("Decreases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -392,6 +396,46 @@ describe("Yieldy", function () {
       )
         .to.emit(yieldy, "Approval")
         .withArgs(staker1, stakingContractMock, 6);
+    });
+  });
+
+  describe("mint", () => {
+    it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      await expect(
+        yieldy.mint(accounts[1].address, ethers.utils.parseUnits("100", 18))
+      ).to.be.revertedWith(
+        "AccessControl: account 0x4f25239d7799274183fac29451875831ba06d06a is missing role 0xcfd53186d792f1ec9d0679afc2dc3ffc86fc31fe1e0f342b838eb6c3eade62b3"
+      );
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
+      yieldy.grantRole(minterRole, accounts[0].address);
+      const mintAmount = ethers.utils.parseUnits("100", 18);
+      yieldy.mint(accounts[1].address, mintAmount);
+      const balance = await yieldy.balanceOf(accounts[1].address);
+      expect(mintAmount).to.be.eq(balance);
+      expect(await yieldy.totalSupply()).to.be.equal(balance);
+    });
+  });
+
+  describe("burn", () => {
+    it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      await expect(
+        yieldy.burn(accounts[1].address, ethers.utils.parseUnits("100", 18))
+      ).to.be.revertedWith(
+        "AccessControl: account 0x4f25239d7799274183fac29451875831ba06d06a is missing role 0xcfd53186d792f1ec9d0679afc2dc3ffc86fc31fe1e0f342b838eb6c3eade62b3"
+      );
+
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
+      yieldy.grantRole(minterRole, accounts[0].address);
+      const mintAmount = ethers.utils.parseUnits("100", 18);
+      yieldy.mint(accounts[1].address, mintAmount);
+      const balance = await yieldy.balanceOf(accounts[1].address);
+
+      // now we should be able to burn some amount
+      yieldy.burn(accounts[1].address, mintAmount.div(2));
+      const balanceAfterBurn = await yieldy.balanceOf(accounts[1].address);
+
+      expect(mintAmount.div(2)).to.be.eq(balanceAfterBurn);
+      expect(await yieldy.totalSupply()).to.be.equal(balance.div(2));
     });
   });
 });
