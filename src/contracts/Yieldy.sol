@@ -237,6 +237,15 @@ contract Yieldy is
         external
         onlyRole(MINTER_BURNER_ROLE)
     {
+        _mint(_address, _amount);
+    }
+
+    /**
+        @notice internal override for stock erc20 mint functionality
+        @param _address to receive tokens
+        @param _amount to mint to _address
+     */
+    function _mint(address _address, uint256 _amount) internal override {
         require(_address != address(0), "Mint to the zero address");
 
         uint256 creditAmount = _amount * rebasingCreditsPerToken;
@@ -258,6 +267,15 @@ contract Yieldy is
         external
         onlyRole(MINTER_BURNER_ROLE)
     {
+        _burn(_address, _amount);
+    }
+
+    /**
+        @notice internal override for stock erc20 burn functionality
+        @param _address to burns tokens from
+        @param _amount to burn from _address
+     */
+    function _burn(address _address, uint256 _amount) internal override {
         require(_address != address(0), "Burn from the zero address");
         if (_amount == 0) {
             return;
