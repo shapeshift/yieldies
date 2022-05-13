@@ -425,7 +425,6 @@ describe("Staking", function () {
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
 
-      
       const coolDownInfo = await staking.coolDownInfo(staker1);
       expect(coolDownInfo.amount).to.equal(stakingAmount);
       expect(await rewardToken.totalSupply()).eq(stakingAmount);
@@ -655,7 +654,7 @@ describe("Staking", function () {
         staking.address
       );
       expect(stakingRewardTokenBalance).eq(stakingAmount);
-      expect(await rewardToken.totalSupply()).eq(stakingAmount;
+      expect(await rewardToken.totalSupply()).eq(stakingAmount);
     });
 
     it("User can stake and unstake full amount without claiming", async () => {
