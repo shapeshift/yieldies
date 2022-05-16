@@ -56,7 +56,6 @@ describe("Liquidity Reserve", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardToken.deployed();
 
@@ -260,7 +259,9 @@ describe("Liquidity Reserve", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
@@ -410,7 +411,9 @@ describe("Liquidity Reserve", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
@@ -591,7 +594,9 @@ describe("Liquidity Reserve", function () {
 
       let walletBalance = await rewardToken.balanceOf(staker1);
       let warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      let warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      let warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       let totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
@@ -607,7 +612,9 @@ describe("Liquidity Reserve", function () {
 
       walletBalance = await rewardToken.balanceOf(staker2);
       warmUpInfo = await stakingContract.warmUpInfo(staker2);
-      warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker2.instantUnstakeReserve(totalBalance);
 
@@ -639,7 +646,9 @@ describe("Liquidity Reserve", function () {
 
       walletBalance = await rewardToken.balanceOf(staker3);
       warmUpInfo = await stakingContract.warmUpInfo(staker3);
-      warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker3.instantUnstakeReserve(totalBalance);
 
@@ -717,7 +726,9 @@ describe("Liquidity Reserve", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
@@ -863,7 +874,9 @@ describe("Liquidity Reserve", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContractStaker1.instantUnstakeReserve(totalBalance);
 
@@ -1114,7 +1127,9 @@ describe("Liquidity Reserve", function () {
 
       const walletBalance = await rewardToken.balanceOf(staker1);
       const warmUpInfo = await stakingContract.warmUpInfo(staker1);
-      const warmUpBalance = await rewardToken.balanceForGons(warmUpInfo.gons);
+      const warmUpBalance = await rewardToken.tokenBalanceForCredits(
+        warmUpInfo.credits
+      );
       const totalBalance = walletBalance.add(warmUpBalance);
       await stakingContract
         .connect(staker1Signer as Signer)

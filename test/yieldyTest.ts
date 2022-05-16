@@ -90,7 +90,6 @@ describe("Yieldy", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 
@@ -98,14 +97,14 @@ describe("Yieldy", function () {
   });
 
   describe("initializeStakingContract", function () {
-    it("Should assign the total supply of tokens to the stakingContract", async () => {
+    it("Should assign the MINTER_BURNER_ROLE to the stakingContract", async () => {
       const { stakingContractMock } = await getNamedAccounts();
-      const supply = await yieldy.totalSupply();
-      const stakingContractBalance = await yieldy.balanceOf(
+      const hasRole = await yieldy.hasRole(
+        await yieldy.MINTER_BURNER_ROLE(),
         stakingContractMock
       );
-      expect(stakingContractBalance).eq(supply);
-      expect(await yieldy.stakingContract()).to.equal(stakingContractMock);
+      // eslint-disable-next-line no-unused-expressions
+      expect(hasRole).to.be.true;
     });
 
     it("Fails if called from non admin", async () => {
@@ -113,7 +112,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
 
       await expect(
@@ -131,7 +129,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
       await expect(
         yieldy1.initializeStakingContract(ethers.constants.AddressZero)
@@ -144,7 +141,6 @@ describe("Yieldy", function () {
         "Fox Yieldy",
         "FOXy",
         18,
-        500000000,
       ])) as Yieldy;
       await yieldy1.initializeStakingContract(accounts[1].address);
       await expect(
@@ -165,7 +161,7 @@ describe("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       expect(staker1InitialBalance).eq(initialHoldings);
 
@@ -187,8 +183,8 @@ describe("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
-      await yieldyStakingContractSigner.transfer(staker2, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker2, initialHoldings);
 
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       const staker2InitialBalance = await yieldy.balanceOf(staker2);
@@ -234,7 +230,7 @@ describe("Yieldy", function () {
         yieldyStakingContractSigner.rebase(profit, BigNumber.from(1))
       ).to.be.reverted;
     });
-    it("If profit = 0 then no additonal funds should be received", async () => {
+    it("If profit = 0 then no additional funds should be received", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
       const stakingContractSigner = accounts.find(
         (account) => account.address === stakingContractMock
@@ -245,7 +241,7 @@ describe("Yieldy", function () {
         stakingContractSigner as Signer
       );
 
-      await yieldyStakingContractSigner.transfer(staker1, initialHoldings);
+      await yieldyStakingContractSigner.mint(staker1, initialHoldings);
       const staker1InitialBalance = await yieldy.balanceOf(staker1);
       expect(staker1InitialBalance).eq(initialHoldings);
 
@@ -256,6 +252,7 @@ describe("Yieldy", function () {
       expect(staker1BalanceAfterRebase).eq(initialHoldings);
     });
   });
+
   describe("approve", () => {
     it("Sets the allowed value between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -283,6 +280,7 @@ describe("Yieldy", function () {
         .withArgs(staker1, stakingContractMock, 10);
     });
   });
+
   describe("permit", () => {
     const provider = new MockProvider({
       ganacheOptions: {
@@ -328,6 +326,7 @@ describe("Yieldy", function () {
       );
     });
   });
+
   describe("increaseAllowance", () => {
     it("Increases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -358,6 +357,7 @@ describe("Yieldy", function () {
         .withArgs(staker1, stakingContractMock, 14);
     });
   });
+
   describe("decreaseAllowance", () => {
     it("Decreases the allowance between sender and spender", async () => {
       const { staker1, stakingContractMock } = await getNamedAccounts();
@@ -397,6 +397,45 @@ describe("Yieldy", function () {
       )
         .to.emit(yieldy, "Approval")
         .withArgs(staker1, stakingContractMock, 6);
+    });
+  });
+
+  describe("mint", () => {
+    it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
+      await expect(
+        yieldy.mint(accounts[1].address, ethers.utils.parseUnits("100", 18))
+      ).to.be.revertedWith(
+        `AccessControl: account ${accounts[0].address.toLowerCase()} is missing role ${minterRole}`
+      );
+      yieldy.grantRole(minterRole, accounts[0].address);
+      const mintAmount = ethers.utils.parseUnits("100", 18);
+      yieldy.mint(accounts[1].address, mintAmount);
+      const balance = await yieldy.balanceOf(accounts[1].address);
+      expect(mintAmount).to.be.eq(balance);
+      expect(await yieldy.totalSupply()).to.be.equal(balance);
+    });
+  });
+
+  describe("burn", () => {
+    it("can only be called by accounts with MINTER_BURNER_ROLE", async () => {
+      const minterRole = await yieldy.MINTER_BURNER_ROLE();
+      await expect(
+        yieldy.burn(accounts[1].address, ethers.utils.parseUnits("100", 18))
+      ).to.be.revertedWith(
+        `AccessControl: account ${accounts[0].address.toLowerCase()} is missing role ${minterRole}`
+      );
+      yieldy.grantRole(minterRole, accounts[0].address);
+      const mintAmount = ethers.utils.parseUnits("100", 18);
+      yieldy.mint(accounts[1].address, mintAmount);
+      const balance = await yieldy.balanceOf(accounts[1].address);
+
+      // now we should be able to burn some amount
+      yieldy.burn(accounts[1].address, mintAmount.div(2));
+      const balanceAfterBurn = await yieldy.balanceOf(accounts[1].address);
+
+      expect(mintAmount.div(2)).to.be.eq(balanceAfterBurn);
+      expect(await yieldy.totalSupply()).to.be.equal(balance.div(2));
     });
   });
 });

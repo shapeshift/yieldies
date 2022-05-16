@@ -4,10 +4,10 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./Vesting.sol";
+
 import "./LiquidityReserve.sol";
 import "./StakingStorage.sol";
-import "../interfaces/IRewardToken.sol";
+import "../interfaces/IYieldy.sol";
 import "../interfaces/IVesting.sol";
 import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
@@ -38,13 +38,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     function initialize(
         address _stakingToken,
-        address _rewardToken,
+        address _yieldyToken,
         address _tokeToken,
         address _tokePool,
         address _tokeManager,
         address _tokeReward,
         address _liquidityReserve,
-        address _affilateAddress,
+        address _feeAddress,
         address _curvePool,
         uint256 _epochDuration,
         uint256 _firstEpochEndTime
@@ -54,7 +54,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // must have valid initial addresses
         require(
             _stakingToken != address(0) &&
-                _rewardToken != address(0) &&
+                _yieldyToken != address(0) &&
                 _tokeToken != address(0) &&
                 _tokePool != address(0) &&
                 _tokeManager != address(0) &&
@@ -63,27 +63,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             "Invalid address"
         );
         STAKING_TOKEN = _stakingToken;
-        REWARD_TOKEN = _rewardToken;
+        YIELDY_TOKEN = _yieldyToken;
         TOKE_TOKEN = _tokeToken;
         TOKE_POOL = _tokePool;
         TOKE_MANAGER = _tokeManager;
         TOKE_REWARD = _tokeReward;
         LIQUIDITY_RESERVE = _liquidityReserve;
-        AFFILIATE_ADDRESS = _affilateAddress;
+        FEE_ADDRESS = _feeAddress;
         CURVE_POOL = _curvePool;
         COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
         COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
         timeLeftToRequestWithdrawal = 12 hours;
-
-        // TODO: when upgrading and creating new warmUP / coolDown contracts the funds need to be migrated over
-        // create vesting contract to hold newly staked rewardTokens based on warmup period
-        Vesting warmUp = new Vesting(address(this), REWARD_TOKEN);
-        WARM_UP_CONTRACT = address(warmUp);
-
-        // create vesting contract to hold newly unstaked rewardTokens based on cooldown period
-        Vesting coolDown = new Vesting(address(this), REWARD_TOKEN);
-        COOL_DOWN_CONTRACT = address(coolDown);
 
         if (CURVE_POOL != address(0)) {
             IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
@@ -91,11 +82,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
 
         IERC20(STAKING_TOKEN).approve(TOKE_POOL, type(uint256).max);
-        IERC20Upgradeable(REWARD_TOKEN).approve(
+        IERC20Upgradeable(YIELDY_TOKEN).approve(
             LIQUIDITY_RESERVE,
             type(uint256).max
         );
-        IERC20Upgradeable(REWARD_TOKEN).approve(
+        IERC20Upgradeable(YIELDY_TOKEN).approve(
             LIQUIDITY_RESERVE,
             type(uint256).max
         );
@@ -137,12 +128,9 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _amount uint - total amount to deduct fee from
      */
     function _sendAffiliateFee(uint256 _amount) internal {
-        if (affiliateFee != 0 && AFFILIATE_ADDRESS != address(0)) {
+        if (affiliateFee != 0 && FEE_ADDRESS != address(0)) {
             uint256 feeAmount = (_amount * affiliateFee) / BASIS_POINTS;
-            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(
-                AFFILIATE_ADDRESS,
-                feeAmount
-            );
+            IERC20Upgradeable(TOKE_TOKEN).safeTransfer(FEE_ADDRESS, feeAmount);
         }
     }
 
@@ -167,7 +155,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice sets the curve pool address
         @param _curvePool uint
      */
-    function setCurvePool(address _curvePool) public onlyOwner {
+    function setCurvePool(address _curvePool) external onlyOwner {
         CURVE_POOL = _curvePool;
         setToAndFromCurve();
     }
@@ -177,7 +165,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev fee is set in basis points
         @param _affiliateFee uint
      */
-    function setAffiliateFee(uint256 _affiliateFee) public onlyOwner {
+    function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
         affiliateFee = _affiliateFee;
         emit LogSetAffiliateFee(block.number, _affiliateFee);
     }
@@ -187,8 +175,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev if set to 0x000.. then no affiliate will be sent
         @param _affiliateAddress address
      */
-    function setAffiliateAddress(address _affiliateAddress) public onlyOwner {
-        AFFILIATE_ADDRESS = _affiliateAddress;
+    function setAffiliateAddress(address _affiliateAddress) external onlyOwner {
+        FEE_ADDRESS = _affiliateAddress;
         emit LogSetAffiliateAddress(block.number, _affiliateAddress);
     }
 
@@ -245,7 +233,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice set cooldown period for stakers
      * @param _vestingPeriod uint
      */
-    function setCoolDownPeriod(uint256 _vestingPeriod) public onlyOwner {
+    function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
         coolDownPeriod = _vestingPeriod;
         emit LogSetCoolDownPeriod(block.number, _vestingPeriod);
     }
@@ -412,7 +400,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice stake staking tokens to receive reward tokens
+        @notice stake staking tokens to receive Yieldy tokens
         @param _amount uint
         @param _recipient address
      */
@@ -422,11 +410,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
-        uint256 circulatingSupply = IRewardToken(REWARD_TOKEN)
-            .circulatingSupply();
+        uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
-        if (circulatingSupply > 0) {
+        if (yieldyTotalSupply > 0) {
             rebase();
         }
 
@@ -447,20 +434,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         // skip adding to warmup contract if period is 0
         if (warmUpPeriod == 0) {
-            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(_recipient, _amount);
+            IYieldy(YIELDY_TOKEN).mint(_recipient, _amount);
         } else {
-            // create a claim and send tokens to the warmup contract
+            // create a claim and mint tokens so a user can claim them once warm up has passed
             warmUpInfo[_recipient] = Claim({
                 amount: info.amount + _amount,
-                gons: info.gons +
-                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
+                credits: info.credits +
+                    IYieldy(YIELDY_TOKEN).creditsForTokenBalance(_amount),
                 expiry: epoch.number + warmUpPeriod
             });
 
-            IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
-                WARM_UP_CONTRACT,
-                _amount
-            );
+            IYieldy(YIELDY_TOKEN).mint(address(this), _amount);
         }
 
         sendWithdrawalRequests();
@@ -484,10 +468,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
-            IVesting(WARM_UP_CONTRACT).retrieve(
-                _recipient,
-                IRewardToken(REWARD_TOKEN).balanceForGons(info.gons)
-            );
+            if (info.credits > 0) {
+                IYieldy(YIELDY_TOKEN).transfer(
+                    _recipient,
+                    IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(info.credits)
+                );
+            }
         }
     }
 
@@ -499,13 +485,14 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function claimWithdraw(address _recipient) public {
         Claim memory info = coolDownInfo[_recipient];
-        uint256 totalAmountIncludingRewards = IRewardToken(REWARD_TOKEN)
-            .balanceForGons(info.gons);
+        uint256 totalAmountIncludingRewards = IYieldy(YIELDY_TOKEN)
+            .tokenBalanceForCredits(info.credits);
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
             _withdrawFromTokemak();
-
             delete coolDownInfo[_recipient];
+
+            withdrawalAmount -= info.amount;
 
             // only give amount from when they requested withdrawal since this amount wasn't used in generating rewards
             // this will later be given to users through addRewardsForStakers
@@ -514,28 +501,27 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 info.amount
             );
 
-            IVesting(COOL_DOWN_CONTRACT).retrieve(
+            IYieldy(YIELDY_TOKEN).burn(
                 address(this),
                 totalAmountIncludingRewards
             );
-            withdrawalAmount -= info.amount;
         }
     }
 
     /**
-        @notice gets reward tokens either from the warmup contract or user's wallet or both
-        @dev when transfering reward tokens the user could have their balance still in the warmup contract
+        @notice gets reward tokens either from the warmup pool or user's wallet or both
+        @dev when transferring reward tokens the user could have their balance still in the warmup pool
         @dev this function abstracts the logic to find the correct amount of tokens to use them
         @param _amount uint
         @param _user address to pull funds from 
      */
     function _retrieveBalanceFromUser(uint256 _amount, address _user) internal {
         Claim memory userWarmInfo = warmUpInfo[_user];
-        uint256 walletBalance = IERC20Upgradeable(REWARD_TOKEN).balanceOf(
+        uint256 walletBalance = IERC20Upgradeable(YIELDY_TOKEN).balanceOf(
             _user
         );
-        uint256 warmUpBalance = IRewardToken(REWARD_TOKEN).balanceForGons(
-            userWarmInfo.gons
+        uint256 warmUpBalance = IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(
+            userWarmInfo.credits
         );
 
         // must have enough funds between wallet and warmup
@@ -552,24 +538,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
                 unchecked {
                     amountLeft -= warmUpBalance;
                 }
-
-                IVesting(WARM_UP_CONTRACT).retrieve(
-                    address(this),
-                    warmUpBalance
-                );
                 delete warmUpInfo[_user];
             } else {
                 // partially consume warmup balance
                 amountLeft = 0;
-                IVesting(WARM_UP_CONTRACT).retrieve(address(this), _amount);
-                uint256 remainingGonsAmount = userWarmInfo.gons -
-                    IRewardToken(REWARD_TOKEN).gonsForBalance(_amount);
-                uint256 remainingAmount = IRewardToken(REWARD_TOKEN)
-                    .balanceForGons(remainingGonsAmount);
+                uint256 remainingCreditsAmount = userWarmInfo.credits -
+                    IYieldy(YIELDY_TOKEN).creditsForTokenBalance(_amount);
+                uint256 remainingAmount = IYieldy(YIELDY_TOKEN)
+                    .tokenBalanceForCredits(remainingCreditsAmount);
 
                 warmUpInfo[_user] = Claim({
                     amount: remainingAmount,
-                    gons: remainingGonsAmount,
+                    credits: remainingCreditsAmount,
                     expiry: userWarmInfo.expiry
                 });
             }
@@ -577,7 +557,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         if (amountLeft != 0) {
             // transfer the rest from the users address
-            IERC20Upgradeable(REWARD_TOKEN).safeTransferFrom(
+            IERC20Upgradeable(YIELDY_TOKEN).safeTransferFrom(
                 _user,
                 address(this),
                 amountLeft
@@ -686,8 +666,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
-        @notice redeem reward tokens for staking tokens with a vesting period based on coolDownPeriod
-        @dev this function will retrieve the _amount of reward tokens from the user and transfer them to the cooldown contract.
+        @notice redeem Yieldy tokens for staking tokens with a vesting period based on coolDownPeriod
+        @dev this function will retrieve the _amount of Yieldy tokens from the user and transfer them to the cooldown contract.
         @dev once the period has expired the user will be able to withdraw their staking tokens
         @param _amount uint - amount of tokens to unstake
         @param _trigger bool - should trigger a rebase
@@ -707,18 +687,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
-            gons: userCoolInfo.gons +
-                IRewardToken(REWARD_TOKEN).gonsForBalance(_amount),
+            credits: userCoolInfo.credits +
+                IYieldy(YIELDY_TOKEN).creditsForTokenBalance(_amount),
             expiry: epoch.number + coolDownPeriod
         });
 
         requestWithdrawalAmount += _amount;
         sendWithdrawalRequests();
-
-        IERC20Upgradeable(REWARD_TOKEN).safeTransfer(
-            COOL_DOWN_CONTRACT,
-            _amount
-        );
     }
 
     /**
@@ -727,14 +702,14 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function rebase() public {
         // we know about the issues surrounding block.timestamp, using it here will not cause any problems
         if (epoch.endTime <= block.timestamp) {
-            IRewardToken(REWARD_TOKEN).rebase(epoch.distribute, epoch.number);
+            IYieldy(YIELDY_TOKEN).rebase(epoch.distribute, epoch.number);
 
             epoch.endTime = epoch.endTime + epoch.duration;
             epoch.timestamp = block.timestamp;
             epoch.number++;
 
             uint256 balance = contractBalance();
-            uint256 staked = IRewardToken(REWARD_TOKEN).circulatingSupply();
+            uint256 staked = IYieldy(YIELDY_TOKEN).totalSupply();
 
             if (balance <= staked) {
                 epoch.distribute = 0;
@@ -759,7 +734,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
     /**
      * @notice adds staking tokens for rebase rewards
-     * @dev this is the function that gives rewards so the rebase function can distrubute profits to reward token holders
+     * @dev this is the function that gives rewards so the rebase function can distribute profits to reward token holders
      * @param _amount uint - amount of tokens to add to rewards
      * @param _trigger bool - should trigger rebase
      */

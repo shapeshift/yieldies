@@ -10,9 +10,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, Signer } from "ethers";
 import { tokePoolAbi } from "../src/abis/tokePoolAbi";
 import { tokeManagerAbi } from "../src/abis/tokeManagerAbi";
-import { abi as vestingAbi } from "../artifacts/src/contracts/Vesting.sol/Vesting.json";
 import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
-import { LiquidityReserve, Vesting, Staking, Yieldy } from "../typechain-types";
+import { LiquidityReserve, Staking, Yieldy } from "../typechain-types";
 import * as constants from "./constants";
 
 describe("Integration", function () {
@@ -23,15 +22,13 @@ describe("Integration", function () {
   let stakingToken: Contract;
   let tokePool: Contract;
   let tokeManager: Contract;
-  let stakingWarmup: Vesting;
-  let stakingCooldown: Vesting;
 
   // skips EVM time to the next TOKE and epoch cycle
   async function mineBlocksToNextCycle() {
     const epoch = await staking.epoch();
     const cycleDuration = await tokeManager.getCycleDuration();
-    const cyceleStart = await tokeManager.getCurrentCycle();
-    const tokeEndTime = BigNumber.from(cyceleStart).add(cycleDuration);
+    const cycleStart = await tokeManager.getCurrentCycle();
+    const tokeEndTime = BigNumber.from(cycleStart).add(cycleDuration);
     const duration =
       tokeEndTime < epoch.endTime ? epoch.duration : cycleDuration;
     await network.provider.send("evm_increaseTime", [Number(duration) + 10]);
@@ -78,7 +75,6 @@ describe("Integration", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await yieldy.deployed();
 
@@ -111,20 +107,6 @@ describe("Integration", function () {
       constants.EPOCH_DURATION,
       firstEpochEndTime,
     ])) as Staking;
-
-    const warmUpAddress = await staking.WARM_UP_CONTRACT();
-    stakingWarmup = new ethers.Contract(
-      warmUpAddress,
-      vestingAbi,
-      accounts[0]
-    ) as Vesting;
-
-    const coolDownAddress = await staking.COOL_DOWN_CONTRACT();
-    stakingCooldown = new ethers.Contract(
-      coolDownAddress,
-      vestingAbi,
-      accounts[0]
-    ) as Vesting;
 
     const tokeManagerAddress = await tokePool.manager();
     tokeManager = new ethers.Contract(
@@ -266,9 +248,7 @@ describe("Integration", function () {
     await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
     let warmUpInfo = await staking.warmUpInfo(staker1);
     expect(warmUpInfo.amount).eq(stakingAmount1);
-    let warmupRewardTokenBalance = await yieldy.balanceOf(
-      stakingWarmup.address
-    );
+    let warmupRewardTokenBalance = await yieldy.balanceOf(staking.address);
     expect(warmupRewardTokenBalance).eq(stakingAmount1);
 
     // add liquidity with lp1
@@ -283,7 +263,7 @@ describe("Integration", function () {
     await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
     warmUpInfo = await staking.warmUpInfo(staker2);
     expect(warmUpInfo.amount).eq(stakingAmount2);
-    warmupRewardTokenBalance = await yieldy.balanceOf(stakingWarmup.address);
+    warmupRewardTokenBalance = await yieldy.balanceOf(staking.address);
     expect(warmupRewardTokenBalance).eq(stakingAmount2.add(stakingAmount1));
 
     // add liquidity twice with lp2
@@ -316,7 +296,7 @@ describe("Integration", function () {
       .approve(staking.address, ethers.constants.MaxUint256);
     let walletBalance = await yieldy.balanceOf(staker1);
     warmUpInfo = await staking.warmUpInfo(staker1);
-    let warmUpBalance = await yieldy.balanceForGons(warmUpInfo.gons);
+    let warmUpBalance = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     let totalBalance = walletBalance.add(warmUpBalance);
 
     await stakingStaker1.instantUnstakeReserve(totalBalance);
@@ -329,8 +309,6 @@ describe("Integration", function () {
     await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
     warmUpInfo = await staking.warmUpInfo(staker3);
     expect(warmUpInfo.amount).eq(stakingAmount3);
-    warmupRewardTokenBalance = await yieldy.balanceOf(stakingWarmup.address);
-    expect(warmupRewardTokenBalance).eq(89523809523809); // stakingAmount3 + stakingAmount2 + rewards
 
     // claim and unstake with staker2
     await stakingStaker2.claim(staker2);
@@ -338,25 +316,19 @@ describe("Integration", function () {
     await stakingStaker2.unstake(rewardBalanceStaker2, true);
     let coolDownInfo = await staking.coolDownInfo(staker2);
     expect(coolDownInfo.amount).eq(rewardBalanceStaker2);
-    let cooldownRewardTokenBalance = await yieldy.balanceOf(
-      stakingCooldown.address
-    );
-    expect(cooldownRewardTokenBalance).eq(162222222222221);
 
     // check warmup is correct after unstake
     warmUpInfo = await staking.warmUpInfo(staker3);
     expect(warmUpInfo.amount).eq(stakingAmount3); // staker3 didn't get rewards because they staked after
-    const warmUpStaker3Reward = await yieldy.balanceForGons(warmUpInfo.gons);
+    const warmUpStaker3Reward = await yieldy.tokenBalanceForCredits(
+      warmUpInfo.credits
+    );
 
     // unstake with staker3
     await stakingStaker3.unstake(warmUpStaker3Reward, true);
 
     // add another set of rewards with belong to no one due to all FOXy being locked in cooldown
     await staking.addRewardsForStakers(awardAmount, true);
-    cooldownRewardTokenBalance = await yieldy.balanceOf(
-      stakingCooldown.address
-    );
-    expect(cooldownRewardTokenBalance).eq(182222222222221);
 
     // rebase
     await mineToNextEpoch();
@@ -384,7 +356,9 @@ describe("Integration", function () {
     let rewardBalance = await yieldy.balanceOf(staker2);
     expect(rewardBalance).eq(0);
     coolDownInfo = await staking.coolDownInfo(staker2);
-    expect(await yieldy.balanceForGons(coolDownInfo.gons)).eq(78002322880370);
+    expect(await yieldy.tokenBalanceForCredits(coolDownInfo.credits)).eq(
+      78002322880370
+    );
 
     // remove liquidity with lp1 + rewards from instantUnstake
     await liquidityReserve
@@ -418,7 +392,9 @@ describe("Integration", function () {
       897613444916262
     );
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    let warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
+    let warmUpLP2Reward = await yieldy.tokenBalanceForCredits(
+      warmUpInfo.credits
+    );
     expect(warmUpLP2Reward).eq(897613444916262);
 
     // claim with staker2
@@ -440,13 +416,8 @@ describe("Integration", function () {
     coolDownInfo = await staking.coolDownInfo(staker3);
     expect(coolDownInfo.amount).eq(0);
 
-    // liquidity reserve claimed due to claimWithdraw inside instantUnstake
-    cooldownRewardTokenBalance = await yieldy.balanceOf(
-      stakingCooldown.address
-    );
-    expect(cooldownRewardTokenBalance).eq(2); // small amount left over after calculation.  seems within the percentage of error
     coolDownInfo = await staking.coolDownInfo(liquidityReserve.address);
-    expect(await yieldy.balanceForGons(coolDownInfo.gons)).eq(0);
+    expect(await yieldy.tokenBalanceForCredits(coolDownInfo.credits)).eq(0);
 
     // add rewards for a third time.  This time liquidityProvider2 should full amount for last two rebases
     // due to no circulating supply outside of cooldown when second reward rebase happened
@@ -466,18 +437,18 @@ describe("Integration", function () {
 
     // claimWithdraw from liquidityProvider2
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
+    warmUpLP2Reward = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     expect(warmUpLP2Reward).eq(942057889360702);
     await staking.claimWithdraw(liquidityReserve.address);
 
     // instantUnstake with liquidityProvider2
     walletBalance = await yieldy.balanceOf(liquidityProvider2);
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    warmUpBalance = await yieldy.balanceForGons(warmUpInfo.gons);
+    warmUpBalance = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     totalBalance = walletBalance.add(warmUpBalance);
     await stakingLiquidityProvider2.instantUnstakeReserve(totalBalance);
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
-    warmUpLP2Reward = await yieldy.balanceForGons(warmUpInfo.gons);
+    warmUpLP2Reward = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     expect(warmUpLP2Reward).eq(0);
     const stakingBalanceLP2 = await stakingToken.balanceOf(liquidityProvider2);
     expect(stakingBalanceLP2).eq(753646311488562); // 80% of 942057889360702

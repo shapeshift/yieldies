@@ -117,6 +117,7 @@ describe("Migration", function () {
       yieldyAbi,
       stakingOwnerSigner
     );
+
     liquidityReserve = new ethers.Contract(
       await staking.LIQUIDITY_RESERVE(),
       liquidityReserveAbi,
@@ -129,7 +130,6 @@ describe("Migration", function () {
       "Fox Yieldy",
       "FOXy",
       18,
-      500000000,
     ])) as Yieldy;
     await rewardTokenV2.deployed();
 

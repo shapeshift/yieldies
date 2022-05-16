@@ -4,15 +4,16 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
+import "../interfaces/IStakingV1.sol";
 import "../interfaces/IStaking.sol";
-import "../interfaces/IRewardToken.sol";
+import "../interfaces/IYieldy.sol";
 
 contract Migration {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     address public immutable OLD_CONTRACT;
     address public immutable NEW_CONTRACT;
-    address public immutable OLD_REWARD_TOKEN;
+    address public immutable OLD_YIELDY_TOKEN;
 
     constructor(address _oldContract, address _newContract) {
         // addresses can't be 0x0
@@ -24,10 +25,10 @@ contract Migration {
         OLD_CONTRACT = _oldContract;
         NEW_CONTRACT = _newContract;
 
-        OLD_REWARD_TOKEN = IStaking(_oldContract).REWARD_TOKEN();
+        OLD_YIELDY_TOKEN = IStakingV1(_oldContract).REWARD_TOKEN();
         address stakingToken = IStaking(_newContract).STAKING_TOKEN();
 
-        IRewardToken(OLD_REWARD_TOKEN).approve(_oldContract, type(uint256).max);
+        IYieldy(OLD_YIELDY_TOKEN).approve(_oldContract, type(uint256).max);
         IERC20Upgradeable(stakingToken).approve(
             _newContract,
             type(uint256).max
@@ -40,11 +41,11 @@ contract Migration {
         Note: user needs to approve reward token spend before calling this
      */
     function moveFundsToUpgradedContract() external {
-        uint256 userWalletBalance = IRewardToken(OLD_REWARD_TOKEN).balanceOf(
+        uint256 userWalletBalance = IYieldy(OLD_YIELDY_TOKEN).balanceOf(
             msg.sender
         );
 
-        IRewardToken(OLD_REWARD_TOKEN).transferFrom(
+        IYieldy(OLD_YIELDY_TOKEN).transferFrom(
             msg.sender,
             address(this),
             userWalletBalance

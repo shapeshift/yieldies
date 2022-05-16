@@ -3,10 +3,10 @@ pragma solidity 0.8.9;
 
 import "../structs/Claim.sol";
 
-interface IStaking {
+interface IStakingV1 {
     function STAKING_TOKEN() external view returns (address);
 
-    function YIELDY_TOKEN() external view returns (address);
+    function REWARD_TOKEN() external view returns (address);
 
     function canBatchTransactions() external view returns (bool);
 
