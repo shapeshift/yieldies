@@ -2060,7 +2060,6 @@ describe("Staking", function () {
       await stakingStaker1.unstake(stakingAmount1, false);
 
       await mineBlocksToNextCycle();
-      await stakingStaker1.sendWithdrawalRequests();
 
       await rewardToken
         .connect(staker2Signer as Signer)
@@ -2074,17 +2073,24 @@ describe("Staking", function () {
       const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
+
       await mineBlocksToNextCycle();
-      await mineBlocksToNextCycle();
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
+
+      await network.provider.send("evm_increaseTime", [605800]);
+      await network.provider.send("hardhat_mine");
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
+
+      // withdraw even though missed window
+      await stakingStaker1.sendWithdrawalRequests();
 
       // get current lastTokeCycleIndex
       const lastCycle = await stakingStaker1.lastTokeCycleIndex();
-      // withdraw even though missed window
-      await stakingStaker1.sendWithdrawalRequests();
+
       // lastTokeCycleIndex should but updated
       const nextCycle = await stakingStaker1.lastTokeCycleIndex();
 
-      expect(lastCycle.toNumber()).lessThan(nextCycle.toNumber());
+      expect(lastCycle).eq(nextCycle);
 
       // next requestedWithdrawals should be
       const stakingContractTokenBalance = await stakingToken.balanceOf(
@@ -2100,6 +2106,7 @@ describe("Staking", function () {
       );
 
       // both should be able to claim
+      await mineBlocksToNextCycle();
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       await stakingStaker1.claimWithdraw(staker1);
@@ -2520,6 +2527,11 @@ describe("Staking", function () {
       expect(requestedWithdrawals.amount).eq(0);
 
       await mineBlocksToNextCycle();
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_OWNER],
+      });
+
       await stakingStaker1.sendWithdrawalRequests();
 
       // requestWithdrawal and cooldown should be created

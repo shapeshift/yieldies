@@ -75,6 +75,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
         timeLeftToRequestWithdrawal = 12 hours;
+        ITokeManager tokeManager = ITokeManager(TOKE_MANAGER);
+        lastTokeCycleIndex = tokeManager.getCurrentCycleIndex() - 1;
 
         if (CURVE_POOL != address(0)) {
             IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
@@ -357,9 +359,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 currentCycleStart = tokeManager.getCurrentCycle();
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
         uint256 nextCycleStart = currentCycleStart + duration;
+        bool hasPassedCycleTime = block.timestamp +
+            timeLeftToRequestWithdrawal >=
+            nextCycleStart;
+        bool isBehind = currentCycleIndex - lastTokeCycleIndex > 1;
 
         return
-            block.timestamp + timeLeftToRequestWithdrawal >= nextCycleStart &&
+            (hasPassedCycleTime || isBehind) &&
             currentCycleIndex > lastTokeCycleIndex &&
             requestWithdrawalAmount > 0;
     }
