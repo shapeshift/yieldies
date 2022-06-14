@@ -1496,10 +1496,10 @@ describe("Staking", function () {
 
       // can't send more than balance
       await expect(
-        stakingStaker1.addRewardsForStakers(transferAmount.add(1), false)
+        stakingStaker1.addRewardsForStakers(transferAmount.add(1), true, false)
       ).to.be.reverted;
 
-      await staking.addRewardsForStakers(awardAmount, false);
+      await staking.addRewardsForStakers(awardAmount, true, false);
 
       rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
 
@@ -1577,10 +1577,10 @@ describe("Staking", function () {
 
       // can't send more than balance
       await expect(
-        stakingStaker1.addRewardsForStakers(transferAmount.add(1), false)
+        stakingStaker1.addRewardsForStakers(transferAmount.add(1), true, false)
       ).to.be.reverted;
 
-      await staking.addRewardsForStakers(awardAmount, false);
+      await staking.addRewardsForStakers(awardAmount, true, false);
 
       rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
       rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
@@ -1660,7 +1660,7 @@ describe("Staking", function () {
       // add rewards and trigger rebase, no rebase should occur due to scheduled block
       await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("1000");
-      await staking.addRewardsForStakers(awardAmount, true);
+      await staking.addRewardsForStakers(awardAmount, true, true);
 
       rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
       rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
@@ -1782,7 +1782,7 @@ describe("Staking", function () {
 
       await stakingToken.approve(staking.address, ethers.constants.MaxUint256); // from admin
       const awardAmount = BigNumber.from("100000");
-      await staking.addRewardsForStakers(awardAmount, true);
+      await staking.addRewardsForStakers(awardAmount, true, true);
 
       stakingContractBalance = await stakingToken.balanceOf(staking.address);
       expect(stakingContractBalance).eq(stakingAmount2);

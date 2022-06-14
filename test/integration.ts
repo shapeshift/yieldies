@@ -281,7 +281,7 @@ describe("Integration", function () {
     );
 
     // add rewards
-    await staking.addRewardsForStakers(awardAmount, true);
+    await staking.addRewardsForStakers(awardAmount, true, true);
 
     // rebase
     await mineToNextEpoch();
@@ -328,7 +328,7 @@ describe("Integration", function () {
     await stakingStaker3.unstake(warmUpStaker3Reward, true);
 
     // add another set of rewards with belong to no one due to all FOXy being locked in cooldown
-    await staking.addRewardsForStakers(awardAmount, true);
+    await staking.addRewardsForStakers(awardAmount, true, true);
 
     // rebase
     await mineToNextEpoch();
@@ -422,7 +422,7 @@ describe("Integration", function () {
     // add rewards for a third time.  This time liquidityProvider2 should full amount for last two rebases
     // due to no circulating supply outside of cooldown when second reward rebase happened
     // rewardTokens in cooldown does not generate rewards
-    await staking.addRewardsForStakers(awardAmount, false);
+    await staking.addRewardsForStakers(awardAmount, true, false);
 
     // rebase
     await mineToNextEpoch();
