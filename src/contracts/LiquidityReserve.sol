@@ -193,7 +193,8 @@ contract LiquidityReserve is
         // claim the stakingToken from previous unstakes
         IStaking(stakingContract).claimWithdraw(address(this));
 
-        uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
+        uint256 amountMinusFee = (_amount * (BASIS_POINTS - fee)) /
+            BASIS_POINTS;
 
         IERC20Upgradeable(rewardToken).safeTransferFrom(
             msg.sender,

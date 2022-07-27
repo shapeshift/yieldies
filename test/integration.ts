@@ -303,7 +303,7 @@ describe("Integration", function () {
     const rewardBalanceStaker1 = await yieldy.balanceOf(staker1);
     expect(rewardBalanceStaker1).eq(0);
     const stakingBalanceStaker1 = await stakingToken.balanceOf(staker1);
-    expect(stakingBalanceStaker1).eq(74158730158730);
+    expect(stakingBalanceStaker1).eq(74158730158729);
 
     // stake with staker3
     await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
@@ -451,6 +451,6 @@ describe("Integration", function () {
     warmUpLP2Reward = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     expect(warmUpLP2Reward).eq(0);
     const stakingBalanceLP2 = await stakingToken.balanceOf(liquidityProvider2);
-    expect(stakingBalanceLP2).eq(753646311488562); // 80% of 942057889360702
+    expect(stakingBalanceLP2).eq(753646311488561); // 80% of 942057889360702
   });
 });

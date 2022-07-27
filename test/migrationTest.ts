@@ -573,9 +573,10 @@ describe("Migration", function () {
       await stakingV2Staker1.instantUnstakeReserve(transferAmount);
 
       const unstakingFee = await liquidityReserveV2.fee();
-      const balanceMinusFee = transferAmount.sub(
-        transferAmount.mul(unstakingFee).div(BigNumber.from("10000"))
-      );
+      const basisFee = BigNumber.from("10000").sub(unstakingFee);
+      const balanceMinusFee = transferAmount
+        .mul(basisFee)
+        .div(BigNumber.from("10000"));
 
       // should be unstaked with the correct fee
       await confirmBalance(staker1, stakingToken, balanceMinusFee);
