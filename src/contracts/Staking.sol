@@ -323,7 +323,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // the only way balance < _amount is when using unstakeAllFromTokemak
         uint256 amountToRequest = balance < _amount ? balance : _amount;
 
-        if (amountToRequest > 0) tokePoolContract.requestWithdrawal(_amount);
+        if (amountToRequest > 0) tokePoolContract.requestWithdrawal(amountToRequest);
     }
 
     /**
