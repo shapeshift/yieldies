@@ -191,7 +191,7 @@ contract Yieldy is
 
         creditBalances[msg.sender] = creditBalances[msg.sender] - creditAmount;
         creditBalances[_to] = creditBalances[_to] + creditAmount;
-        emit Transfer(msg.sender, _to, _value);
+        emit Transfer(msg.sender, _to, creditAmount);
         return true;
     }
 
@@ -216,7 +216,7 @@ contract Yieldy is
         uint256 creditAmount = creditsForTokenBalance(_value);
         creditBalances[_from] = creditBalances[_from] - creditAmount;
         creditBalances[_to] = creditBalances[_to] + creditAmount;
-        emit Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, creditAmount);
 
         return true;
     }
@@ -255,7 +255,7 @@ contract Yieldy is
         _totalSupply = _totalSupply + _amount;
 
         require(_totalSupply < MAX_SUPPLY, "Max supply");
-        emit Transfer(address(0), _address, _amount);
+        emit Transfer(address(0), _address, creditAmount);
     }
 
     /**
@@ -289,6 +289,6 @@ contract Yieldy is
         rebasingCredits = rebasingCredits - creditAmount;
         _totalSupply = _totalSupply - _amount;
 
-        emit Transfer(_address, address(0), _amount);
+        emit Transfer(_address, address(0), creditAmount);
     }
 }
