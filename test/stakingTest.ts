@@ -2537,7 +2537,16 @@ describe("Staking", function () {
 
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
-      await stakingAdmin.setCoolDownPeriod(99999999999999);
+
+      await expect(
+        stakingAdmin.setCoolDownPeriod(7)
+      ).to.be.revertedWith("Vesting Period too large");
+
+      await expect(
+        stakingAdmin.setWarmUpPeriod(7)
+      ).to.be.revertedWith("Vesting Period too large");
+
+      await stakingAdmin.setCoolDownPeriod(4);
 
       await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
       const timeLeftToRequest = await staking.timeLeftToRequestWithdrawal();
