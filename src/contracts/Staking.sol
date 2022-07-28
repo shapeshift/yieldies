@@ -468,7 +468,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             delete warmUpInfo[_recipient];
 
             if (info.credits > 0) {
-                IYieldy(YIELDY_TOKEN).transfer(
+                IERC20Upgradeable(YIELDY_TOKEN).safeTransfer(
                     _recipient,
                     IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(info.credits)
                 );
