@@ -206,7 +206,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       let rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(stakingAmount);
@@ -330,7 +330,7 @@ describe("Staking", function () {
       expect(newFunctionResult).eq("123456789");
 
       // can't claim yet due to cooldown period being 2
-      await StakingV2.claimWithdraw(staker1);
+      await StakingV2.claimWithdraw(staker1, true);
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(0);
       coolDownInfo = await staking.coolDownInfo(staker1);
@@ -342,7 +342,7 @@ describe("Staking", function () {
       await stakingStaker1.rebase();
 
       // can claim now
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount.mul(3));
@@ -459,7 +459,7 @@ describe("Staking", function () {
         .approve(staking.address, stakingAmount);
 
       // fails to claim
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
       warmUpInfo = await staking.warmUpInfo(staker1);
       expect(warmUpInfo.amount).to.equal(stakingAmount);
 
@@ -469,7 +469,7 @@ describe("Staking", function () {
       await stakingStaker1.rebase();
 
       // claim succeeds now
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(stakingAmount);
@@ -495,7 +495,7 @@ describe("Staking", function () {
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       // epoch hasn't increased yet so claimWithdraw doesn't work yet
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -503,7 +503,7 @@ describe("Staking", function () {
 
       // need to rebase to increase epoch number
       await stakingStaker1.rebase();
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       // has stakingBalance after withdrawal
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -578,7 +578,7 @@ describe("Staking", function () {
       // need to rebase to increase epoch number
       await stakingStaker1.rebase();
 
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       warmUpInfo = await staking.warmUpInfo(staker1);
@@ -737,7 +737,7 @@ describe("Staking", function () {
       expect(rewardTokenBalance).eq(0);
 
       // can't claim because users Claim expiry didn't actually change
-      stakingStaker1.claim(staker1);
+      stakingStaker1.claim(staker1, true);
 
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
@@ -749,7 +749,7 @@ describe("Staking", function () {
       await stakingStaker1.rebase();
 
       // can claim now due to expiry passing
-      stakingStaker1.claim(staker1);
+      stakingStaker1.claim(staker1, true);
 
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
@@ -1071,7 +1071,7 @@ describe("Staking", function () {
       );
       expect(warmupRewardTokenBalance).eq(stakingAmount);
 
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       let rewardTokenBalance = await rewardToken.balanceOf(staker1);
       expect(rewardTokenBalance).eq(stakingAmount);
@@ -1179,7 +1179,7 @@ describe("Staking", function () {
       expect(staker1StakingBalance).eq(0);
 
       // can't claim yet due to cooldown period being 2
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(0);
       coolDownInfo = await staking.coolDownInfo(staker1);
@@ -1191,7 +1191,7 @@ describe("Staking", function () {
       await stakingStaker1.rebase();
 
       // can claim now
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount.mul(3));
@@ -1322,7 +1322,7 @@ describe("Staking", function () {
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       cooldownRewardTokenBalance = await rewardToken.balanceOf(staking.address);
       expect(cooldownRewardTokenBalance).eq(0);
@@ -1386,7 +1386,7 @@ describe("Staking", function () {
 
       // user should now be able to unstake + claim in one action
       await stakingStaker1.unstake(stakingAmount, false);
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount);
@@ -1447,7 +1447,7 @@ describe("Staking", function () {
 
       // user should now be able to unstake + claim in one action
       await stakingStaker1.unstake(stakingAmount, false);
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount);
@@ -1477,7 +1477,7 @@ describe("Staking", function () {
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
 
       // claim should move the rewardToken from warmup to the staker
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
 
@@ -1553,8 +1553,8 @@ describe("Staking", function () {
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
 
       // claim should move the rewardToken from warmup to the staker
-      await stakingStaker1.claim(staker1);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker1.claim(staker1, true);
+      await stakingStaker2.claim(staker2, true);
 
       let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
       let rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
@@ -1639,8 +1639,8 @@ describe("Staking", function () {
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
 
       // claim should move the rewardToken from warmup to the staker
-      await stakingStaker1.claim(staker1);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker1.claim(staker1, true);
+      await stakingStaker2.claim(staker2, true);
 
       let rewardTokenBalanceStaker1 = await rewardToken.balanceOf(staker1);
       let rewardTokenBalanceStaker2 = await rewardToken.balanceOf(staker2);
@@ -1819,19 +1819,19 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount1);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const stakingStaker2 = staking.connect(staker2Signer as Signer);
       const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker2.claim(staker2, true);
 
       const stakingStaker3 = staking.connect(staker3Signer as Signer);
       const stakingTokenStaker3 = stakingToken.connect(staker3Signer as Signer);
       await stakingTokenStaker3.approve(staking.address, stakingAmount3);
       await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
-      await stakingStaker3.claim(staker3);
+      await stakingStaker3.claim(staker3, true);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -1874,7 +1874,7 @@ describe("Staking", function () {
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
       await mineBlocksToNextCycle();
 
-      await stakingStaker2.claimWithdraw(staker2);
+      await stakingStaker2.claimWithdraw(staker2, true);
 
       stakingTokenBalance = await stakingToken.balanceOf(staking.address);
       requestedWithdrawals = await tokePool.requestedWithdrawals(
@@ -1928,19 +1928,19 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount1);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const stakingStaker2 = staking.connect(staker2Signer as Signer);
       const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker2.claim(staker2, true);
 
       const stakingStaker3 = staking.connect(staker3Signer as Signer);
       const stakingTokenStaker3 = stakingToken.connect(staker3Signer as Signer);
       await stakingTokenStaker3.approve(staking.address, stakingAmount3);
       await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
-      await stakingStaker3.claim(staker3);
+      await stakingStaker3.claim(staker3, true);
       await rewardToken
         .connect(staker1Signer as Signer)
         .approve(staking.address, stakingAmount1);
@@ -2046,13 +2046,13 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount1);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const stakingStaker2 = staking.connect(staker2Signer as Signer);
       const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker2.claim(staker2, true);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -2102,8 +2102,8 @@ describe("Staking", function () {
       // both should be able to claim
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
-      await stakingStaker1.claimWithdraw(staker1);
-      await stakingStaker2.claimWithdraw(staker2);
+      await stakingStaker1.claimWithdraw(staker1, true);
+      await stakingStaker2.claimWithdraw(staker2, true);
 
       const staker1StakingBalance = await stakingToken.balanceOf(staker1);
       expect(staker1StakingBalance).eq(stakingAmount1);
@@ -2287,14 +2287,14 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount1);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const stakingStaker2 = staking.connect(staker2Signer as Signer);
       const stakingAmount2 = transferAmount.div(2);
       const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker2.claim(staker2, true);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -2334,7 +2334,7 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       // user stakes all of his stakingTokens
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2365,7 +2365,7 @@ describe("Staking", function () {
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(0);
 
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       // has stakingBalance after withdrawal
       stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2385,7 +2385,7 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const requestedWithdrawals = await tokePool.requestedWithdrawals(
         stakingStaker1.address
@@ -2403,7 +2403,7 @@ describe("Staking", function () {
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
 
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       // has no stakingBalance after withdrawal
       const stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2603,7 +2603,7 @@ describe("Staking", function () {
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
 
       // doesn't have staking balance due to cooldown period not expired
       const stakingTokenBalance = await stakingToken.balanceOf(staker1);
@@ -2670,19 +2670,19 @@ describe("Staking", function () {
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, transferAmount);
       await stakingStaker1.functions["stake(uint256)"](stakingAmount1);
-      await stakingStaker1.claim(staker1);
+      await stakingStaker1.claim(staker1, true);
 
       const stakingStaker2 = staking.connect(staker2Signer as Signer);
       const stakingTokenStaker2 = stakingToken.connect(staker2Signer as Signer);
       await stakingTokenStaker2.approve(staking.address, stakingAmount2);
       await stakingStaker2.functions["stake(uint256)"](stakingAmount2);
-      await stakingStaker2.claim(staker2);
+      await stakingStaker2.claim(staker2, true);
 
       const stakingStaker3 = staking.connect(staker3Signer as Signer);
       const stakingTokenStaker3 = stakingToken.connect(staker3Signer as Signer);
       await stakingTokenStaker3.approve(staking.address, stakingAmount3);
       await stakingStaker3.functions["stake(uint256)"](stakingAmount3);
-      await stakingStaker3.claim(staker3);
+      await stakingStaker3.claim(staker3, true);
 
       await rewardToken
         .connect(staker1Signer as Signer)
@@ -2727,7 +2727,7 @@ describe("Staking", function () {
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
       // staker1 doesn't need to unstake since they already did
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, true);
       let stakingTokenBalance = await stakingToken.balanceOf(staker1);
       expect(stakingTokenBalance).eq(stakingAmount1);
 
@@ -2737,7 +2737,7 @@ describe("Staking", function () {
         .approve(staking.address, stakingAmount2);
 
       await stakingStaker2.unstake(stakingAmount2, false);
-      await stakingStaker2.claimWithdraw(staker2);
+      await stakingStaker2.claimWithdraw(staker2, true);
 
       stakingTokenBalance = await stakingToken.balanceOf(staker2);
       expect(stakingTokenBalance).eq(stakingAmount2);
@@ -2749,7 +2749,7 @@ describe("Staking", function () {
         .connect(staker3Signer as Signer)
         .approve(staking.address, stakingAmount3);
       await stakingStaker3.unstake(stakingAmount3, false);
-      await stakingStaker3.claimWithdraw(staker3);
+      await stakingStaker3.claimWithdraw(staker3, true);
 
       // no withdrawal due to cooldown
       stakingTokenBalance = await stakingToken.balanceOf(staker3);
@@ -2760,7 +2760,7 @@ describe("Staking", function () {
       await mineToNextEpoch();
       await stakingStaker1.rebase();
 
-      await stakingStaker3.claimWithdraw(staker3);
+      await stakingStaker3.claimWithdraw(staker3, true);
 
       stakingTokenBalance = await stakingToken.balanceOf(staker3);
       expect(stakingTokenBalance).eq(stakingAmount3);

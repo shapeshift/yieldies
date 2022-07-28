@@ -857,7 +857,7 @@ describe("Liquidity Reserve", function () {
       );
       await stakingContractStaker1.functions["stake(uint256)"](transferAmount);
 
-      await stakingContractStaker1.claim(staker1);
+      await stakingContractStaker1.claim(staker1, false);
 
       let staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(transferAmount);
@@ -1195,7 +1195,7 @@ describe("Liquidity Reserve", function () {
       );
       expect(await rewardToken.balanceOf(liquidityReserve.address)).eq(0);
 
-      await stakingContract.claimWithdraw(liquidityReserve.address);
+      await stakingContract.claimWithdraw(liquidityReserve.address, false);
 
       expect(await stakingToken.balanceOf(liquidityReserve.address)).eq(
         2600000000000001

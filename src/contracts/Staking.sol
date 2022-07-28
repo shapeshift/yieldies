@@ -426,7 +426,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         // if claim is available then auto claim tokens
         if (_isClaimAvailable(_recipient)) {
-            claim(_recipient);
+            claim(_recipient, true);
         }
 
         _depositToTokemak(_amount);
@@ -461,9 +461,13 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice retrieve reward tokens from warmup
         @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
+        @param _trigger bool - should trigger a rebase
      */
-    function claim(address _recipient) public {
+    function claim(address _recipient, bool _trigger) public {
         Claim memory info = warmUpInfo[_recipient];
+        if (_trigger) {
+            rebase();
+        }
         if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
@@ -481,13 +485,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev if user has a cooldown claim that's past expiry then withdraw staking tokens from tokemak
         @dev and send them to user
         @param _recipient address - users unstaking address
+        @param _trigger bool - should trigger a rebase
      */
-    function claimWithdraw(address _recipient) public {
+    function claimWithdraw(address _recipient, bool _trigger) public {
         Claim memory info = coolDownInfo[_recipient];
         uint256 totalAmountIncludingRewards = IYieldy(YIELDY_TOKEN)
             .tokenBalanceForCredits(info.credits);
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
+            if (_trigger) {
+                rebase();
+            }
             _withdrawFromTokemak();
             delete coolDownInfo[_recipient];
 
@@ -682,7 +690,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Claim storage userCoolInfo = coolDownInfo[msg.sender];
 
         // try to claim withdraw if user has withdraws to claim function will check if withdraw is valid
-        claimWithdraw(msg.sender);
+        claimWithdraw(msg.sender, true);
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,

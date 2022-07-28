@@ -18,7 +18,7 @@ interface IStaking {
 
     function unstake(uint256 amount_, bool trigger) external;
 
-    function claimWithdraw(address _recipient) external;
+    function claimWithdraw(address _recipient, bool _trigger) external;
 
     function warmUpInfo(address) external view returns (Claim memory);
 
