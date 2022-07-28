@@ -34,8 +34,10 @@ contract BatchRequests is Ownable {
         uint256 contractsLength = contracts.length;
         Batch[] memory batch = new Batch[](contractsLength);
         for (uint256 i; i < contractsLength; ) {
-            bool canBatch = IStaking(contracts[i]).canBatchTransactions();
-            batch[i] = Batch(contracts[i], canBatch);
+            if (contracts[i] != address(0)) {
+                bool canBatch = IStaking(contracts[i]).canBatchTransactions();
+                batch[i] = Batch(contracts[i], canBatch);
+            }
             unchecked {
                 ++i;
             }
@@ -52,6 +54,9 @@ contract BatchRequests is Ownable {
         view
         returns (address, bool)
     {
+        if (contracts[_index] == address(0)) {
+            return (contracts[_index], false);
+        }
         return (
             contracts[_index],
             IStaking(contracts[_index]).canBatchTransactions()
