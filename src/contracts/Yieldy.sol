@@ -254,7 +254,7 @@ contract Yieldy is
 
         _totalSupply = _totalSupply + _amount;
 
-        require(_totalSupply < MAX_SUPPLY, "Max supply");
+        require(_totalSupply <= MAX_SUPPLY, "Max supply");
         emit Transfer(address(0), _address, _amount);
     }
 
