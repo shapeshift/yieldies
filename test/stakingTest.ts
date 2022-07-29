@@ -800,6 +800,8 @@ describe("Staking", function () {
     it("Can instant unstake partial amount with curve", async () => {
       const { staker1 } = await getNamedAccounts();
 
+      await staking.setCurvePool(constants.CURVE_POOL);
+
       const transferAmount = BigNumber.from("1000000000000002");
       const unstakeAmount = transferAmount.div(2);
       await stakingToken.transfer(staker1, transferAmount);
