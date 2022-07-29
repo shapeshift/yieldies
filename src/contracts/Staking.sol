@@ -155,7 +155,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _curvePool uint
      */
     function setCurvePool(address _curvePool) external onlyOwner {
+        if (CURVE_POOL != address(0)) {
+            IERC20(TOKE_POOL).approve(CURVE_POOL, 0);
+        }
         CURVE_POOL = _curvePool;
+        IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
         setToAndFromCurve();
     }
 
