@@ -2538,11 +2538,11 @@ describe("Staking", function () {
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
 
-      await expect(stakingAdmin.setCoolDownPeriod(7)).to.be.revertedWith(
+      await expect(stakingAdmin.setCoolDownPeriod(11)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
-      await expect(stakingAdmin.setWarmUpPeriod(7)).to.be.revertedWith(
+      await expect(stakingAdmin.setWarmUpPeriod(11)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
