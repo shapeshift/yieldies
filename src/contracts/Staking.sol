@@ -772,11 +772,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
-    /// @dev Return the EIP-712 signing hash for the specified order.
-    ///
-    /// @param order The order to compute the EIP-712 signing hash for.
-    /// @param separator The EIP-712 domain separator to use.
-    /// @return orderDigest The 32 byte EIP-712 struct hash.
+    /**
+     * @dev Return the EIP-712 signing hash for the specified order.
+     * @param order The order to compute the EIP-712 signing hash for.
+     * @param separator The EIP-712 domain separator to use.
+     * @return orderDigest The 32 byte EIP-712 struct hash.
+     **/
     function getHash(CowSwapData memory order, bytes32 separator)
         internal
         pure
@@ -812,17 +813,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
-    /// @dev Packs order UID parameters into the specified memory location. The
-    /// result is equivalent to `abi.encodePacked(...)` with the difference that
-    /// it allows re-using the memory for packing the order UID.
-    ///
-    /// This function reverts if the order UID buffer is not the correct size.
-    ///
-    /// @param orderUid The buffer pack the order UID parameters into.
-    /// @param orderDigest The EIP-712 struct digest derived from the order
-    /// parameters.
-    /// @param owner The address of the user who owns this order.
-    /// @param validTo The epoch time at which the order will stop being valid.
+    /**
+     * @dev Packs order UID parameters into the specified memory location. The
+     * result is equivalent to `abi.encodePacked(...)` with the difference that
+     * it allows re-using the memory for packing the order UID.
+     * This function reverts if the order UID buffer is not the correct size.
+     *
+     * @param orderUid The buffer pack the order UID parameters into.
+     * @param orderDigest The EIP-712 struct digest derived from the order
+     * parameters.
+     * @param owner The address of the user who owns this order.
+     * @param validTo The epoch time at which the order will stop being valid.
+     **/
     function packOrderUidParams(
         bytes memory orderUid,
         bytes32 orderDigest,
@@ -859,6 +861,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
+    /**
+     * @dev reconstruct the orderUid for a swap through cowswap
+     * @param orderData The order to compute the EIP-712 signing hash for.
+     **/
     function getOrderID(CowSwapData calldata orderData)
         public
         view
