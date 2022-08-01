@@ -3,4 +3,6 @@ pragma solidity 0.8.9;
 
 interface ICowSettlement {
     function setPreSignature(bytes calldata orderUid, bool signed) external;
+
+    function domainSeparator() external returns (bytes32);
 }

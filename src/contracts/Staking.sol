@@ -14,9 +14,18 @@ import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 import "../interfaces/ICurvePool.sol";
 import "../interfaces/ICowSettlement.sol";
+import "../structs/CowSwapData.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    uint256 internal constant COW_UID_LENGTH = 56;
+    bytes32 internal COW_DOMAIN_SEPARATOR;
+    bytes32 private constant COW_TYPE_HASH =
+        hex"d5a25ba2e97094ad7d83dc28a6572da797d6b3e7fc6663bd93efb789fc17e489";
+    bytes32 public constant COW_KIND_SELL =
+        hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
+    bytes32 public constant COW_BALANCE_ERC20 =
+        hex"5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9";
 
     event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
     event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
@@ -71,6 +80,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         FEE_ADDRESS = _feeAddress;
         CURVE_POOL = _curvePool;
         COW_SETTLEMENT = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+        COW_DOMAIN_SEPARATOR = ICowSettlement(COW_SETTLEMENT).domainSeparator();
         COW_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
 
         timeLeftToRequestWithdrawal = 12 hours;
@@ -763,10 +773,130 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     }
 
     /**
+     * @dev Return the EIP-712 signing hash for the specified order.
+     * @param order The order to compute the EIP-712 signing hash for.
+     * @param separator The EIP-712 domain separator to use.
+     * @return orderDigest The 32 byte EIP-712 struct hash.
+     **/
+    function getHash(CowSwapData memory order, bytes32 separator)
+        internal
+        pure
+        returns (bytes32 orderDigest)
+    {
+        bytes32 structHash;
+
+        // NOTE: Compute the EIP-712 order struct hash in place. As suggested
+        // in the EIP proposal, noting that the order struct has 10 fields, and
+        // including the type hash `(12 + 1) * 32 = 416` bytes to hash.
+        // <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#rationale-for-encodedata>
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let dataStart := sub(order, 32)
+            let temp := mload(dataStart)
+            mstore(dataStart, COW_TYPE_HASH)
+            structHash := keccak256(dataStart, 416)
+            mstore(dataStart, temp)
+        }
+
+        // NOTE: Now that we have the struct hash, compute the EIP-712 signing
+        // hash using scratch memory past the free memory pointer. The signing
+        // hash is computed from `"\x19\x01" || domainSeparator || structHash`.
+        // <https://docs.soliditylang.org/en/v0.7.6/internals/layout_in_memory.html#layout-in-memory>
+        // <https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md#specification>
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let freeMemoryPointer := mload(0x40)
+            mstore(freeMemoryPointer, "\x19\x01")
+            mstore(add(freeMemoryPointer, 2), separator)
+            mstore(add(freeMemoryPointer, 34), structHash)
+            orderDigest := keccak256(freeMemoryPointer, 66)
+        }
+    }
+
+    /**
+     * @dev Packs order UID parameters into the specified memory location. The
+     * result is equivalent to `abi.encodePacked(...)` with the difference that
+     * it allows re-using the memory for packing the order UID.
+     * This function reverts if the order UID buffer is not the correct size.
+     *
+     * @param orderUid The buffer pack the order UID parameters into.
+     * @param orderDigest The EIP-712 struct digest derived from the order
+     * parameters.
+     * @param owner The address of the user who owns this order.
+     * @param validTo The epoch time at which the order will stop being valid.
+     **/
+    function packOrderUidParams(
+        bytes memory orderUid,
+        bytes32 orderDigest,
+        address owner,
+        uint32 validTo
+    ) internal pure {
+        require(orderUid.length == COW_UID_LENGTH, "GPv2: uid buffer overflow");
+
+        // NOTE: Write the order UID to the allocated memory buffer. The order
+        // parameters are written to memory in **reverse order** as memory
+        // operations write 32-bytes at a time and we want to use a packed
+        // encoding. This means, for example, that after writing the value of
+        // `owner` to bytes `20:52`, writing the `orderDigest` to bytes `0:32`
+        // will **overwrite** bytes `20:32`. This is desirable as addresses are
+        // only 20 bytes and `20:32` should be `0`s:
+        //
+        //        |           1111111111222222222233333333334444444444555555
+        //   byte | 01234567890123456789012345678901234567890123456789012345
+        // -------+---------------------------------------------------------
+        //  field | [.........orderDigest..........][......owner.......][vT]
+        // -------+---------------------------------------------------------
+        // mstore |                         [000000000000000000000000000.vT]
+        //        |                     [00000000000.......owner.......]
+        //        | [.........orderDigest..........]
+        //
+        // Additionally, since Solidity `bytes memory` are length prefixed,
+        // 32 needs to be added to all the offsets.
+        //
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            mstore(add(orderUid, 56), validTo)
+            mstore(add(orderUid, 52), owner)
+            mstore(add(orderUid, 32), orderDigest)
+        }
+    }
+
+    /**
+     * @dev reconstruct the orderUid for a swap through cowswap
+     * @param orderData The order to compute the EIP-712 signing hash for.
+     **/
+    function getOrderID(CowSwapData calldata orderData)
+        public
+        view
+        returns (bytes memory)
+    {
+        // Allocated
+        bytes memory orderUid = new bytes(COW_UID_LENGTH);
+
+        // Get the hash
+        bytes32 digest = getHash(orderData, COW_DOMAIN_SEPARATOR);
+        packOrderUidParams(orderUid, digest, address(this), orderData.validTo);
+
+        return orderUid;
+    }
+
+    /**
      * @notice trades rewards generated from claimFromTokemak for staking token
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
-    function preSign(bytes calldata orderUid) external onlyOwner {
+    function preSign(CowSwapData calldata data, bytes calldata orderUid)
+        external
+        onlyOwner
+    {
+        bytes memory derivedOrderID = getOrderID(data);
+        require(
+            keccak256(derivedOrderID) == keccak256(orderUid),
+            "OrderID mismatch"
+        );
+
+        require(data.validTo > block.timestamp, "Expired transaction");
+        require(data.receiver == address(this), "Invalid receiver");
+
         ICowSettlement(COW_SETTLEMENT).setPreSignature(orderUid, true);
     }
 }
