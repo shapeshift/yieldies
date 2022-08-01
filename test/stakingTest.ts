@@ -2171,14 +2171,24 @@ describe("Staking", function () {
           accounts[0]
         );
 
-        const kind = await staking.COW_KIND_SELL()
-        const balanceERC20 = await staking.COW_BALANCE_ERC20()
-        await expect(staking.preSign({ ...response.data.quote, kind, sellTokenBalance: balanceERC20, buyTokenBalance: balanceERC20 }, orderUid.data))
+        const kind = await staking.COW_KIND_SELL();
+        const balanceERC20 = await staking.COW_BALANCE_ERC20();
+        await expect(
+          staking.preSign(
+            {
+              ...response.data.quote,
+              kind,
+              sellTokenBalance: balanceERC20,
+              buyTokenBalance: balanceERC20,
+            },
+            orderUid.data
+          )
+        )
           .to.emit(cowSettlementContract, "PreSignature")
           .withArgs(staking.address, orderUid.data, true);
       } catch (e) {
-        console.error('Error:', e)
-        throw new Error('Failed')
+        console.error("Error:", e);
+        throw new Error("Failed");
       }
     });
     it("Fails when incorrectly claims/transfer TOKE", async () => {
