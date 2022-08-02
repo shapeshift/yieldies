@@ -10,6 +10,7 @@ import "./StakingStorage.sol";
 import "../interfaces/IYieldy.sol";
 import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
+import "../interfaces/ITokeEthPool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 import "../interfaces/ICurvePool.sol";
@@ -17,6 +18,7 @@ import "../interfaces/ICowSettlement.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
     event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
@@ -300,12 +302,16 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-
         if (
             requestedWithdrawals.amount > 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex
         ) {
-            tokePoolContract.withdraw(requestedWithdrawals.amount);
+            if (STAKING_TOKEN == WETH){
+                ITokeEthPool tokeEthPoolContract = ITokeEthPool(TOKE_POOL);
+                tokeEthPoolContract.withdraw(requestedWithdrawals.amount, false);
+            } else {
+                tokePoolContract.withdraw(requestedWithdrawals.amount);
+            }
             requestWithdrawalAmount -= requestedWithdrawals.amount;
             withdrawalAmount += requestedWithdrawals.amount;
         }
