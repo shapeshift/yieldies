@@ -35,7 +35,7 @@ contract Yieldy is
         ERC20PermitUpgradeable.__ERC20Permit_init(_tokenName);
         AccessControlUpgradeable.__AccessControl_init();
 
-        _setupRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
         _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
         _setRoleAdmin(MINTER_BURNER_ROLE, ADMIN_ROLE);
         _setRoleAdmin(REBASE_ROLE, ADMIN_ROLE);
@@ -58,8 +58,8 @@ contract Yieldy is
         require(stakingContract == address(0), "Already Initialized");
         require(_stakingContract != address(0), "Invalid address");
         stakingContract = _stakingContract;
-        _setupRole(MINTER_BURNER_ROLE, _stakingContract);
-        _setupRole(REBASE_ROLE, _stakingContract);
+        _grantRole(MINTER_BURNER_ROLE, _stakingContract);
+        _grantRole(REBASE_ROLE, _stakingContract);
     }
 
     /**
@@ -208,6 +208,7 @@ contract Yieldy is
         uint256 _value
     ) public override returns (bool) {
         require(_to != address(0), "Invalid address");
+        require(balanceOf(_from) >= _value, "Transfer greater than balance");
         require(_allowances[_from][msg.sender] >= _value, "Allowance too low");
 
         uint256 newValue = _allowances[_from][msg.sender] - _value;

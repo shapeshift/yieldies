@@ -16,5 +16,6 @@ interface ITokePool {
 
     function requestedWithdrawals(address owner)
         external
+        view
         returns (RequestedWithdrawalInfo memory);
 }

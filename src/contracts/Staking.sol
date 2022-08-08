@@ -10,6 +10,7 @@ import "./StakingStorage.sol";
 import "../interfaces/IYieldy.sol";
 import "../interfaces/ITokeManager.sol";
 import "../interfaces/ITokePool.sol";
+import "../interfaces/ITokeEthPool.sol";
 import "../interfaces/ITokeReward.sol";
 import "../interfaces/ILiquidityReserve.sol";
 import "../interfaces/ICurvePool.sol";
@@ -17,6 +18,7 @@ import "../interfaces/ICowSettlement.sol";
 
 contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
     event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
@@ -155,7 +157,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _curvePool uint
      */
     function setCurvePool(address _curvePool) external onlyOwner {
+        if (CURVE_POOL != address(0)) {
+            IERC20(TOKE_POOL).approve(CURVE_POOL, 0);
+        }
         CURVE_POOL = _curvePool;
+        IERC20(TOKE_POOL).approve(CURVE_POOL, type(uint256).max);
         setToAndFromCurve();
     }
 
@@ -273,6 +279,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _isClaimWithdrawAvailable(address _recipient)
         internal
+        view
         returns (bool)
     {
         Claim memory info = coolDownInfo[_recipient];
@@ -300,12 +307,19 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         RequestedWithdrawalInfo memory requestedWithdrawals = tokePoolContract
             .requestedWithdrawals(address(this));
         uint256 currentCycleIndex = tokeManager.getCurrentCycleIndex();
-
         if (
             requestedWithdrawals.amount > 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex
         ) {
-            tokePoolContract.withdraw(requestedWithdrawals.amount);
+            if (STAKING_TOKEN == WETH) {
+                ITokeEthPool tokeEthPoolContract = ITokeEthPool(TOKE_POOL);
+                tokeEthPoolContract.withdraw(
+                    requestedWithdrawals.amount,
+                    false
+                );
+            } else {
+                tokePoolContract.withdraw(requestedWithdrawals.amount);
+            }
             requestWithdrawalAmount -= requestedWithdrawals.amount;
             withdrawalAmount += requestedWithdrawals.amount;
         }
@@ -323,7 +337,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // the only way balance < _amount is when using unstakeAllFromTokemak
         uint256 amountToRequest = balance < _amount ? balance : _amount;
 
-        if (amountToRequest > 0) tokePoolContract.requestWithdrawal(_amount);
+        if (amountToRequest > 0)
+            tokePoolContract.requestWithdrawal(amountToRequest);
     }
 
     /**
@@ -426,7 +441,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
 
         // if claim is available then auto claim tokens
         if (_isClaimAvailable(_recipient)) {
-            claim(_recipient);
+            claim(_recipient, true);
         }
 
         _depositToTokemak(_amount);
@@ -461,14 +476,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice retrieve reward tokens from warmup
         @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function claim(address _recipient) public {
+    function claim(address _recipient, bool _triggerRebase) public {
         Claim memory info = warmUpInfo[_recipient];
+        if (_triggerRebase) {
+            rebase();
+        }
         if (_isClaimAvailable(_recipient)) {
             delete warmUpInfo[_recipient];
 
             if (info.credits > 0) {
-                IYieldy(YIELDY_TOKEN).transfer(
+                IERC20Upgradeable(YIELDY_TOKEN).safeTransfer(
                     _recipient,
                     IYieldy(YIELDY_TOKEN).tokenBalanceForCredits(info.credits)
                 );
@@ -481,13 +500,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev if user has a cooldown claim that's past expiry then withdraw staking tokens from tokemak
         @dev and send them to user
         @param _recipient address - users unstaking address
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function claimWithdraw(address _recipient) public {
+    function claimWithdraw(address _recipient, bool _triggerRebase) public {
         Claim memory info = coolDownInfo[_recipient];
         uint256 totalAmountIncludingRewards = IYieldy(YIELDY_TOKEN)
             .tokenBalanceForCredits(info.credits);
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
+            if (_triggerRebase) {
+                rebase();
+            }
             _withdrawFromTokemak();
             delete coolDownInfo[_recipient];
 
@@ -564,6 +587,21 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
+    function getLiquidityReserveAvailableTokenBalance()
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(LIQUIDITY_RESERVE);
+        if (_isClaimWithdrawAvailable(LIQUIDITY_RESERVE)) {
+            Claim memory info = coolDownInfo[LIQUIDITY_RESERVE];
+            return stakingTokenBalance + info.amount;
+        } else {
+            return stakingTokenBalance;
+        }
+    }
+
     /**
         @notice instant unstakes from liquidity reserve
         @param _amount uint - amount to instant unstake
@@ -579,9 +617,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         rebase();
         _retrieveBalanceFromUser(_amount, msg.sender);
 
-        uint256 reserveBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
-            LIQUIDITY_RESERVE
-        );
+        uint256 reserveBalance = getLiquidityReserveAvailableTokenBalance();
 
         require(reserveBalance >= _amount, "Not enough funds in reserve");
 
@@ -669,12 +705,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev this function will retrieve the _amount of Yieldy tokens from the user and transfer them to the cooldown contract.
         @dev once the period has expired the user will be able to withdraw their staking tokens
         @param _amount uint - amount of tokens to unstake
-        @param _trigger bool - should trigger a rebase
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function unstake(uint256 _amount, bool _trigger) external {
+    function unstake(uint256 _amount, bool _triggerRebase) external {
         // prevent unstaking if override due to vulnerabilities asdf
         require(!isUnstakingPaused, "Unstaking is paused");
-        if (_trigger) {
+        if (_triggerRebase) {
             rebase();
         }
         _retrieveBalanceFromUser(_amount, msg.sender);
@@ -682,7 +718,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         Claim storage userCoolInfo = coolDownInfo[msg.sender];
 
         // try to claim withdraw if user has withdraws to claim function will check if withdraw is valid
-        claimWithdraw(msg.sender);
+        claimWithdraw(msg.sender, true);
 
         coolDownInfo[msg.sender] = Claim({
             amount: userCoolInfo.amount + _amount,
@@ -736,12 +772,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @dev this is the function that gives rewards so the rebase function can distribute profits to reward token holders
      * @param _amount uint - amount of tokens to add to rewards
      * @param _shouldTransfer bool - should transfer tokens before adding rewards
-     * @param _trigger bool - should trigger rebase
+     * @param _triggerRebase bool - should trigger rebase
      */
     function addRewardsForStakers(
         uint256 _amount,
         bool _shouldTransfer,
-        bool _trigger
+        bool _triggerRebase
     ) external {
         if (_shouldTransfer) {
             IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
@@ -757,7 +793,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
         _depositToTokemak(amountToDeposit);
 
-        if (_trigger) {
+        if (_triggerRebase) {
             rebase();
         }
     }
