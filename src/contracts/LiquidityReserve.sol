@@ -168,7 +168,7 @@ contract LiquidityReserve is
 
         // verify that we have enough stakingTokens
         require(
-            IERC20Upgradeable(stakingToken).balanceOf(address(this)) >=
+            IERC20Upgradeable(stakingToken).balanceOf(address(this)) - MINIMUM_LIQUIDITY >=
                 amountToWithdraw,
             "Not enough funds"
         );
