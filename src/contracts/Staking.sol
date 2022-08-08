@@ -461,11 +461,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @notice retrieve reward tokens from warmup
         @dev if user has funds in warmup then user is able to claim them (including rewards)
         @param _recipient address
-        @param _trigger bool - should trigger a rebase
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function claim(address _recipient, bool _trigger) public {
+    function claim(address _recipient, bool _triggerRebase) public {
         Claim memory info = warmUpInfo[_recipient];
-        if (_trigger) {
+        if (_triggerRebase) {
             rebase();
         }
         if (_isClaimAvailable(_recipient)) {
@@ -485,15 +485,15 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev if user has a cooldown claim that's past expiry then withdraw staking tokens from tokemak
         @dev and send them to user
         @param _recipient address - users unstaking address
-        @param _trigger bool - should trigger a rebase
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function claimWithdraw(address _recipient, bool _trigger) public {
+    function claimWithdraw(address _recipient, bool _triggerRebase) public {
         Claim memory info = coolDownInfo[_recipient];
         uint256 totalAmountIncludingRewards = IYieldy(YIELDY_TOKEN)
             .tokenBalanceForCredits(info.credits);
         if (_isClaimWithdrawAvailable(_recipient)) {
             // if has withdrawalAmount to be claimed, then claim
-            if (_trigger) {
+            if (_triggerRebase) {
                 rebase();
             }
             _withdrawFromTokemak();
@@ -677,12 +677,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @dev this function will retrieve the _amount of Yieldy tokens from the user and transfer them to the cooldown contract.
         @dev once the period has expired the user will be able to withdraw their staking tokens
         @param _amount uint - amount of tokens to unstake
-        @param _trigger bool - should trigger a rebase
+        @param _triggerRebase bool - should trigger a rebase
      */
-    function unstake(uint256 _amount, bool _trigger) external {
+    function unstake(uint256 _amount, bool _triggerRebase) external {
         // prevent unstaking if override due to vulnerabilities asdf
         require(!isUnstakingPaused, "Unstaking is paused");
-        if (_trigger) {
+        if (_triggerRebase) {
             rebase();
         }
         _retrieveBalanceFromUser(_amount, msg.sender);
@@ -744,12 +744,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @dev this is the function that gives rewards so the rebase function can distribute profits to reward token holders
      * @param _amount uint - amount of tokens to add to rewards
      * @param _shouldTransfer bool - should transfer tokens before adding rewards
-     * @param _trigger bool - should trigger rebase
+     * @param _triggerRebase bool - should trigger rebase
      */
     function addRewardsForStakers(
         uint256 _amount,
         bool _shouldTransfer,
-        bool _trigger
+        bool _triggerRebase
     ) external {
         if (_shouldTransfer) {
             IERC20Upgradeable(STAKING_TOKEN).safeTransferFrom(
@@ -765,7 +765,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         uint256 amountToDeposit = stakingTokenBalance - withdrawalAmount;
         _depositToTokemak(amountToDeposit);
 
-        if (_trigger) {
+        if (_triggerRebase) {
             rebase();
         }
     }
