@@ -157,13 +157,17 @@ describe("BatchRequests", function () {
   it("Should add/remove contracts", async () => {
     await batchRequests.addAddress(constants.STAKING_TOKEN);
     await batchRequests.addAddress(constants.TOKE_TOKEN);
+    await batchRequests.addAddress(ethers.constants.AddressZero);
     await batchRequests.addAddress(constants.TOKE_REWARD);
 
     expect(await batchRequests.getAddressByIndex(0)).eq(
       constants.STAKING_TOKEN
     );
     expect(await batchRequests.getAddressByIndex(1)).eq(constants.TOKE_TOKEN);
-    expect(await batchRequests.getAddressByIndex(2)).eq(constants.TOKE_REWARD);
+    expect(await batchRequests.getAddressByIndex(2)).eq(
+      ethers.constants.AddressZero
+    );
+    expect(await batchRequests.getAddressByIndex(3)).eq(constants.TOKE_REWARD);
 
     await batchRequests.removeAddress(constants.TOKE_TOKEN);
     await batchRequests.addAddress(constants.TOKE_OWNER);
@@ -174,12 +178,13 @@ describe("BatchRequests", function () {
     expect(await batchRequests.getAddressByIndex(1)).eq(
       ethers.constants.AddressZero
     );
-    expect(await batchRequests.getAddressByIndex(2)).eq(constants.TOKE_REWARD);
-    expect(await batchRequests.getAddressByIndex(3)).eq(constants.TOKE_OWNER);
+    expect(await batchRequests.getAddressByIndex(3)).eq(constants.TOKE_REWARD);
+    expect(await batchRequests.getAddressByIndex(4)).eq(constants.TOKE_OWNER);
   });
   it("Should call sendWithdrawalRequests on multiple contracts", async () => {
     await batchRequests.addAddress(staking.address);
     await batchRequests.addAddress(staking2.address);
+    await batchRequests.addAddress(ethers.constants.AddressZero);
     await batchRequests.addAddress(staking3.address);
 
     const { staker1, staker2, staker3 } = await getNamedAccounts();
@@ -249,10 +254,20 @@ describe("BatchRequests", function () {
     const [address2, canBatch2] = await batchRequests.canBatchContractByIndex(
       2
     );
-    expect(address2).eq(staking3.address);
-    expect(canBatch2).eq(true);
-    expect(canBatchContracts[2].stakingContract).eq(staking3.address);
-    expect(canBatchContracts[2].canBatch).eq(true);
+    expect(address2).eq(ethers.constants.AddressZero);
+    expect(canBatch2).eq(false);
+    expect(canBatchContracts[2].stakingContract).eq(
+      ethers.constants.AddressZero
+    );
+    expect(canBatchContracts[2].canBatch).eq(false);
+
+    const [address3, canBatch3] = await batchRequests.canBatchContractByIndex(
+      3
+    );
+    expect(address3).eq(staking3.address);
+    expect(canBatch3).eq(true);
+    expect(canBatchContracts[3].stakingContract).eq(staking3.address);
+    expect(canBatchContracts[3].canBatch).eq(true);
 
     await batchRequests.sendWithdrawalRequests();
 
