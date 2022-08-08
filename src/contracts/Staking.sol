@@ -273,6 +273,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function _isClaimWithdrawAvailable(address _recipient)
         internal
+        view
         returns (bool)
     {
         Claim memory info = coolDownInfo[_recipient];
@@ -572,6 +573,21 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         }
     }
 
+    function getLiquidityReserveAvailableTokenBalance()
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 stakingTokenBalance = IERC20Upgradeable(STAKING_TOKEN)
+            .balanceOf(LIQUIDITY_RESERVE);
+        if (_isClaimWithdrawAvailable(LIQUIDITY_RESERVE)) {
+            Claim memory info = coolDownInfo[LIQUIDITY_RESERVE];
+            return stakingTokenBalance + info.amount;
+        } else {
+            return stakingTokenBalance;
+        }
+    }
+
     /**
         @notice instant unstakes from liquidity reserve
         @param _amount uint - amount to instant unstake
@@ -587,9 +603,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         rebase();
         _retrieveBalanceFromUser(_amount, msg.sender);
 
-        uint256 reserveBalance = IERC20Upgradeable(STAKING_TOKEN).balanceOf(
-            LIQUIDITY_RESERVE
-        );
+        uint256 reserveBalance = getLiquidityReserveAvailableTokenBalance();
 
         require(reserveBalance >= _amount, "Not enough funds in reserve");
 
