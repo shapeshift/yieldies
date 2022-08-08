@@ -492,7 +492,7 @@ describe("Staking", function () {
       const tokeManagerOwner = tokeManager.connect(tokeSigner);
       await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
 
-      await stakingStaker1.claimWithdraw(staker1);
+      await stakingStaker1.claimWithdraw(staker1, false);
 
       staker1RewardBalance = await rewardToken.balanceOf(staker1);
       expect(staker1RewardBalance).eq(0);
