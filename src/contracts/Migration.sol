@@ -45,7 +45,7 @@ contract Migration {
             msg.sender
         );
 
-        IYieldy(OLD_YIELDY_TOKEN).transferFrom(
+        IERC20Upgradeable(OLD_YIELDY_TOKEN).safeTransferFrom(
             msg.sender,
             address(this),
             userWalletBalance
