@@ -14,11 +14,12 @@ contract BatchRequests is Ownable {
     function sendWithdrawalRequests() external {
         uint256 contractsLength = contracts.length;
         for (uint256 i; i < contractsLength; ) {
+            address _contract = contracts[i];
             if (
-                contracts[i] != address(0) &&
-                IStaking(contracts[i]).canBatchTransactions()
+                _contract != address(0) &&
+                IStaking(_contract).canBatchTransactions()
             ) {
-                IStaking(contracts[i]).sendWithdrawalRequests();
+                IStaking(_contract).sendWithdrawalRequests();
             }
             unchecked {
                 ++i;
@@ -34,9 +35,10 @@ contract BatchRequests is Ownable {
         uint256 contractsLength = contracts.length;
         Batch[] memory batch = new Batch[](contractsLength);
         for (uint256 i; i < contractsLength; ) {
-            if (contracts[i] != address(0)) {
-                bool canBatch = IStaking(contracts[i]).canBatchTransactions();
-                batch[i] = Batch(contracts[i], canBatch);
+            address _contract = contracts[i];
+            if (_contract != address(0)) {
+                bool canBatch = IStaking(_contract).canBatchTransactions();
+                batch[i] = Batch(_contract, canBatch);
             }
             unchecked {
                 ++i;
