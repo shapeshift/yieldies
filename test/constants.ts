@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 export const INSTANT_UNSTAKE_FEE = 2000; // 20% in basis points
 export const INITIAL_LR_BALANCE = BigNumber.from("1000000000000000");
 export const STAKING_TOKEN_WHALE = "0xF152a54068c8eDDF5D537770985cA8c06ad78aBB"; // FOX Whale
-export const TOKE_TOKEN_WHALE = "0x23a5efe19aa966388e132077d733672cf5798c03"; // TOKE Whale
+export const TOKE_TOKEN_WHALE = "0x0b54cf56e463b2ad0c6b4f2fde53de1f45f97600"; // TOKE Whale
 export const STAKING_TOKEN = "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d"; // FOX Address
 export const STAKING_V1_ADDRESS = "0xee77aa3Fd23BbeBaf94386dD44b548e9a785ea4b"; // v1 Staking contract address
 export const STAKING_OWNER = "0x90a48d5cf7343b08da12e067680b4c6dbfe551be"; // v1 Staking contract owner
@@ -17,4 +17,7 @@ export const LATEST_CLAIMABLE_HASH =
   "QmWCH3fhEfceBYQhC1hkeM7RZ8FtDeZxSF4hDnpkogXM6W";
 export const EPOCH_DURATION = 604800; // 1 week
 
-export const BLOCK_NUMBER = 14630292;
+export const BLOCK_NUMBER = 15255226;
+export const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+export const WETH_WHALE = "0x12949651a3a7cf952a06fc7f97e13e40f377db9c";
+export const TOKE_WETH_POOL = "0xD3D13a578a53685B4ac36A1Bab31912D2B2A2F36";

@@ -21,6 +21,7 @@ import {
 } from "../typechain-types";
 import * as constants from "./constants";
 import axios from "axios";
+import { tokeEthPoolAbi } from "./abis/tokeEthPoolAbi";
 
 describe("Staking", function () {
   let accounts: SignerWithAddress[];
@@ -383,6 +384,124 @@ describe("Staking", function () {
   });
 
   describe("stake", function () {
+    it("User can stake, claim and unstake with WETH", async () => {
+      const { staker1, admin } = await getNamedAccounts();
+
+      stakingToken = new ethers.Contract(
+        constants.WETH,
+        ERC20.abi,
+        accounts[0]
+      );
+      tokePool = new ethers.Contract(
+        constants.TOKE_WETH_POOL,
+        tokeEthPoolAbi,
+        accounts[0]
+      );
+
+      const currentBlock = await ethers.provider.getBlockNumber();
+      const currentTime = (await ethers.provider.getBlock(currentBlock))
+        .timestamp;
+      const firstEpochEndTime = currentTime + constants.EPOCH_DURATION;
+
+      const rewardTokenDeployment = await ethers.getContractFactory("Yieldy");
+      rewardToken = (await upgrades.deployProxy(rewardTokenDeployment, [
+        "wETH Yieldy",
+        "wETHy",
+        18,
+      ])) as Yieldy;
+      await rewardToken.deployed();
+
+      const stakingDeployment = await ethers.getContractFactory("Staking");
+      staking = (await upgrades.deployProxy(stakingDeployment, [
+        stakingToken.address,
+        rewardToken.address,
+        constants.TOKE_TOKEN,
+        constants.TOKE_WETH_POOL,
+        constants.TOKE_MANAGER,
+        constants.TOKE_REWARD,
+        liquidityReserve.address,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+        constants.EPOCH_DURATION,
+        firstEpochEndTime,
+      ])) as Staking;
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WETH_WHALE],
+      });
+
+      await rewardToken.initializeStakingContract(staking.address); // initialize reward contract
+      await stakingToken.approve(
+        liquidityReserve.address,
+        BigNumber.from("1000000000000000")
+      ); // approve initial liquidity amount
+
+      // Transfer to admin account for STAKING_TOKEN to be easily transferred to other accounts
+      const initTransferAmount = BigNumber.from("90000000000000000");
+      const whaleSigner = await ethers.getSigner(constants.WETH_WHALE);
+      const wethWhale = stakingToken.connect(whaleSigner);
+      let stakingTokenBalance = await stakingToken.balanceOf(
+        constants.WETH_WHALE
+      );
+      await wethWhale.transfer(admin, initTransferAmount);
+
+      let staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(0);
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("10000");
+      await stakingToken.transfer(staker1, transferAmount);
+      staker1StakingBalance = await stakingToken.balanceOf(staker1);
+      expect(staker1StakingBalance).eq(transferAmount);
+      let staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(0);
+
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingStaker1 = staking.connect(staker1Signer as Signer);
+
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
+      await stakingTokenStaker1.approve(staking.address, stakingAmount);
+
+      await expect(
+        stakingStaker1.functions["stake(uint256)"](0)
+      ).to.be.revertedWith("Must have valid amount");
+
+      await stakingStaker1.functions["stake(uint256)"](stakingAmount);
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(stakingAmount);
+      expect(await rewardToken.totalSupply()).eq(stakingAmount);
+
+      await rewardToken
+        .connect(staker1Signer as Signer)
+        .approve(staking.address, stakingAmount);
+      await stakingStaker1.unstake(stakingAmount, false);
+
+      await mineBlocksToNextCycle();
+      await mineToNextEpoch();
+      await stakingStaker1.sendWithdrawalRequests();
+
+      await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.TOKE_OWNER],
+      });
+      const tokeSigner = await ethers.getSigner(constants.TOKE_OWNER);
+      const tokeManagerOwner = tokeManager.connect(tokeSigner);
+      await tokeManagerOwner.completeRollover(constants.LATEST_CLAIMABLE_HASH);
+
+      await stakingStaker1.claimWithdraw(staker1);
+
+      staker1RewardBalance = await rewardToken.balanceOf(staker1);
+      expect(staker1RewardBalance).eq(0);
+
+      // has full stakingBalance after withdrawal
+      stakingTokenBalance = await stakingToken.balanceOf(staker1);
+      expect(stakingTokenBalance).eq(transferAmount);
+      expect(await rewardToken.totalSupply()).eq(0);
+    });
     it("User can stake, claim and unstake full amount when warmup period is 0", async () => {
       const { staker1 } = await getNamedAccounts();
       let staker1StakingBalance = await stakingToken.balanceOf(staker1);
