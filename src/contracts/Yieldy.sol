@@ -207,6 +207,7 @@ contract Yieldy is
         address _to,
         uint256 _value
     ) public override returns (bool) {
+        require(balanceOf(_from) >= _value, "Transfer greater than balance");
         require(_allowances[_from][msg.sender] >= _value, "Allowance too low");
 
         uint256 newValue = _allowances[_from][msg.sender] - _value;
