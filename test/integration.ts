@@ -311,7 +311,7 @@ describe("Integration", function () {
     expect(warmUpInfo.amount).eq(stakingAmount3);
 
     // claim and unstake with staker2
-    await stakingStaker2.claim(staker2);
+    await stakingStaker2.claim(staker2, true);
     const rewardBalanceStaker2 = await yieldy.balanceOf(staker2);
     await stakingStaker2.unstake(rewardBalanceStaker2, true);
     let coolDownInfo = await staking.coolDownInfo(staker2);
@@ -398,7 +398,7 @@ describe("Integration", function () {
     expect(warmUpLP2Reward).eq(897613444916262);
 
     // claim with staker2
-    await stakingStaker2.claimWithdraw(staker2);
+    await stakingStaker2.claimWithdraw(staker2, true);
     stakingBalance = await stakingToken.balanceOf(staker2);
     expect(stakingBalance).eq(69523809523809); // stakingAmount2 + rewards
     expect(stakingBalance).eq(coolDownInfo.amount);
@@ -408,7 +408,7 @@ describe("Integration", function () {
     expect(coolDownInfo.amount).eq(0);
 
     // claim with staker3
-    await stakingStaker3.claimWithdraw(staker3);
+    await stakingStaker3.claimWithdraw(staker3, true);
     stakingBalance = await stakingToken.balanceOf(staker3);
     expect(stakingBalance).eq(stakingAmount3); // staker3 never got rewards because they staked after rewards and unstaked before next rewards
     rewardBalance = await yieldy.balanceOf(staker3);
@@ -439,7 +439,7 @@ describe("Integration", function () {
     warmUpInfo = await staking.warmUpInfo(liquidityProvider2);
     warmUpLP2Reward = await yieldy.tokenBalanceForCredits(warmUpInfo.credits);
     expect(warmUpLP2Reward).eq(942057889360702);
-    await staking.claimWithdraw(liquidityReserve.address);
+    await staking.claimWithdraw(liquidityReserve.address, true);
 
     // instantUnstake with liquidityProvider2
     walletBalance = await yieldy.balanceOf(liquidityProvider2);

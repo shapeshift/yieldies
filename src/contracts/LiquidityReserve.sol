@@ -162,7 +162,7 @@ contract LiquidityReserve is
         // check balance before removing liquidity
         require(_amount <= balanceOf(msg.sender), "Not enough lr tokens");
         // claim the stakingToken from previous unstakes
-        IStaking(stakingContract).claimWithdraw(address(this));
+        IStaking(stakingContract).claimWithdraw(address(this), true);
 
         uint256 amountToWithdraw = _calculateReserveTokenValue(_amount);
 
@@ -191,7 +191,7 @@ contract LiquidityReserve is
     {
         require(isReserveEnabled, "Not enabled yet");
         // claim the stakingToken from previous unstakes
-        IStaking(stakingContract).claimWithdraw(address(this));
+        IStaking(stakingContract).claimWithdraw(address(this), true);
 
         uint256 amountMinusFee = _amount - ((_amount * fee) / BASIS_POINTS);
 
