@@ -311,9 +311,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             requestedWithdrawals.amount > 0 &&
             requestedWithdrawals.minCycle <= currentCycleIndex
         ) {
-            if (STAKING_TOKEN == WETH){
+            if (STAKING_TOKEN == WETH) {
                 ITokeEthPool tokeEthPoolContract = ITokeEthPool(TOKE_POOL);
-                tokeEthPoolContract.withdraw(requestedWithdrawals.amount, false);
+                tokeEthPoolContract.withdraw(
+                    requestedWithdrawals.amount,
+                    false
+                );
             } else {
                 tokePoolContract.withdraw(requestedWithdrawals.amount);
             }
@@ -334,7 +337,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // the only way balance < _amount is when using unstakeAllFromTokemak
         uint256 amountToRequest = balance < _amount ? balance : _amount;
 
-        if (amountToRequest > 0) tokePoolContract.requestWithdrawal(amountToRequest);
+        if (amountToRequest > 0)
+            tokePoolContract.requestWithdrawal(amountToRequest);
     }
 
     /**
