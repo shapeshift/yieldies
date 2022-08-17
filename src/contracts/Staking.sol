@@ -43,7 +43,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _curvePool,
         uint256 _epochDuration,
         uint256 _firstEpochEndTime,
-        uint256 _totalSupplyLimit,
+        uint256 _totalSupplyLimit
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -178,7 +178,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         @param _totalSupplyLimit uint can be set to uint256.max to disable limits. 
     */
     function setTotalSupplyLimit(uint256 _totalSupplyLimit) external onlyOwner {
-        totalSupplyLimit = __totalSupplyLimit;
+        totalSupplyLimit = _totalSupplyLimit;
         emit LogSetTotalSupplyLimit(_totalSupplyLimit);
     }
 
@@ -434,7 +434,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         require(_amount > 0, "Must have valid amount");
 
         uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
-        require(yieldyTotalSupply + amount <= totalSupplyLimit, "Over total supply limit");
+        require(yieldyTotalSupply + _amount <= totalSupplyLimit, "Over total supply limit");
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
         if (yieldyTotalSupply > 0) {

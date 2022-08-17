@@ -34,11 +34,11 @@ contract StakingStorage {
     uint256 public requestWithdrawalAmount; // amount of staking tokens to request withdrawal once able to send
     uint256 public withdrawalAmount; // amount of stakings tokens available for withdrawal
     uint256 public lastTokeCycleIndex; // last tokemak cycle index which requested withdrawals
-    uint256 public affiliateFee;    // fee to send TOKE rewards
-    uint256 public totalSupplyLimit;  // allows for guarded launch, limiting totalSupply from staking
+    uint256 public affiliateFee; // fee to send TOKE rewards
+    uint256 public totalSupplyLimit; // allows for guarded launch, limiting totalSupply from staking
 
     uint256 public constant BASIS_POINTS = 10000; // 100% in basis points
-    uint256 public constant MAX_VESTING_PERIOD = 11; // 11 weeks max lock down to prevent 
+    uint256 public constant MAX_VESTING_PERIOD = 11; // 11 weeks max lock down to prevent
 
     int128 public curvePoolFrom;
     int128 public curvePoolTo;
