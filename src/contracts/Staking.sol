@@ -36,6 +36,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     event LogSetAffiliateFee(uint256 indexed blockNumber, uint256 fee);
 
     event LogSetCurvePool(address indexed curvePool, int128 to, int128 from);
+    event LogSetTotalSupplyLimit(uint256 totalSupplyLimit);
 
     function initialize(
         address _stakingToken,
@@ -48,7 +49,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _feeAddress,
         address _curvePool,
         uint256 _epochDuration,
-        uint256 _firstEpochEndTime
+        uint256 _firstEpochEndTime,
+        uint256 _totalSupplyLimit,
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -100,6 +102,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             endTime: _firstEpochEndTime,
             distribute: 0
         });
+        totalSupplyLimit = _totalSupplyLimit;
     }
 
     /**
@@ -173,6 +176,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
         affiliateFee = _affiliateFee;
         emit LogSetAffiliateFee(block.number, _affiliateFee);
+    }
+
+    /**
+        @notice sets a limit to the amount of staking that can occur to allow for a guarded 
+        launch. This only applies to staking and will disable new stakers based on the total supply
+        of the paired Yieldy token. 
+        @param _totalSupplyLimit uint can be set to uint256.max to disable limits. 
+    */
+    function setTotalSupplyLimit(uint256 _totalSupplyLimit) external onlyOwner {
+        totalSupplyLimit = __totalSupplyLimit;
+        emit LogSetTotalSupplyLimit(_totalSupplyLimit);
     }
 
     /**
@@ -427,6 +441,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         require(_amount > 0, "Must have valid amount");
 
         uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
+        require(yieldyTotalSupply + amount <= totalSupplyLimit, "Over total supply limit");
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
         if (yieldyTotalSupply > 0) {
