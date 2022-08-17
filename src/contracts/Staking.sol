@@ -237,7 +237,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(_vestingPeriod <= MAX_VESTING_PERIOD, "Vesting Period too large");
         warmUpPeriod = _vestingPeriod;
         emit LogSetWarmUpPeriod(_vestingPeriod);
     }
@@ -247,7 +247,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(_vestingPeriod <= MAX_VESTING_PERIOD, "Vesting Period too large");
         coolDownPeriod = _vestingPeriod;
         emit LogSetCoolDownPeriod(_vestingPeriod);
     }
