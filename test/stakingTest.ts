@@ -2942,7 +2942,9 @@ describe("Staking", function () {
       const transferAmount = BigNumber.from("20000");
       await stakingToken.transfer(staker1, transferAmount);
       const stakingAmount = transferAmount.div(2);
-      const stakingTokenWStakerSigner = stakingToken.connect(staker1Signer as Signer);
+      const stakingTokenWStakerSigner = stakingToken.connect(
+        staker1Signer as Signer
+      );
       await stakingTokenWStakerSigner.approve(staking.address, transferAmount);
 
       await stakingWAdminSigner.setTotalSupplyLimit(stakingAmount.sub(1));
