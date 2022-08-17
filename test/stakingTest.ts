@@ -2661,11 +2661,11 @@ describe("Staking", function () {
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
 
-      await expect(stakingAdmin.setCoolDownPeriod(11)).to.be.revertedWith(
+      await expect(stakingAdmin.setCoolDownPeriod(12)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
-      await expect(stakingAdmin.setWarmUpPeriod(11)).to.be.revertedWith(
+      await expect(stakingAdmin.setWarmUpPeriod(12)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
@@ -2673,7 +2673,7 @@ describe("Staking", function () {
 
       await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
       const timeLeftToRequest = await staking.timeLeftToRequestWithdrawal();
-      await expect(timeLeftToRequest).eq(10);
+      expect(timeLeftToRequest).eq(10);
 
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("10000");
@@ -2773,6 +2773,7 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
+
     it("Emergency exit is working", async () => {
       const { staker1, staker2, staker3 } = await getNamedAccounts();
 
