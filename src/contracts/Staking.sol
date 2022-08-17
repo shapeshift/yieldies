@@ -225,11 +225,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     /**
         @notice set epoch duration
         @dev epoch's determine how long until a rebase can occur
-        @param duration uint
+        @param _duration uint
      */
-    function setEpochDuration(uint256 duration) external onlyOwner {
-        epoch.duration = duration;
-        emit LogSetEpochDuration(duration);
+    function setEpochDuration(uint256 _duration) external onlyOwner {
+        epoch.duration = _duration;
+        emit LogSetEpochDuration(_duration);
     }
 
     /**
@@ -821,7 +821,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice trades rewards generated from claimFromTokemak for staking token
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
-    function preSign(bytes calldata orderUid) external onlyOwner {
-        ICowSettlement(COW_SETTLEMENT).setPreSignature(orderUid, true);
+    function preSign(bytes calldata _orderUid) external onlyOwner {
+        ICowSettlement(COW_SETTLEMENT).setPreSignature(_orderUid, true);
     }
 }
