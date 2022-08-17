@@ -237,7 +237,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod <= MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(
+            _vestingPeriod <= MAX_VESTING_PERIOD,
+            "Vesting Period too large"
+        );
         warmUpPeriod = _vestingPeriod;
         emit LogSetWarmUpPeriod(_vestingPeriod);
     }
@@ -247,7 +250,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod <= MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(
+            _vestingPeriod <= MAX_VESTING_PERIOD,
+            "Vesting Period too large"
+        );
         coolDownPeriod = _vestingPeriod;
         emit LogSetCoolDownPeriod(_vestingPeriod);
     }
@@ -434,7 +440,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         require(_amount > 0, "Must have valid amount");
 
         uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
-        require(yieldyTotalSupply + _amount <= totalSupplyLimit, "Over total supply limit");
+        require(
+            yieldyTotalSupply + _amount <= totalSupplyLimit,
+            "Over total supply limit"
+        );
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
         if (yieldyTotalSupply > 0) {
