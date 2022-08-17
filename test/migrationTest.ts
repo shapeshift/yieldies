@@ -170,6 +170,7 @@ describe("Migration", function () {
       constants.CURVE_POOL,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as StakingV2Test;
 
     await network.provider.request({

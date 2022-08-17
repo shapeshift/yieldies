@@ -102,6 +102,7 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     staking2 = (await upgrades.deployProxy(stakingDeployment, [
@@ -116,6 +117,7 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     staking3 = (await upgrades.deployProxy(stakingDeployment, [
@@ -130,6 +132,7 @@ describe("BatchRequests", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     const batchDeployment = await ethers.getContractFactory("BatchRequests");
