@@ -20,21 +20,14 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-    event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
-    event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
-    event LogSetCoolDownPeriod(uint256 indexed blockNumber, uint256 period);
-    event LogSetPauseStaking(uint256 indexed blockNumber, bool shouldPause);
-    event LogSetPauseUnstaking(uint256 indexed blockNumber, bool shouldPause);
-    event LogSetPauseInstantUnstaking(
-        uint256 indexed blockNumber,
-        bool shouldPause
-    );
-    event LogSetAffiliateAddress(
-        uint256 indexed blockNumber,
-        address affilateAddress
-    );
-    event LogSetAffiliateFee(uint256 indexed blockNumber, uint256 fee);
-
+    event LogSetEpochDuration(uint256 duration);
+    event LogSetWarmUpPeriod(uint256 period);
+    event LogSetCoolDownPeriod(uint256 period);
+    event LogSetPauseStaking(bool shouldPause);
+    event LogSetPauseUnstaking(bool shouldPause);
+    event LogSetPauseInstantUnstaking(bool shouldPause);
+    event LogSetAffiliateAddress(address affiliateAddress);
+    event LogSetAffiliateFee(uint256 fee);
     event LogSetCurvePool(address indexed curvePool, int128 to, int128 from);
     event LogSetTotalSupplyLimit(uint256 totalSupplyLimit);
 
@@ -175,7 +168,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
         affiliateFee = _affiliateFee;
-        emit LogSetAffiliateFee(block.number, _affiliateFee);
+        emit LogSetAffiliateFee(_affiliateFee);
     }
 
     /**
@@ -196,7 +189,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateAddress(address _affiliateAddress) external onlyOwner {
         FEE_ADDRESS = _affiliateAddress;
-        emit LogSetAffiliateAddress(block.number, _affiliateAddress);
+        emit LogSetAffiliateAddress(_affiliateAddress);
     }
 
     /**
@@ -206,7 +199,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseStaking(bool _shouldPause) public onlyOwner {
         isStakingPaused = _shouldPause;
-        emit LogSetPauseStaking(block.number, _shouldPause);
+        emit LogSetPauseStaking(_shouldPause);
     }
 
     /**
@@ -216,7 +209,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         isUnstakingPaused = _shouldPause;
-        emit LogSetPauseUnstaking(block.number, _shouldPause);
+        emit LogSetPauseUnstaking(_shouldPause);
     }
 
     /**
@@ -226,7 +219,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseInstantUnstaking(bool _shouldPause) external onlyOwner {
         isInstantUnstakingPaused = _shouldPause;
-        emit LogSetPauseInstantUnstaking(block.number, _shouldPause);
+        emit LogSetPauseInstantUnstaking(_shouldPause);
     }
 
     /**
@@ -236,7 +229,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setEpochDuration(uint256 duration) external onlyOwner {
         epoch.duration = duration;
-        emit LogSetEpochDuration(block.number, duration);
+        emit LogSetEpochDuration(duration);
     }
 
     /**
@@ -246,7 +239,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
         require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
         warmUpPeriod = _vestingPeriod;
-        emit LogSetWarmUpPeriod(block.number, _vestingPeriod);
+        emit LogSetWarmUpPeriod(_vestingPeriod);
     }
 
     /**
@@ -256,7 +249,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
         require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
         coolDownPeriod = _vestingPeriod;
-        emit LogSetCoolDownPeriod(block.number, _vestingPeriod);
+        emit LogSetCoolDownPeriod(_vestingPeriod);
     }
 
     /**
