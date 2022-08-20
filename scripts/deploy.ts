@@ -25,7 +25,6 @@ async function main() {
     "Fox Yieldy",
     "FOXy",
     18,
-    500000000,
   ]);
   await yieldy.deployed();
   console.info("Yieldy deployed to:", yieldy.address);
@@ -52,11 +51,12 @@ async function main() {
     epochLength,
     firstEpochEndTime,
   ]);
-  console.info("Staking deployed to:", staking.address);
   await staking.deployed();
+  console.info("Staking deployed to:", staking.address);
 
-  await liquidityReserve.enableLiquidityReserve(staking.address);
-  await yieldy.initializeStakingContract(staking.address);
+  //  TODO: after deploy
+  //  await liquidityReserve.enableLiquidityReserve(staking.address);
+  //  await yieldy.initializeStakingContract(staking.address);
 }
 
 main()
