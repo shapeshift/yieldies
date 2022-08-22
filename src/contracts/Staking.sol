@@ -20,22 +20,16 @@ contract Staking is OwnableUpgradeable, StakingStorage {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-    event LogSetEpochDuration(uint256 indexed blockNumber, uint256 duration);
-    event LogSetWarmUpPeriod(uint256 indexed blockNumber, uint256 period);
-    event LogSetCoolDownPeriod(uint256 indexed blockNumber, uint256 period);
-    event LogSetPauseStaking(uint256 indexed blockNumber, bool shouldPause);
-    event LogSetPauseUnstaking(uint256 indexed blockNumber, bool shouldPause);
-    event LogSetPauseInstantUnstaking(
-        uint256 indexed blockNumber,
-        bool shouldPause
-    );
-    event LogSetAffiliateAddress(
-        uint256 indexed blockNumber,
-        address affilateAddress
-    );
-    event LogSetAffiliateFee(uint256 indexed blockNumber, uint256 fee);
-
+    event LogSetEpochDuration(uint256 duration);
+    event LogSetWarmUpPeriod(uint256 period);
+    event LogSetCoolDownPeriod(uint256 period);
+    event LogSetPauseStaking(bool shouldPause);
+    event LogSetPauseUnstaking(bool shouldPause);
+    event LogSetPauseInstantUnstaking(bool shouldPause);
+    event LogSetAffiliateAddress(address affiliateAddress);
+    event LogSetAffiliateFee(uint256 fee);
     event LogSetCurvePool(address indexed curvePool, int128 to, int128 from);
+    event LogSetTotalSupplyLimit(uint256 totalSupplyLimit);
 
     function initialize(
         address _stakingToken,
@@ -48,7 +42,8 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         address _feeAddress,
         address _curvePool,
         uint256 _epochDuration,
-        uint256 _firstEpochEndTime
+        uint256 _firstEpochEndTime,
+        uint256 _totalSupplyLimit
     ) external initializer {
         OwnableUpgradeable.__Ownable_init();
 
@@ -100,6 +95,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
             endTime: _firstEpochEndTime,
             distribute: 0
         });
+        totalSupplyLimit = _totalSupplyLimit;
     }
 
     /**
@@ -172,7 +168,18 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateFee(uint256 _affiliateFee) external onlyOwner {
         affiliateFee = _affiliateFee;
-        emit LogSetAffiliateFee(block.number, _affiliateFee);
+        emit LogSetAffiliateFee(_affiliateFee);
+    }
+
+    /**
+        @notice sets a limit to the amount of staking that can occur to allow for a guarded 
+        launch. This only applies to staking and will disable new stakers based on the total supply
+        of the paired Yieldy token. 
+        @param _totalSupplyLimit uint can be set to uint256.max to disable limits. 
+    */
+    function setTotalSupplyLimit(uint256 _totalSupplyLimit) external onlyOwner {
+        totalSupplyLimit = _totalSupplyLimit;
+        emit LogSetTotalSupplyLimit(_totalSupplyLimit);
     }
 
     /**
@@ -182,7 +189,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function setAffiliateAddress(address _affiliateAddress) external onlyOwner {
         FEE_ADDRESS = _affiliateAddress;
-        emit LogSetAffiliateAddress(block.number, _affiliateAddress);
+        emit LogSetAffiliateAddress(_affiliateAddress);
     }
 
     /**
@@ -192,7 +199,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseStaking(bool _shouldPause) public onlyOwner {
         isStakingPaused = _shouldPause;
-        emit LogSetPauseStaking(block.number, _shouldPause);
+        emit LogSetPauseStaking(_shouldPause);
     }
 
     /**
@@ -202,7 +209,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseUnstaking(bool _shouldPause) external onlyOwner {
         isUnstakingPaused = _shouldPause;
-        emit LogSetPauseUnstaking(block.number, _shouldPause);
+        emit LogSetPauseUnstaking(_shouldPause);
     }
 
     /**
@@ -212,17 +219,17 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      */
     function shouldPauseInstantUnstaking(bool _shouldPause) external onlyOwner {
         isInstantUnstakingPaused = _shouldPause;
-        emit LogSetPauseInstantUnstaking(block.number, _shouldPause);
+        emit LogSetPauseInstantUnstaking(_shouldPause);
     }
 
     /**
         @notice set epoch duration
         @dev epoch's determine how long until a rebase can occur
-        @param duration uint
+        @param _duration uint
      */
-    function setEpochDuration(uint256 duration) external onlyOwner {
-        epoch.duration = duration;
-        emit LogSetEpochDuration(block.number, duration);
+    function setEpochDuration(uint256 _duration) external onlyOwner {
+        epoch.duration = _duration;
+        emit LogSetEpochDuration(_duration);
     }
 
     /**
@@ -230,9 +237,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setWarmUpPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(
+            _vestingPeriod <= MAX_VESTING_PERIOD,
+            "Vesting Period too large"
+        );
         warmUpPeriod = _vestingPeriod;
-        emit LogSetWarmUpPeriod(block.number, _vestingPeriod);
+        emit LogSetWarmUpPeriod(_vestingPeriod);
     }
 
     /**
@@ -240,9 +250,12 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @param _vestingPeriod uint
      */
     function setCoolDownPeriod(uint256 _vestingPeriod) external onlyOwner {
-        require(_vestingPeriod < MAX_VESTING_PERIOD, "Vesting Period too large");
+        require(
+            _vestingPeriod <= MAX_VESTING_PERIOD,
+            "Vesting Period too large"
+        );
         coolDownPeriod = _vestingPeriod;
-        emit LogSetCoolDownPeriod(block.number, _vestingPeriod);
+        emit LogSetCoolDownPeriod(_vestingPeriod);
     }
 
     /**
@@ -427,6 +440,10 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         require(_amount > 0, "Must have valid amount");
 
         uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
+        require(
+            yieldyTotalSupply + _amount <= totalSupplyLimit,
+            "Over total supply limit"
+        );
 
         // Don't rebase unless tokens are already staked or could get locked out of staking
         if (yieldyTotalSupply > 0) {
@@ -804,7 +821,7 @@ contract Staking is OwnableUpgradeable, StakingStorage {
      * @notice trades rewards generated from claimFromTokemak for staking token
      * @dev this is function is called from claimFromTokemak if the autoRebase bool is set to true
      */
-    function preSign(bytes calldata orderUid) external onlyOwner {
-        ICowSettlement(COW_SETTLEMENT).setPreSignature(orderUid, true);
+    function preSign(bytes calldata _orderUid) external onlyOwner {
+        ICowSettlement(COW_SETTLEMENT).setPreSignature(_orderUid, true);
     }
 }

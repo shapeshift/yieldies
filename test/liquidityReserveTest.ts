@@ -93,6 +93,7 @@ describe("Liquidity Reserve", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     await network.provider.request({

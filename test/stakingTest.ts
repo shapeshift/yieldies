@@ -121,6 +121,7 @@ describe("Staking", function () {
       constants.CURVE_POOL,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     const tokeManagerAddress = await tokePool.manager();
@@ -424,6 +425,7 @@ describe("Staking", function () {
         ethers.constants.AddressZero,
         constants.EPOCH_DURATION,
         firstEpochEndTime,
+        ethers.constants.MaxUint256, // unlimited staking enabled.
       ])) as Staking;
 
       await network.provider.request({
@@ -2659,11 +2661,11 @@ describe("Staking", function () {
       await stakingAdmin.shouldPauseStaking(true);
       await stakingAdmin.shouldPauseUnstaking(true);
 
-      await expect(stakingAdmin.setCoolDownPeriod(11)).to.be.revertedWith(
+      await expect(stakingAdmin.setCoolDownPeriod(12)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
-      await expect(stakingAdmin.setWarmUpPeriod(11)).to.be.revertedWith(
+      await expect(stakingAdmin.setWarmUpPeriod(12)).to.be.revertedWith(
         "Vesting Period too large"
       );
 
@@ -2671,7 +2673,7 @@ describe("Staking", function () {
 
       await stakingAdmin.setTimeLeftToRequestWithdrawal(10);
       const timeLeftToRequest = await staking.timeLeftToRequestWithdrawal();
-      await expect(timeLeftToRequest).eq(10);
+      expect(timeLeftToRequest).eq(10);
 
       // transfer STAKING_TOKEN to staker 1
       const transferAmount = BigNumber.from("10000");
@@ -2771,6 +2773,7 @@ describe("Staking", function () {
       );
       expect(requestedWithdrawals.amount).eq(tokeBalance);
     });
+
     it("Emergency exit is working", async () => {
       const { staker1, staker2, staker3 } = await getNamedAccounts();
 
@@ -2894,6 +2897,71 @@ describe("Staking", function () {
 
       stakingTokenBalance = await stakingToken.balanceOf(staker3);
       expect(stakingTokenBalance).eq(stakingAmount3);
+    });
+  });
+
+  describe("totalSupplyLimit", () => {
+    it("is correctly set on initial deploy", async () => {
+      const initialValue = await staking.totalSupplyLimit();
+      expect(initialValue).to.be.equal(ethers.constants.MaxUint256);
+    });
+
+    it("can only be set by the owner", async () => {
+      const { admin, staker1 } = await getNamedAccounts();
+      const adminSigner = accounts.find((account) => account.address === admin);
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingWAdminSigner = staking.connect(adminSigner as Signer);
+      const stakingWRandoSigner = staking.connect(staker1Signer as Signer);
+      await expect(
+        stakingWRandoSigner.setTotalSupplyLimit(5000)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await stakingWAdminSigner.setTotalSupplyLimit(5000); // should not revert
+    });
+
+    it("emits an event when set", async () => {
+      const { admin } = await getNamedAccounts();
+      const adminSigner = accounts.find((account) => account.address === admin);
+      const stakingWAdminSigner = staking.connect(adminSigner as Signer);
+      await expect(stakingWAdminSigner.setTotalSupplyLimit(5000))
+        .to.emit(staking, "LogSetTotalSupplyLimit")
+        .withArgs(5000);
+    });
+
+    it("limits staking correctly when set with no total supply", async () => {
+      const { admin, staker1 } = await getNamedAccounts();
+      const adminSigner = accounts.find((account) => account.address === admin);
+      const staker1Signer = accounts.find(
+        (account) => account.address === staker1
+      );
+      const stakingWAdminSigner = staking.connect(adminSigner as Signer);
+      const stakingWStakerSigner = staking.connect(staker1Signer as Signer);
+
+      // transfer STAKING_TOKEN to staker 1
+      const transferAmount = BigNumber.from("20000");
+      await stakingToken.transfer(staker1, transferAmount);
+      const stakingAmount = transferAmount.div(2);
+      const stakingTokenWStakerSigner = stakingToken.connect(
+        staker1Signer as Signer
+      );
+      await stakingTokenWStakerSigner.approve(staking.address, transferAmount);
+
+      await stakingWAdminSigner.setTotalSupplyLimit(stakingAmount.sub(1));
+      // fails due to staking being paused
+      await expect(
+        stakingWStakerSigner.functions["stake(uint256)"](stakingAmount)
+      ).to.be.revertedWith("Over total supply limit");
+
+      await stakingWAdminSigner.setTotalSupplyLimit(stakingAmount);
+      await stakingWStakerSigner.functions["stake(uint256)"](stakingAmount);
+      // should fail now that we will be over the limit
+      await expect(
+        stakingWStakerSigner.functions["stake(uint256)"](stakingAmount)
+      ).to.be.revertedWith("Over total supply limit");
+
+      await stakingWAdminSigner.setTotalSupplyLimit(transferAmount); // increase limit
+      await stakingWStakerSigner.functions["stake(uint256)"](stakingAmount);
     });
   });
 });

@@ -13,6 +13,7 @@ async function main() {
   const currentBlockNumber = await ethers.provider.getBlockNumber();
   const currentBlock = await ethers.provider.getBlock(currentBlockNumber);
   const firstEpochEndTime = currentBlock.timestamp + epochLength;
+  const totalSupplyLimit = ethers.constants.MaxUint256;
 
   const Staking = await ethers.getContractFactory("Staking");
   const yieldyDeployment = await ethers.getContractFactory("Yieldy");
@@ -50,6 +51,7 @@ async function main() {
     curvePool,
     epochLength,
     firstEpochEndTime,
+    totalSupplyLimit,
   ]);
   await staking.deployed();
   console.info("Staking deployed to:", staking.address);

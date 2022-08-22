@@ -106,6 +106,7 @@ describe("Integration", function () {
       ethers.constants.AddressZero,
       constants.EPOCH_DURATION,
       firstEpochEndTime,
+      ethers.constants.MaxUint256, // unlimited staking enabled.
     ])) as Staking;
 
     const tokeManagerAddress = await tokePool.manager();
