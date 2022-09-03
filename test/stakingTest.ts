@@ -569,7 +569,10 @@ describe("Staking", function () {
 
       // can't stake to other addresses with warmup period
       await expect(
-        stakingStaker1.functions["stake(uint256,address)"](stakingAmount, staking.address)
+        stakingStaker1.functions["stake(uint256,address)"](
+          stakingAmount,
+          staking.address
+        )
       ).to.be.revertedWith("Can't stake for someone else with warmup");
 
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
