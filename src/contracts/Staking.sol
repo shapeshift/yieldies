@@ -439,6 +439,11 @@ contract Staking is OwnableUpgradeable, StakingStorage {
         // amount must be non zero
         require(_amount > 0, "Must have valid amount");
 
+        if (warmUpPeriod > 0) {
+            // can't stake for someone else if contract is using warmUp period
+            require(_recipient == msg.sender, "Can't stake for someone else with warmup");
+        }
+
         uint256 yieldyTotalSupply = IYieldy(YIELDY_TOKEN).totalSupply();
         require(
             yieldyTotalSupply + _amount <= totalSupplyLimit,
