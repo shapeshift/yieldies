@@ -566,6 +566,15 @@ describe("Staking", function () {
       const stakingAmount = transferAmount;
       const stakingTokenStaker1 = stakingToken.connect(staker1Signer as Signer);
       await stakingTokenStaker1.approve(staking.address, stakingAmount);
+
+      // can't stake to other addresses with warmup period
+      await expect(
+        stakingStaker1.functions["stake(uint256,address)"](
+          stakingAmount,
+          staking.address
+        )
+      ).to.be.revertedWith("Can't stake for someone else with warmup");
+
       await stakingStaker1.functions["stake(uint256)"](stakingAmount);
 
       // balance should still be zero, until we claim the rewardToken.
